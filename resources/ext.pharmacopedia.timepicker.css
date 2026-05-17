@@ -1,0 +1,34 @@
+/*!
+ * Pharmacopedia TimePicker styles — matches the DatePicker visual idiom:
+ * mono input, faint preview text below, red ".bad" state for unparseable.
+ */
+.pcp-time-input {
+    display: inline-block;
+    vertical-align: middle;
+}
+.pcp-time-input .pcp-time-text {
+    padding: 0.35em 0.55em;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 1em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    min-width: 9em;
+    background: #fff;
+    color: #222;
+}
+.pcp-time-input .pcp-time-text:focus {
+    outline: none;
+    border-color: #5d3b8e;
+    box-shadow: 0 0 0 2px rgba(93, 59, 142, 0.2);
+}
+.pcp-time-input .pcp-time-preview {
+    font-size: 0.85em;
+    color: #5d3b8e;
+    margin-top: 0.25em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    min-height: 1em;
+}
+.pcp-time-input .pcp-time-preview.bad {
+    color: #c0392b;
+    font-style: italic;
+}

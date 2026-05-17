@@ -1,0 +1,254 @@
+/*!
+ * Quick-add observation styles.
+ */
+.pcp-obs-quickadd {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    padding: 1em;
+    margin: 0 0 1.2em;
+}
+.pcp-obs-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    padding: 0.6em 0.8em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1em;
+    min-height: 3em;
+    resize: vertical;
+}
+.pcp-obs-input:focus {
+    outline: none;
+    border-color: #b599e0;
+    box-shadow: 0 0 0 2px rgba(181, 153, 224, 0.3);
+}
+.pcp-obs-input::placeholder { color: #888; font-style: italic; }
+
+.pcp-obs-preview { margin: 0.7em 0; min-height: 1.5em; }
+.pcp-obs-pv {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+    align-items: center;
+    padding: 0.5em;
+    background: #2a2a2a;
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+.pcp-obs-pv-badge {
+    padding: 0.15em 0.5em;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85em;
+}
+.pcp-obs-pv-pos { background: #1e5128; color: #d4f0d6; }
+.pcp-obs-pv-neg { background: #5e1e1e; color: #f3d4d4; }
+.pcp-obs-pv-unknown { background: #444; color: #ddd; }
+
+.pcp-obs-pv-subject {
+    font-weight: 700;
+    color: #fff;
+}
+.pcp-obs-pv-ref {
+    padding: 0.15em 0.5em;
+    border-radius: 12px;
+    font-size: 0.85em;
+}
+.pcp-obs-pv-ref.matched   { background: #5d3b8e; color: #fff; }
+.pcp-obs-pv-ref.unmatched { background: #444; color: #ccc; border: 1px dashed #888; }
+.pcp-obs-pv-ref-role { font-style: italic; opacity: 0.85; }
+.pcp-obs-pv-ref-type {
+    font-size: 0.78em;
+    opacity: 0.7;
+}
+.pcp-obs-pv-date {
+    color: #b599e0;
+    margin-left: auto;
+    font-style: italic;
+}
+.pcp-obs-pv-conf {
+    margin-left: 0.5em;
+    padding: 0.1em 0.5em;
+    border-radius: 12px;
+    font-size: 0.75em;
+}
+.pcp-obs-pv-conf-high   { background: #1e5128; color: #d4f0d6; }
+.pcp-obs-pv-conf-medium { background: #5d3b8e; color: #fff; }
+.pcp-obs-pv-conf-low    { background: #444; color: #ccc; }
+
+.pcp-obs-pv-warnings {
+    width: 100%;
+    margin-top: 0.4em;
+    font-size: 0.85em;
+    color: #f3d4d4;
+}
+
+.pcp-obs-submit {
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #4a2e72;
+    border-radius: 4px;
+    padding: 0.5em 1.2em;
+    font-size: 0.95em;
+    cursor: pointer;
+}
+.pcp-obs-submit:hover { background: #4a2e72; }
+.pcp-obs-submit:disabled { opacity: 0.6; cursor: progress; }
+
+/* When observation appears in the rendered timeline */
+.pcp-event-observation .pcp-event-type-badge { background: #5d3b8e; }
+.pcp-obs-polarity-neg { color: #f3d4d4; font-weight: 700; }
+.pcp-obs-polarity-pos { color: #d4f0d6; font-weight: 700; }
+.pcp-obs-refchip {
+    display: inline-block;
+    margin: 0.1em 0.2em;
+    padding: 0.1em 0.5em;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 12px;
+    font-size: 0.85em;
+}
+.pcp-obs-refchip.unmatched { border-style: dashed; opacity: 0.75; }
+
+/* Timeline observation card */
+.pcp-life-type-observation { border-left: 4px solid #5d3b8e; }
+.pcp-life-obs-refs {
+    margin: 0.4em 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em;
+}
+.pcp-obs-refchip a { color: #fff; text-decoration: underline; }
+.pcp-obs-refchip a:hover { color: #b599e0; }
+.pcp-obs-reftype { opacity: 0.6; font-size: 0.8em; }
+.pcp-life-obs-raw {
+    margin-top: 0.4em;
+    font-size: 0.85em;
+    color: #888;
+}
+
+
+/* Episodes */
+.pcp-life-nav {
+    margin: 0 0 1em;
+    display: flex;
+    gap: 0.5em;
+}
+.pcp-life-type-episode {
+    border-left: 4px solid #c4b5fd;
+}
+.pcp-ep-type-line {
+    margin: 0.3em 0;
+    color: #c4b5fd;
+    font-weight: 700;
+    text-transform: lowercase;
+}
+.pcp-ep-severity-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0.3em 0;
+    font-size: 0.9em;
+}
+.pcp-ep-severity-bar {
+    flex: 1;
+    height: 0.5em;
+    background: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 240px;
+}
+.pcp-ep-severity-bar > div {
+    height: 100%;
+    background: linear-gradient(90deg, #5d3b8e, #c4b5fd);
+}
+
+/* Episode form layout */
+.pcp-episode-form { max-width: 720px; }
+.pcp-episode-form .pcp-form-row { margin: 0.7em 0; }
+.pcp-episode-form label { display: block; font-weight: 700; margin-bottom: 0.2em; color: #c4b5fd; }
+.pcp-episode-form input[type=text],
+.pcp-episode-form input[type=number],
+.pcp-episode-form select,
+.pcp-episode-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    padding: 0.5em;
+    font-size: 0.95em;
+}
+.pcp-episode-form input[type=range] { width: 80%; vertical-align: middle; }
+.pcp-episode-form output { display: inline-block; padding: 0 0.5em; color: #c4b5fd; font-weight: 700; min-width: 2.5em; }
+
+
+/* Unified add-to-timeline selector */
+.pcp-life-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0 0 1em;
+    padding: 0.5em 0.7em;
+    background: #2a2a2a;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+}
+.pcp-life-nav-label { color: #c4b5fd; font-weight: 700; }
+.pcp-life-add-select {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    padding: 0.4em 0.7em;
+    font-size: 0.95em;
+    cursor: pointer;
+}
+.pcp-life-add-select:focus {
+    outline: none;
+    border-color: #b599e0;
+    box-shadow: 0 0 0 2px rgba(181, 153, 224, 0.3);
+}
+
+
+/* Pretty side-by-side Event / Episode buttons */
+.pcp-life-add-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8em;
+    margin: 0 0 1.2em;
+}
+.pcp-life-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.1em 0.6em;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    text-decoration: none !important;
+    transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+    text-align: center;
+}
+.pcp-life-btn:hover {
+    background: #2a2a2a;
+    border-color: #b599e0;
+    transform: translateY(-1px);
+    color: #fff;
+    text-decoration: none !important;
+}
+.pcp-life-btn:active { transform: translateY(0); }
+.pcp-life-btn-icon { font-size: 1.6em; line-height: 1; margin-bottom: 0.25em; }
+.pcp-life-btn-main { font-size: 1.1em; font-weight: 700; color: #fff; }
+.pcp-life-btn-sub  { font-size: 0.82em; color: #b599e0; margin-top: 0.15em; font-style: italic; }
+.pcp-life-btn-episode { border-color: #c4b5fd; }
+.pcp-life-btn-episode:hover { background: linear-gradient(135deg, #2a1f47, #1a1a1a); border-color: #ddd3fa; }

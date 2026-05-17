@@ -1,0 +1,274 @@
+/*!
+ * Pharmacopedia share dialog + Special:MyCohorts styles.
+ * Palette: black / dark-grey / purple / white per project palette doctrine.
+ */
+
+/* Trigger chip — sits inline next to section titles */
+.pcp-share-trigger {
+    display: inline-block;
+    margin-left: 0.5em;
+    padding: 0.15em 0.6em;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 12px;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-decoration: none;
+    vertical-align: middle;
+}
+.pcp-share-trigger:hover {
+    background: #5d3b8e;
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Modal */
+.pcp-share-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pcp-share-modal {
+    background: #fff;
+    color: #222;
+    width: 560px;
+    max-width: 92vw;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 2px solid #5d3b8e;
+}
+.pcp-share-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8em 1.2em;
+    background: #2a2a2a;
+    color: #fff;
+    border-bottom: 1px solid #5d3b8e;
+}
+.pcp-share-header h2 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #fff;
+    border: none;
+    padding: 0;
+}
+.pcp-share-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.6em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.3em;
+}
+.pcp-share-close:hover { color: #b599e0; }
+
+.pcp-share-tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    background: #f7f5fa;
+}
+.pcp-share-tab {
+    flex: 1;
+    padding: 0.7em 1em;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 1em;
+    color: #444;
+}
+.pcp-share-tab.active {
+    color: #5d3b8e;
+    border-bottom-color: #5d3b8e;
+    font-weight: bold;
+    background: #fff;
+}
+.pcp-share-tab:hover { background: #ece4f5; }
+
+.pcp-share-body { padding: 1em 1.2em; }
+.pcp-share-pane { display: none; }
+.pcp-share-pane.active { display: block; }
+.pcp-share-help { color: #666; font-size: 0.9em; margin-top: 0; }
+.pcp-share-empty { color: #888; font-style: italic; }
+.pcp-loading { color: #888; }
+
+.pcp-share-people-search { position: relative; margin: 0.5em 0 1em; }
+.pcp-share-people-input,
+.pcp-share-link-maxuses,
+.pcp-share-link-expires,
+.pcp-share-cohort-select,
+.pcp-cohort-new-name,
+.pcp-cohort-new-desc,
+.pcp-cohort-add-name {
+    padding: 0.4em 0.6em;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 1em;
+}
+.pcp-share-people-input { width: 100%; box-sizing: border-box; }
+.pcp-share-people-suggest {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+}
+.pcp-share-suggest-item {
+    padding: 0.4em 0.6em;
+    cursor: pointer;
+}
+.pcp-share-suggest-item:hover { background: #ece4f5; color: #5d3b8e; }
+
+.pcp-share-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.5em 0;
+    border-bottom: 1px dashed #ddd;
+}
+.pcp-share-rule:last-child { border-bottom: none; }
+.pcp-share-rule-label { flex: 1; }
+.pcp-share-link-url { flex: 1; font-family: monospace; font-size: 0.85em; padding: 0.3em; }
+.pcp-share-meta { color: #666; font-size: 0.85em; }
+
+.pcp-btn {
+    padding: 0.35em 0.9em;
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #4a2e72;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.pcp-btn:hover { background: #4a2e72; }
+.pcp-btn-danger { background: #8e3b3b; border-color: #722e2e; }
+.pcp-btn-danger:hover { background: #722e2e; }
+
+.pcp-share-link-create,
+.pcp-share-cohort-pick,
+.pcp-cohort-create,
+.pcp-cohort-add-member {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: center;
+    margin: 0.5em 0 1em;
+}
+.pcp-share-link-create label,
+.pcp-share-cohort-pick label { font-size: 0.9em; color: #444; }
+
+/* Special:MyCohorts */
+.pcp-mycohorts { max-width: 760px; }
+.pcp-cohort-item {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.8em 1em;
+    margin: 0.8em 0;
+    background: #fafafa;
+}
+.pcp-cohort-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.3em;
+}
+.pcp-cohort-head strong { color: #5d3b8e; font-size: 1.05em; }
+.pcp-cohort-count { color: #777; font-size: 0.9em; flex: 1; }
+.pcp-cohort-desc { color: #555; font-size: 0.9em; margin: 0.2em 0 0.6em; }
+.pcp-cohort-member {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.3em 0;
+}
+.pcp-cohort-member span { flex: 1; }
+
+/* Per-user share chips inside a users-type rule row */
+.pcp-share-users-rule { flex-direction: row; align-items: flex-start; }
+.pcp-share-user-chips { flex: 1; display: flex; flex-wrap: wrap; gap: 0.35em; align-items: center; }
+.pcp-share-user-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #ece4f5;
+    color: #2a2a2a;
+    border: 1px solid #b599e0;
+    border-radius: 14px;
+    padding: 0.1em 0.2em 0.1em 0.7em;
+    font-size: 0.9em;
+}
+.pcp-share-user-name { margin-right: 0.35em; }
+.pcp-share-user-x {
+    background: transparent;
+    border: none;
+    color: #5d3b8e;
+    font-size: 1.15em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.35em;
+    border-radius: 50%;
+}
+.pcp-share-user-x:hover { background: #5d3b8e; color: #fff; }
+
+.pcp-share-suggest-item.pcp-share-suggest-active { background: #5d3b8e; color: #fff; }
+
+/* Rule-options row above the picker on each tab (expires datepicker) */
+.pcp-share-rule-opts {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    flex-wrap: wrap;
+    margin-bottom: 0.8em;
+    padding: 0.5em;
+    background: #f7f5fa;
+    border-radius: 4px;
+}
+.pcp-share-rule-opts label { font-size: 0.9em; color: #555; }
+
+/* Reciprocal toggle */
+.pcp-share-reciprocal-toggle { margin-top: 1em; }
+.pcp-share-reciprocal-toggle label {
+    display: flex;
+    gap: 0.5em;
+    align-items: flex-start;
+    cursor: pointer;
+}
+.pcp-share-reciprocal-toggle input[type=checkbox] { margin-top: 0.2em; }
+.pcp-share-reciprocal-note {
+    margin: 0.3em 0 0 1.6em;
+    font-size: 0.85em;
+    color: #666;
+}
+
+/* Audit log table */
+.pcp-sharelog { width: 100%; border-collapse: collapse; }
+.pcp-sharelog th, .pcp-sharelog td { padding: 0.4em 0.6em; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+.pcp-sharelog th { background: #5d3b8e; color: #fff; }
+.pcp-sharelog tr:nth-child(even) td { background: #fafafa; }
+.pcp-sharelog em { color: #888; }
+
+/* Phase 6: link-copied toast */
+.pcp-share-toast {
+    position: absolute;
+    bottom: 1em;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2a2a2a;
+    color: #fff;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 0.95em;
+    z-index: 1001;
+}

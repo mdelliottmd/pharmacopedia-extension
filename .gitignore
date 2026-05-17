@@ -1,0 +1,35 @@
+# Pharmacopedia extension — Git ignore rules
+
+# Backup files (Pharmacopedia rollback convention: *.pre-NAME, *.bak.NAME)
+*.pre-*
+*.bak*
+*.orig
+*~
+
+# Dependencies — keep resources/vendor/ (vendored JS libs with own LICENSE)
+# but exclude any root-level vendor/ (e.g. composer) and node_modules anywhere.
+/vendor/
+node_modules/
+
+# Build / cache / logs
+/build/
+/dist/
+/cache/
+*.log
+
+# Local config / env (defensive — none currently in repo, but never let one slip in)
+.env
+.env.*
+*.local.json
+*.local.php
+LocalSettings*.php
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
+__pycache__/

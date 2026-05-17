@@ -1,0 +1,312 @@
+{
+  "name": "Pharmacopedia",
+  "version": "0.9.2",
+  "author": [
+    "MDElliottMD"
+  ],
+  "url": "https://pharmacopedia.wiki",
+  "descriptionmsg": "pharmacopedia-desc",
+  "license-name": "GPL-3.0-or-later",
+  "type": "other",
+  "requires": {
+    "MediaWiki": ">=1.45.0"
+  },
+  "MessagesDirs": {
+    "Pharmacopedia": [
+      "i18n"
+    ]
+  },
+  "AutoloadNamespaces": {
+    "MediaWiki\\Extension\\Pharmacopedia\\": "includes/",
+    "MediaWiki\\Extension\\Pharmacopedia\\Assessments\\": "includes/Assessments/"
+  },
+  "Hooks": {
+    "ParserFirstCallInit": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onParserFirstCallInit",
+    "LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onLoadExtensionSchemaUpdates",
+    "BeforeCreateEchoEvent": "MediaWiki\\Extension\\Pharmacopedia\\FeatureRequestNotifier::onBeforeCreateEchoEvent"
+  },
+  "APIModules": {
+    "pharmacopediavote": "MediaWiki\\Extension\\Pharmacopedia\\Api\\VoteApi",
+    "pharmacopediaeffect": "MediaWiki\\Extension\\Pharmacopedia\\Api\\EffectApi",
+    "pharmacopediacomment": "MediaWiki\\Extension\\Pharmacopedia\\Api\\CommentApi",
+    "pharmacopediaeffectslookup": "MediaWiki\\Extension\\Pharmacopedia\\Api\\EffectsLookupApi",
+    "pharmacopedialikert": "MediaWiki\\Extension\\Pharmacopedia\\Api\\LikertApi",
+    "pharmacopediainteractionsearch": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionSearchApi",
+    "pharmacopediainteractionadd": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionAddApi",
+    "pharmacopediainteractionreport": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionReportApi",
+    "pharmacopediainteractiondelete": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionDeleteApi",
+    "pharmacopediaexperiencesubmit": "MediaWiki\\Extension\\Pharmacopedia\\Api\\ExperienceSubmitApi",
+    "pharmacopedialiteraturesubmit": "MediaWiki\\Extension\\Pharmacopedia\\Api\\LiteratureSubmitApi",
+    "pharmacopedialiteraturedelete": "MediaWiki\\Extension\\Pharmacopedia\\Api\\LiteratureDeleteApi",
+    "pharmacopediadxsearch": "MediaWiki\\Extension\\Pharmacopedia\\Api\\DiagnosisSearchApi",
+    "pharmacopediamedsearch": "MediaWiki\\Extension\\Pharmacopedia\\Api\\MedSearchApi",
+    "pharmacopediaproblemsearch": "MediaWiki\\Extension\\Pharmacopedia\\Api\\ProblemSearchApi",
+    "pharmacopediafrupdate": "MediaWiki\\Extension\\Pharmacopedia\\Api\\FeatureRequestUpdateApi",
+    "pharmacopediavisrules": "MediaWiki\\Extension\\Pharmacopedia\\Api\\VisibilityRulesApi",
+    "pharmacopediausersearch": "MediaWiki\\Extension\\Pharmacopedia\\Api\\UserSearchApi",
+    "pharmacopediacohorts": "MediaWiki\\Extension\\Pharmacopedia\\Api\\CohortsApi",
+    "pharmacopediaobservation": "MediaWiki\\Extension\\Pharmacopedia\\Api\\ObservationApi"
+  },
+  "SpecialPages": {
+    "PharmacopediaActivity": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPharmacopediaActivity",
+    "VerifyProvider": "MediaWiki\\Extension\\Pharmacopedia\\SpecialVerifyProvider",
+    "ProviderApplications": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProviderApplications",
+    "VerificationDoc": "MediaWiki\\Extension\\Pharmacopedia\\SpecialVerificationDoc",
+    "SuggestTitration": "MediaWiki\\Extension\\Pharmacopedia\\SpecialSuggestTitration",
+    "SuggestEffect": "MediaWiki\\Extension\\Pharmacopedia\\SpecialSuggestEffect",
+    "SuggestAnecdote": "MediaWiki\\Extension\\Pharmacopedia\\SpecialSuggestAnecdote",
+    "DeletePharmaElement": "MediaWiki\\Extension\\Pharmacopedia\\SpecialDeletePharmaElement",
+    "ManageEffects": "MediaWiki\\Extension\\Pharmacopedia\\SpecialManageEffects",
+    "AdminCtrls": "MediaWiki\\Extension\\Pharmacopedia\\SpecialAdminCtrls",
+    "ManageInteractions": "MediaWiki\\Extension\\Pharmacopedia\\SpecialManageInteractions",
+    "NewUsers": "MediaWiki\\Extension\\Pharmacopedia\\SpecialNewUsers",
+    "ReviewExperience": "MediaWiki\\Extension\\Pharmacopedia\\SpecialReviewExperience",
+    "PCPCtrls": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPCPCtrls",
+    "LiteratureQueue": "MediaWiki\\Extension\\Pharmacopedia\\SpecialLiteratureQueue",
+    "LiteratureDoc": "MediaWiki\\Extension\\Pharmacopedia\\SpecialLiteratureDoc",
+    "MyProfile": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyProfile",
+    "UserProfile": "MediaWiki\\Extension\\Pharmacopedia\\SpecialUserProfile",
+    "ProfileAnalysis": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProfileAnalysis",
+    "ProfileFilter": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProfileFilter",
+    "TakeAssessment": "MediaWiki\\Extension\\Pharmacopedia\\SpecialTakeAssessment",
+    "MyLifeStory": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyLifeStory",
+    "LifeStory": "MediaWiki\\Extension\\Pharmacopedia\\SpecialLifeStory",
+    "LifeImage": "MediaWiki\\Extension\\Pharmacopedia\\SpecialLifeImage",
+    "DatePickerTest": "MediaWiki\\Extension\\Pharmacopedia\\SpecialDatePickerTest",
+    "SaveProfileBlock": "MediaWiki\\Extension\\Pharmacopedia\\SpecialSaveProfileBlock",
+    "SuggestProblem": "MediaWiki\\Extension\\Pharmacopedia\\SpecialSuggestProblem",
+    "ManageProblems": "MediaWiki\\Extension\\Pharmacopedia\\SpecialManageProblems",
+    "Problem": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProblem",
+    "Problems": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProblems",
+    "MyAssessment": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyAssessment",
+    "FeatureRequests": "MediaWiki\\Extension\\Pharmacopedia\\SpecialFeatureRequests",
+    "RequestReview": "MediaWiki\\Extension\\Pharmacopedia\\SpecialRequestReview",
+    "MyCohorts": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyCohorts",
+    "MyShareLog": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyShareLog"
+  },
+  "ResourceModules": {
+    "ext.pharmacopedia.styles": {
+      "styles": [
+        "resources/ext.pharmacopedia.css"
+      ]
+    },
+    "ext.pharmacopedia": {
+      "scripts": [
+        "resources/ext.pharmacopedia.js"
+      ],
+      "messages": [
+        "pharmacopedia-login-required",
+        "pharmacopedia-permission-denied",
+        "pharmacopedia-vote-failed",
+        "pharmacopedia-effect-failed",
+        "pharmacopedia-comment-failed",
+        "pharmacopedia-confirm-delete"
+      ],
+      "dependencies": [
+        "mediawiki.api",
+        "mediawiki.notification"
+      ]
+    },
+    "ext.pharmacopedia.datepicker": {
+      "scripts": [
+        "resources/ext.pharmacopedia.datepicker.js"
+      ],
+      "dependencies": []
+    },
+    "ext.pharmacopedia.datepicker.styles": {
+      "styles": [
+        "resources/ext.pharmacopedia.datepicker.css"
+      ]
+    },
+    "ext.pharmacopedia.blocksave": {
+      "scripts": [
+        "resources/ext.pharmacopedia.blocksave.js"
+      ],
+      "dependencies": [
+        "mediawiki.util"
+      ]
+    },
+    "ext.pharmacopedia.share": {
+      "scripts": [
+        "ext.pharmacopedia.share.js"
+      ],
+      "styles": [
+        "ext.pharmacopedia.share.css"
+      ],
+      "dependencies": [
+        "mediawiki.api",
+        "mediawiki.util",
+        "jquery",
+        "ext.pharmacopedia.datepicker",
+        "ext.pharmacopedia.datepicker.styles"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.timepicker": {
+      "scripts": [
+        "ext.pharmacopedia.timepicker.js"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.timepicker.styles": {
+      "styles": [
+        "ext.pharmacopedia.timepicker.css"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.kitsync": {
+      "scripts": [
+        "ext.pharmacopedia.kitsync.js"
+      ],
+      "dependencies": [
+        "jquery",
+        "ext.pharmacopedia.datepicker",
+        "ext.pharmacopedia.timepicker"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.observation": {
+      "scripts": [
+        "ext.pharmacopedia.observation.js"
+      ],
+      "styles": [
+        "ext.pharmacopedia.observation.css"
+      ],
+      "dependencies": [
+        "mediawiki.api",
+        "jquery"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.vis-timeline-vendor": {
+      "scripts": [
+        "vendor/vis-timeline/vis-timeline-graph2d.min.js"
+      ],
+      "styles": [
+        "vendor/vis-timeline/vis-timeline-graph2d.min.css"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.lifetimeline": {
+      "scripts": [
+        "ext.pharmacopedia.lifetimeline.js"
+      ],
+      "styles": [
+        "ext.pharmacopedia.lifetimeline.css"
+      ],
+      "dependencies": [
+        "ext.pharmacopedia.vis-timeline-vendor"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    },
+    "ext.pharmacopedia.lifegraph": {
+      "scripts": [
+        "ext.pharmacopedia.lifegraph.js"
+      ],
+      "styles": [
+        "ext.pharmacopedia.lifegraph.css"
+      ],
+      "dependencies": [
+        "ext.pharmacopedia.vis-timeline-vendor"
+      ],
+      "localBasePath": "resources",
+      "remoteExtPath": "Pharmacopedia/resources"
+    }
+  },
+  "ResourceFileModulePaths": {
+    "localBasePath": "",
+    "remoteExtPath": "Pharmacopedia"
+  },
+  "AvailableRights": [
+    "pharmacopedia-vote",
+    "pharmacopedia-comment",
+    "pharmacopedia-effect-as-provider",
+    "pharmacopedia-verify-review",
+    "pharmacopedia-activity-view",
+    "pharmacopedia-literature-submit",
+    "pharmacopedia-literature-upload",
+    "pharmacopedia-literature-review",
+    "pharmacopedia-profile-view-others-full",
+    "pharmacopedia-fr-submit",
+    "pharmacopedia-fr-view-private",
+    "pharmacopedia-fr-review"
+  ],
+  "GroupPermissions": {
+    "user": {
+      "pharmacopedia-vote": true,
+      "pharmacopedia-comment": true,
+      "pharmacopedia-literature-submit": true,
+      "pharmacopedia-fr-submit": true
+    },
+    "provider": {
+      "pharmacopedia-effect-as-provider": true,
+      "pharmacopedia-literature-submit": true,
+      "pharmacopedia-literature-upload": true
+    },
+    "admin": {
+      "pharmacopedia-effect-as-provider": true,
+      "pharmacopedia-verify-review": true,
+      "pharmacopedia-activity-view": true,
+      "pharmacopedia-literature-submit": true,
+      "pharmacopedia-literature-upload": true,
+      "pharmacopedia-literature-review": true
+    },
+    "sysop": {
+      "pharmacopedia-effect-as-provider": true,
+      "pharmacopedia-verify-review": true,
+      "pharmacopedia-activity-view": true,
+      "pharmacopedia-literature-submit": true,
+      "pharmacopedia-literature-upload": true,
+      "pharmacopedia-literature-review": true,
+      "pharmacopedia-profile-view-others-full": true,
+      "pharmacopedia-fr-submit": true,
+      "pharmacopedia-fr-view-private": true,
+      "pharmacopedia-fr-review": true
+    }
+  },
+  "config": {
+    "PharmacopediaVerifyDocsDir": {
+      "value": "/var/lib/pharmacopedia-verification",
+      "description": "Filesystem path where provider-verification documents are stored. Must be outside the web root and writable by the web server."
+    },
+    "PharmacopediaLiteratureDir": {
+      "value": "/var/lib/pharmacopedia-literature",
+      "description": "Filesystem path where user-submitted literature PDFs are stored. Must be outside the web root and writable by the web server."
+    },
+    "PharmacopediaModeratorEmail": {
+      "value": "",
+      "description": "If set, sends an email to this address whenever a new literature submission lands in the queue. Leave empty to disable."
+    },
+    "PharmacopediaInteractionCategoryMarker": {
+      "value": "MedCategory",
+      "description": "DB-key name of the parent category whose members are valid interaction endpoints. Tag a category like Category:Antidepressants by adding [[Category:MedCategory]] to its page so it appears in the Add-interaction search."
+    },
+    "PharmacopediaLifeStoryDir": {
+      "value": "/var/lib/pharmacopedia-life",
+      "description": "Filesystem path where Life Story image attachments are stored. Outside web root, www-data writable."
+    },
+    "PharmacopediaFeatureRequestDir": {
+      "value": "/var/lib/pharmacopedia-feature-requests",
+      "description": "Filesystem path where feature-request attachments are stored. Outside web root, mode 700, www-data owned."
+    }
+  },
+  "manifest_version": 2,
+  "AutoloadClasses": {
+    "MediaWiki\\Extension\\Pharmacopedia\\VisibilityResolver": "includes/VisibilityResolver.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyCohorts": "includes/SpecialMyCohorts.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\Api\\VisibilityRulesApi": "includes/Api/VisibilityRulesApi.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\Api\\UserSearchApi": "includes/Api/UserSearchApi.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\Api\\CohortsApi": "includes/Api/CohortsApi.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyShareLog": "includes/SpecialMyShareLog.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\ObservationParser": "includes/ObservationParser.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\Api\\ObservationApi": "includes/Api/ObservationApi.php",
+    "MediaWiki\\Extension\\Pharmacopedia\\VirusScanner": "includes/VirusScanner.php"
+  }
+}

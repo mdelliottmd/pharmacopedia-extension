@@ -1,0 +1,54 @@
+/*!
+ * vis.Graph2d palette overrides for the trait-trajectory panel.
+ */
+#pcp-life-graph-mount {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    padding: 0.4em;
+    margin: 1em 0 1em;
+}
+.pcp-life-graph-empty {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 1.5em;
+}
+.pcp-life-graph-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 1.2em 0 0.5em;
+}
+.pcp-life-graph-header h3 {
+    margin: 0;
+    color: #c4b5fd;
+    font-size: 1em;
+    text-transform: lowercase;
+    border: none;
+    padding: 0;
+}
+.pcp-life-graph-fit {
+    background: transparent;
+    color: #b599e0;
+    border: 1px dashed #5d3b8e;
+    padding: 0.3em 0.7em;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82em;
+}
+.pcp-life-graph-fit:hover { background: #2a2a2a; color: #fff; }
+
+/* vis.Graph2d palette */
+.vis-graph2d .vis-time-axis .vis-text { color: #c4b5fd; }
+.vis-graph2d .vis-axis text { fill: #c4b5fd !important; }
+.vis-graph2d .vis-axis path,
+.vis-graph2d .vis-axis line { stroke: #5d3b8e !important; }
+.vis-graph2d .vis-legend {
+    background: #2a2a2a !important;
+    border: 1px solid #5d3b8e !important;
+    color: #fff !important;
+    font-size: 0.8em;
+    padding: 0.3em 0.5em !important;
+    border-radius: 6px;
+}

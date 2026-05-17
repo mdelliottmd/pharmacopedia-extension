@@ -1,0 +1,22 @@
+CREATE TABLE /*_*/pcp_experience_reports (
+    xr_id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    xr_page_id       INT UNSIGNED NOT NULL,
+    xr_voter_hash    CHAR(64)     NOT NULL,
+    xr_perspective   TINYINT NOT NULL DEFAULT 1,
+    xr_status        TINYINT NOT NULL DEFAULT 0,
+    xr_current       TINYINT DEFAULT NULL,
+    xr_duration_days INT UNSIGNED DEFAULT NULL,
+    xr_patient_count INT UNSIGNED DEFAULT NULL,
+    xr_efficacy      TINYINT DEFAULT NULL,
+    xr_burden        TINYINT DEFAULT NULL,
+    xr_stop_reason   TINYINT DEFAULT NULL,
+    xr_payload       MEDIUMBLOB DEFAULT NULL,
+    xr_created       BINARY(14) NOT NULL,
+    xr_updated       BINARY(14) NOT NULL,
+    xr_reviewed_by   INT UNSIGNED DEFAULT NULL,
+    xr_reviewed_at   BINARY(14) DEFAULT NULL,
+    PRIMARY KEY (xr_id),
+    UNIQUE KEY /*i*/xr_page_hash_persp (xr_page_id, xr_voter_hash, xr_perspective),
+    KEY /*i*/xr_page_status (xr_page_id, xr_status),
+    KEY /*i*/xr_status (xr_status)
+) /*$wgDBTableOptions*/;

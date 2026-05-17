@@ -1,0 +1,249 @@
+/*!
+ * Palette overrides for vis-timeline + tabbed view container.
+ * Project palette: black / dark-grey / purple / white.
+ */
+
+/* Tabs */
+.pcp-life-view-tabs {
+    display: flex;
+    gap: 0.4em;
+    margin: 0 0 0.6em;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.pcp-life-view-toggle {
+    background: #2a2a2a;
+    color: #c4b5fd;
+    border: 1px solid #5d3b8e;
+    padding: 0.4em 1em;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95em;
+}
+.pcp-life-view-toggle:hover { background: #3a3a3a; }
+.pcp-life-view-toggle.active {
+    background: #5d3b8e;
+    color: #fff;
+    border-color: #b599e0;
+    font-weight: 700;
+}
+.pcp-life-timeline-fit {
+    background: transparent;
+    color: #b599e0;
+    border: 1px dashed #5d3b8e;
+    padding: 0.4em 0.9em;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: auto;
+    font-size: 0.85em;
+}
+.pcp-life-timeline-fit:hover { background: #2a2a2a; color: #fff; }
+
+.pcp-life-view { display: none; }
+.pcp-life-view.active { display: block; }
+
+#pcp-life-timeline-mount {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    margin: 0 0 1em;
+    padding: 0.4em;
+}
+
+/* ===== vis-timeline palette overrides ===== */
+
+.vis-timeline {
+    border: none !important;
+    background: transparent !important;
+    color: #fff;
+    font-family: inherit;
+}
+
+/* Time axis (top) */
+.vis-time-axis .vis-text {
+    color: #c4b5fd !important;
+}
+.vis-time-axis .vis-grid {
+    background: transparent !important;
+    border-color: #2a2a2a !important;
+}
+.vis-time-axis .vis-grid.vis-major {
+    border-color: #5d3b8e !important;
+}
+.vis-time-axis .vis-text.vis-major {
+    color: #fff !important;
+    font-weight: 700;
+}
+
+/* Current-time marker */
+.vis-current-time {
+    background: #c4b5fd !important;
+    width: 2px !important;
+}
+
+/* Groups (swimlanes on the left) */
+.vis-labelset .vis-label {
+    color: #c4b5fd !important;
+    border-color: #2a2a2a !important;
+    background: #222 !important;
+    text-transform: lowercase;
+    font-weight: 700;
+    padding-left: 0.5em;
+}
+.vis-foreground .vis-group {
+    border-color: #2a2a2a !important;
+}
+
+/* Items: default */
+.vis-item {
+    background: #5d3b8e;
+    border-color: #b599e0;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 0.85em;
+}
+.vis-item.vis-selected {
+    background: #c4b5fd !important;
+    color: #1a1a1a !important;
+    border-color: #fff !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.vis-item .vis-item-content { padding: 0.2em 0.55em; }
+
+/* Per-group colorings */
+.pcp-vis-item-episodes {
+    background: linear-gradient(90deg, #5d3b8e, #8b6abf) !important;
+    border-color: #c4b5fd !important;
+    height: auto !important;
+}
+.pcp-vis-item-events {
+    background: #2a2a2a !important;
+    border-color: #b599e0 !important;
+    color: #fff !important;
+}
+.pcp-vis-item-observations {
+    background: #1e5128 !important;
+    border-color: #d4f0d6 !important;
+    color: #d4f0d6 !important;
+}
+.pcp-vis-item-observations.pcp-vis-item-neg {
+    background: #5e1e1e !important;
+    border-color: #f3d4d4 !important;
+    color: #f3d4d4 !important;
+}
+.pcp-vis-item-keyframes {
+    background: #444 !important;
+    border-color: #fff !important;
+    color: #fff !important;
+}
+.pcp-vis-item-derived {
+    background: transparent !important;
+    border: 1px dashed #888 !important;
+    color: #aaa !important;
+}
+
+/* Range bars (episodes) get more visual weight */
+.vis-item.vis-range {
+    border-width: 2px;
+    border-radius: 8px;
+    min-height: 22px;
+}
+
+/* Box markers (points) */
+.vis-item.vis-box {
+    padding: 0.05em 0.3em;
+}
+
+/* Tooltip styling */
+.vis-tooltip {
+    background: #2a2a2a !important;
+    color: #fff !important;
+    border: 1px solid #5d3b8e !important;
+    border-radius: 4px !important;
+    padding: 0.4em 0.6em !important;
+    font-size: 0.85em !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+
+/* Custom-time / panel borders */
+.vis-panel.vis-bottom, .vis-panel.vis-left, .vis-panel.vis-right, .vis-panel.vis-top {
+    border-color: #2a2a2a !important;
+}
+
+/* Today marker (vis-timeline .vis-current-time) — make it pop */
+.vis-current-time {
+    background: #c4b5fd !important;
+    width: 2px !important;
+    box-shadow: 0 0 6px rgba(196, 181, 253, 0.7);
+}
+
+/* Range items hover-expand: float the label above the bar */
+.vis-item.vis-range:hover {
+    z-index: 50;
+}
+.vis-item.vis-range:hover .vis-item-content {
+    background: #1a1a1a;
+    border: 1px solid #c4b5fd;
+    border-radius: 4px;
+    padding: 0.25em 0.6em;
+    position: absolute;
+    top: -1.7em;
+    left: 0;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    color: #fff;
+    z-index: 100;
+}
+
+/* Toolbar row that wraps the tabs + group-toggles + zoom controls */
+.pcp-life-timeline-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em 1em;
+    align-items: center;
+    margin: 0 0 0.7em;
+}
+.pcp-life-timeline-controls .pcp-life-toolbar-spacer { flex: 1; }
+.pcp-life-timeline-controls .pcp-life-timeline-group-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    background: #222;
+    border: 1px solid #5d3b8e;
+    padding: 0.25em 0.6em;
+    border-radius: 12px;
+    font-size: 0.85em;
+    color: #c4b5fd;
+    cursor: pointer;
+}
+.pcp-life-timeline-group-toggle-wrap input { margin: 0; vertical-align: middle; }
+.pcp-life-timeline-group-toggle-wrap:hover { background: #2d2d2d; }
+.pcp-life-timeline-zoomin,
+.pcp-life-timeline-zoomout {
+    background: #2a2a2a;
+    color: #c4b5fd;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    width: 2em;
+    height: 2em;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+}
+.pcp-life-timeline-zoomin:hover,
+.pcp-life-timeline-zoomout:hover { background: #3a3a3a; color: #fff; }
+
+/* shrink-applied-2026 (revised +10%): items ~23% smaller than vis default */
+.vis-item { font-size: 0.78em !important; border-radius: 5px !important; }
+.vis-item .vis-item-content { padding: 0.13em 0.48em !important; line-height: 1.15 !important; }
+.vis-item.vis-range { min-height: 18px !important; border-radius: 6px !important; border-width: 1px !important; }
+.vis-item.vis-box { padding: 0.05em 0.25em !important; }
+.vis-labelset .vis-label {
+    font-size: 0.86em !important;
+    padding: 0.3em 0.5em !important;
+    line-height: 1.15 !important;
+}
+.vis-time-axis .vis-text {
+    font-size: 0.86em !important;
+}
+.vis-foreground .vis-group { min-height: 32px !important; }

@@ -1,0 +1,22 @@
+CREATE TABLE /*_*/pcp_user_meds (
+    um_id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    um_profile_id    INT UNSIGNED NOT NULL,
+    um_page_id       INT UNSIGNED DEFAULT NULL,
+    um_med_name      VARBINARY(255) NOT NULL,
+    um_efficacy      TINYINT DEFAULT NULL,
+    um_burden        TINYINT DEFAULT NULL,
+    um_duration_days INT UNSIGNED DEFAULT NULL,
+    um_start_struct  MEDIUMBLOB DEFAULT NULL,
+    um_stop_struct   MEDIUMBLOB DEFAULT NULL,
+    um_periods       MEDIUMBLOB DEFAULT NULL,
+    um_dose_mg       DECIMAL(10,3) DEFAULT NULL,
+    um_current       TINYINT DEFAULT NULL,
+    um_notes         MEDIUMBLOB DEFAULT NULL,
+    um_visibility    TINYINT NOT NULL DEFAULT 0,
+    um_added         BINARY(14) NOT NULL,
+    um_updated       BINARY(14) NOT NULL,
+    PRIMARY KEY (um_id),
+    KEY /*i*/um_profile (um_profile_id),
+    KEY /*i*/um_page (um_page_id),
+    KEY /*i*/um_visibility (um_visibility)
+) /*$wgDBTableOptions*/;
