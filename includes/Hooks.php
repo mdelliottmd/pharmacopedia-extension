@@ -89,6 +89,15 @@ class Hooks {
         $updater->addExtensionTable( 'pcp_life_images', "$dir/life_images.sql" );
         $updater->addExtensionTable( 'pcp_life_traits', "$dir/life_traits.sql" );
 
+        // Observations + episodes refs (le_type=3, le_type=4)
+        $updater->addExtensionTable( 'pcp_life_event_refs',     "$dir/observations.sql" );
+
+        // Per-record sharing subsystem
+        $updater->addExtensionTable( 'pcp_visibility_rules',    "$dir/visibility_rules.sql" );
+        $updater->addExtensionTable( 'pcp_cohorts',             "$dir/visibility_rules.sql" );
+        $updater->addExtensionTable( 'pcp_cohort_members',      "$dir/visibility_rules.sql" );
+        $updater->addExtensionTable( 'pcp_visibility_view_log', "$dir/visibility_rules.sql" );
+
         // v0.11: structured date payload from the pcp-date-input widget
         $updater->addExtensionField( 'pcp_life_events', 'le_date_struct',
             "$dir/patch-le_date_struct.sql" );
