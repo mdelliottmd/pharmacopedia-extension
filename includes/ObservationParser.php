@@ -228,10 +228,17 @@ class ObservationParser {
      * available (otherwise the 1990 fallback in applyAge() applies).
      */
     private function extractAgeRange( string $working ): ?array {
-        $re = '/\b(?:from\s+|between\s+)?ages?\s+(\d{1,2})\s*(?:to|through|thru|till|until|\-|\x{2013}|\x{2014}|and)\s*(\d{1,2})\b/iu';
+        // Two prefix shapes accepted:
+        //   (a) explicit "ages?" keyword (with optional "from"/"between" before)
+        //   (b) age-context prefix ("from", "between", "when I was", "aged", "at age") + optional "ages?"
+        // The negative lookahead rules out non-age units (mg, ml, cm, ago, etc.)
+        // so phrases like "10-20 mg" or "5-10 years ago" don't false-match.
+        $re = '/\b(?:(?:from|between|when\s+i\s+(?:was|were)|aged|at)\s+(?:ages?\s+)?|ages?\s+)(\d{1,3})\s*(?:to|through|thru|till|until|\-|\x{2013}|\x{2014}|and)\s*(\d{1,3})\b(?!\s*(?:mg|mcg|g|kg|ml|cc|cm|mm|in|ft|lbs?|oz|hz|hrs?|min|sec|am|pm|\x{B0}|%|x|times|years?\s+ago|months?\s+ago|days?\s+ago|weeks?\s+ago))/iu';
         if ( !preg_match( $re, $working, $m, PREG_OFFSET_CAPTURE ) ) return null;
         $a1 = (int)$m[1][0];
         $a2 = (int)$m[2][0];
+        // Sanity: both must look like ages (0-120).
+        if ( $a1 > 120 || $a2 > 120 ) return null;
         if ( $a1 > $a2 ) { $tmp = $a1; $a1 = $a2; $a2 = $tmp; }
         $birthIso = $this->getBirthDate( $this->currentProfileId ?? 0 );
         $A = $this->applyAge( $a1, 0, 0, 0, 'age-year', "age $a1", $birthIso );
@@ -280,7 +287,7 @@ class ObservationParser {
         $pos = stripos( $working, $a['text'] );
         if ( $pos === false ) return null;
         $afterFirst = substr( $working, $pos + strlen( $a['text'] ) );
-        if ( !preg_match( '/^\s+(till|until|through|thru|to|and|\-)\s+/i', $afterFirst, $sepM ) ) {
+        if ( !preg_match( '/^(?:\s+(?:till|until|through|thru|to|and)\s+|\s*[-\x{2013}\x{2014}]\s*(?=\w))/iu', $afterFirst, $sepM ) ) {
             return null;
         }
         $afterSep = substr( $afterFirst, strlen( $sepM[0] ) );

@@ -4781,3 +4781,60 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     cursor: pointer;
 }
 .pcp-research-id-badge:hover { background: #2a2a2a; }
+
+
+/* dot-chip refactor (2026-05-18): minimalist circle indicator for blocksave,
+   matches the savedmark on Special:RequestReview. */
+.pcp-block-save-dot {
+    /* Reset button defaults */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    /* Circle */
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    min-width: 0.9em;
+    border-radius: 50%;
+    background: #555;
+    opacity: 0;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+    transition: opacity 0.4s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+    vertical-align: middle;
+    font-size: 0; /* hide any residual textContent that might creep in */
+    line-height: 0;
+}
+.pcp-block-save-dot.saving {
+    opacity: 1;
+    background: #f59e0b;       /* amber */
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    animation: pcp-block-save-pulse 1s ease-in-out infinite;
+}
+.pcp-block-save-dot.saved {
+    opacity: 1;
+    background: #4ade80;       /* green, matches RequestReview */
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.25);
+    animation: none;
+}
+.pcp-block-save-dot.error {
+    opacity: 1;
+    background: #f87171;       /* red, matches RequestReview */
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.3);
+    animation: none;
+}
+@keyframes pcp-block-save-pulse {
+    0%, 100% { transform: scale(1);   opacity: 1;   }
+    50%      { transform: scale(1.2); opacity: 0.7; }
+}
+
+/* Bottom-of-block dot needs its own positioning since the original chip's CSS
+   stretched to a text-sized box; we want it compact + centered on its own row. */
+.pcp-block-save-chip-bottom-wrap {
+    text-align: right;
+    padding: 0.2em 0.4em;
+}

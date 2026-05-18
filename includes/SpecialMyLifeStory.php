@@ -66,7 +66,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // ----- POST routing -----
         if ( $request->wasPosted() && $user->matchEditToken( $request->getVal( 'wpEditToken' ) ) ) {
-            $action = $request->getVal( 'action', '' );
+            $action = $request->getVal( 'pcp_action', '' );
             if ( $action === 'duplicate_event' ) {
                 $eid = (int)$request->getVal( 'event_id', 0 );
                 $src = $store->getEvent( $eid );
@@ -550,9 +550,9 @@ class SpecialMyLifeStory extends SpecialPage {
             // and JS adds a confirm() before submit.
             $delAction = $this->getPageTitle()->getLocalURL();
             $out .= ' <form method="post" action="' . $h( $delAction ) . '" class="pcp-life-card-delete-form" data-confirm="Delete this event? This cannot be undone.">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $h( $token ) . '">'
-                . '<input type="hidden" name="action" value="delete_event">'
+                . '<input type="hidden" name="pcp_action" value="delete_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-life-card-delete" title="Delete this event">&times;</button>'
                 . '</form>';
@@ -742,7 +742,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
         $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-obs-edit-form">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
-        $out->addHTML( '<input type="hidden" name="action" value="save_observation">' );
+        $out->addHTML( '<input type="hidden" name="pcp_action" value="save_observation">' );
         $out->addHTML( '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">' );
 
         // Raw text (with live re-parse preview).
@@ -789,16 +789,16 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // Delete.
         $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
-            . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+            . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
             . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-            . '<input type="hidden" name="action" value="delete_event">'
+            . '<input type="hidden" name="pcp_action" value="delete_event">'
             . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
             . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this observation?\')">Delete observation</button>'
             . '</form>' );
         $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="pcp_action" value="duplicate_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn">Duplicate observation</button>'
                 . '</form>' );
@@ -899,11 +899,11 @@ class SpecialMyLifeStory extends SpecialPage {
             'eating'    => [ 'restrictive', 'binge', 'purge' ],
             'sleep disturbance' => [ 'insomnia', 'hypersomnia', 'fragmented' ],
         ];
-        $subtypesJson = $h( json_encode( $subtypesByType ) );
+        $subtypesJson = json_encode( $subtypesByType, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
 
         $out->addHTML( '<form method="post" enctype="multipart/form-data" action="' . $action . '" class="pcp-episode-form">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
-        $out->addHTML( '<input type="hidden" name="action" value="save_episode">' );
+        $out->addHTML( '<input type="hidden" name="pcp_action" value="save_episode">' );
         if ( $isEdit ) {
             $out->addHTML( '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">' );
         }
@@ -938,7 +938,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // Title
         $out->addHTML( '<div class="pcp-form-row"><label>Title</label>' );
-        $out->addHTML( '<input type="text" name="title" maxlength="200" value="' . $h( $title ) . '" placeholder="e.g. depressive episode after job loss">' );
+        $out->addHTML( '<input type="text" name="pcp_title" maxlength="200" value="' . $h( $title ) . '" placeholder="e.g. depressive episode after job loss">' );
         $out->addHTML( '</div>' );
 
         // Body
@@ -968,16 +968,16 @@ class SpecialMyLifeStory extends SpecialPage {
         $out->addHTML( '</div></form>' );
         if ( $isEdit ) {
             $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                . '<input type="hidden" name="action" value="delete_event">'
+                . '<input type="hidden" name="pcp_action" value="delete_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this episode?\')">Delete episode</button>'
                 . '</form>' );
             $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="pcp_action" value="duplicate_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn">Duplicate episode</button>'
                 . '</form>' );
@@ -1000,7 +1000,7 @@ class SpecialMyLifeStory extends SpecialPage {
             'episode_subtype' => trim( (string)$request->getVal( 'episode_subtype', '' ) ),
             'severity'        => $request->getVal( 'severity', '' ),
             'date_struct'     => $struct,
-            'title'           => trim( (string)$request->getVal( 'title', '' ) ),
+            'title'           => trim( (string)$request->getVal( 'pcp_title', '' ) ),
             'body'            => trim( (string)$request->getVal( 'body', '' ) ),
             'visibility'      => (int)$request->getVal( 'visibility', 0 ),
         ];
@@ -1027,9 +1027,9 @@ class SpecialMyLifeStory extends SpecialPage {
         $vis   = $isEdit ? (int)$event->le_visibility : 0;
 
         $out->addHTML( '<form method="post" action="' . $h( $action ) . '" enctype="multipart/form-data" class="pcp-life-form">' );
-        $out->addHTML( '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">' );
+        $out->addHTML( '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
-        $out->addHTML( '<input type="hidden" name="action" value="save_event">' );
+        $out->addHTML( '<input type="hidden" name="pcp_action" value="save_event">' );
         if ( $isEdit ) {
             $out->addHTML( '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">' );
         }
@@ -1084,9 +1084,9 @@ class SpecialMyLifeStory extends SpecialPage {
                     $out->addHTML( '<li><a href="' . $url . '">' . $h( $im->li_orig_name ) . '</a> '
                         . '(' . round( $im->li_size_bytes / 1024 ) . ' KB) '
                         . '<form method="post" action="' . $delUrl . '" style="display:inline">'
-                        . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                        . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                         . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                        . '<input type="hidden" name="action" value="delete_image">'
+                        . '<input type="hidden" name="pcp_action" value="delete_image">'
                         . '<input type="hidden" name="image_id" value="' . (int)$im->li_id . '">'
                         . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                         . '<button type="submit" class="pcp-life-img-del" onclick="return confirm(\'Delete this image?\')">delete</button>'
@@ -1138,16 +1138,16 @@ class SpecialMyLifeStory extends SpecialPage {
         // ----- Delete (edit mode only) -----
         if ( $isEdit ) {
             $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-delete-form">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                . '<input type="hidden" name="action" value="delete_event">'
+                . '<input type="hidden" name="pcp_action" value="delete_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this event and its images?\')">Delete event</button>'
                 . '</form>' );
             $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-dup-form">'
-                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
-                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="pcp_action" value="duplicate_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn">Duplicate event</button>'
                 . '</form>' );

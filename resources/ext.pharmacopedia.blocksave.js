@@ -102,11 +102,13 @@
         }
 
         function mkChip( extraClass ) {
+            // dot-chip refactor: minimalist circle indicator (saved/error/saving),
+            // text moves to title attr (hover still tells you state).
             var c = document.createElement( 'button' );
             c.type = 'button';
-            c.className = 'pcp-block-save-chip' + ( extraClass ? ' ' + extraClass : '' );
-            c.textContent = 'auto-save';
-            c.title = 'Click to save immediately';
+            c.className = 'pcp-block-save-chip pcp-block-save-dot' + ( extraClass ? ' ' + extraClass : '' );
+            c.setAttribute( 'aria-label', 'auto-save indicator' );
+            c.title = 'idle (click to save now)';
             return c;
         }
 
@@ -124,7 +126,8 @@
         var chips = [ chipTop, chipBottom ];
 
         function setText( text ) {
-            chips.forEach( function ( c ) { c.textContent = text; } );
+            // dot-chip: text becomes hover tooltip
+            chips.forEach( function ( c ) { c.title = text; } );
         }
         function setClass( cls ) {
             chips.forEach( function ( c ) {

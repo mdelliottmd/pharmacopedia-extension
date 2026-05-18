@@ -663,10 +663,14 @@
             var t = ( text || '' ).trim();
             if ( !t ) return { start: null, end: null };
             // Range separators, tried in order (longer / more-specific first).
-            // NOTE: " to " intentionally NOT in this list — conflicts with time phrases like "5 to 4pm".
+            // " to " is included by user request; may collide with time phrases
+            // like "5 to 4pm" if both halves of an intended range omit dates.
             var seps = [
-                /\s+through\s+/i, /\s+thru\s+/i, /\s+till\s+/i, /\s+until\s+/i,
-                /\s*—\s*/, /\s*–\s*/, /\s+-\s+/, /\s*\.\.+\s*/
+                /\s+through\s+/i, /\s+thru\s+/i, /\s+until\s+/i, /\s+till\s+/i,
+                /\s+to\s+/i,
+                /\s*—\s*/, /\s*–\s*/, /\s+-\s+/,
+                /(?<=\d)-(?=[A-Za-z])/,
+                /\s*\.\.+\s*/
             ];
             for ( var i = 0; i < seps.length; i++ ) {
                 var m = t.match( seps[ i ] );
