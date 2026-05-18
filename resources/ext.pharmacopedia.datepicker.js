@@ -587,7 +587,7 @@
                         var iso = c.dataset.d;
                         st.selected = iso;
                         textEl.value = iso;
-                        textEl.dispatchEvent( new Event( 'input' ) );
+                        textEl.dispatchEvent( new Event( 'input', { bubbles: true } ) );
                     } );
                 } );
                 calEl.querySelectorAll( '.pcp-dt-cal-quick button' ).forEach( function ( b ) {
@@ -596,7 +596,7 @@
                         if ( b.dataset.q === 'today' )    { var t = new Date().toISOString().slice( 0, 10 ); textEl.value = t; st.selected = t; }
                         if ( b.dataset.q === 'thisyear' ) { textEl.value = String( st.view.year ); st.selected = null; }
                         if ( b.dataset.q === 'clear' )    { textEl.value = ''; st.selected = null; }
-                        textEl.dispatchEvent( new Event( 'input' ) );
+                        textEl.dispatchEvent( new Event( 'input', { bubbles: true } ) );
                     } );
                 } );
             }

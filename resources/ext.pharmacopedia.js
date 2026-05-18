@@ -3132,6 +3132,7 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
     }
 
 }() );
+
         /* ===== End collapsible sections ===== */
 
     } );

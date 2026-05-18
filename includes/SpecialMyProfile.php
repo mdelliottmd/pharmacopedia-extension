@@ -99,6 +99,13 @@ class SpecialMyProfile extends SpecialPage {
                 <legend>Public identity</legend>
                 <div data-pcp-save-block="identity">
 
+                <?php $rid = (string)( $profile->prof_research_id ?? "" ); if ( $rid !== "" ): ?>
+                <div class="pcp-research-id-row" title="Stable opaque identifier for research participation. Never changes.">
+                    <span class="pcp-research-id-label">Research ID:</span>
+                    <code class="pcp-research-id-badge"><?= htmlspecialchars( $rid ) ?></code>
+                </div>
+                <?php endif; ?>
+
                 <div class="pcp-prof-row">
                     <label for="public_alias">Public alias <small>(optional pseudonym)</small></label>
                     <input type="text" id="public_alias" name="public_alias"

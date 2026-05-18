@@ -327,4 +327,13 @@ class UserProfileStore {
         }
         return 'Anonymous';
     }
+
+    /**
+     * Generate a 10-char hex research_id. Caller writes it to prof_research_id;
+     * UNIQUE constraint provides collision safety (40 bits = 1 trillion).
+     */
+    public static function generateResearchId(): string {
+        return bin2hex( random_bytes( 5 ) );
+    }
+
 }

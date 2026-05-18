@@ -75,6 +75,7 @@ class Hooks {
 
         // v0.9: user profile system (demographics, OCEAN, diagnoses, meds, assessments)
         $updater->addExtensionTable( 'pcp_user_profiles',           "$dir/user_profiles.sql" );
+        $updater->addExtensionField( 'pcp_user_profiles', 'prof_research_id', "$dir/patch-research_id.sql" );
         $updater->addExtensionTable( 'pcp_profile_fields',          "$dir/profile_fields.sql" );
         $updater->addExtensionTable( 'pcp_profile_diagnoses',       "$dir/profile_diagnoses.sql" );
         $updater->addExtensionTable( 'pcp_user_meds',               "$dir/user_meds.sql" );

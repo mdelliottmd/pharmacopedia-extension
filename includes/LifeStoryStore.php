@@ -994,4 +994,85 @@ class LifeStoryStore {
         if ( $viewerProfileId !== null && (int)$event->le_profile_id === $viewerProfileId ) return true;
         return (int)$event->le_visibility > 0;
     }
+
+    /**
+     * Sync the auto-created "Born" keyframe to match the user's current birthday.
+     *
+     * - Auto-created event is tagged "auto-birth" so we can find it later.
+     * - Updates touch ONLY the date columns; title/body/tags/visibility/images/
+     *   traits/refs that the user may have edited are preserved across syncs.
+     * - When the birthday is cleared, the existing event is left in place
+     *   (the user may have attached content to it). Manual delete via the
+     *   card list if they want it gone.
+     */
+    public function syncBirthEvent( int $profileId, ?string $birthdayJson ): void {
+        // Resolve the auto-birth event id (if any) by tag match.
+        $dbw = $this->dbw();
+        $existingId = (int)$dbw->newSelectQueryBuilder()
+            ->select( 'le_id' )
+            ->from( 'pcp_life_events' )
+            ->where( [ 'le_profile_id' => $profileId ] )
+            ->andWhere( "le_tags LIKE " . $dbw->addQuotes( '%auto-birth%' ) )
+            ->orderBy( 'le_id' )
+            ->limit( 1 )
+            ->caller( __METHOD__ )
+            ->fetchField();
+
+        // Empty birthday: leave any existing event alone, don't create.
+        if ( $birthdayJson === null || $birthdayJson === '' ) {
+            return;
+        }
+
+        // Parse the DatePicker JSON. Expect a "point" struct.
+        $struct = json_decode( $birthdayJson, true );
+        if ( !is_array( $struct ) ) return;
+        if ( ( $struct['kind'] ?? '' ) !== 'point' ) return;
+        $point = $struct['point'] ?? null;
+        if ( !is_array( $point ) ) return;
+        $parsed = $point['parsed'] ?? null;
+        if ( !is_array( $parsed ) ) return;
+        $iso = (string)( $parsed['iso'] ?? '' );
+        if ( $iso === '' ) return;
+        $precRaw = (string)( $parsed['precision'] ?? 'day' );
+        $precision = self::DP_DAY;
+        if ( $precRaw === 'month' )      $precision = self::DP_MONTH;
+        elseif ( $precRaw === 'year' )   $precision = self::DP_YEAR;
+        $display = (string)( $point['raw_text'] ?? $iso );
+
+        // Wrap the birthday into a keyframe-shaped date_struct.
+        $kfStruct = [
+            'kind'  => 'point',
+            'point' => [
+                'raw_text' => $display,
+                'parsed'   => [ 'kind' => 'point', 'precision' => $precRaw, 'iso' => $iso ],
+            ],
+        ];
+        $kfStructJson = json_encode( $kfStruct, JSON_UNESCAPED_UNICODE );
+
+        if ( $existingId > 0 ) {
+            // Update ONLY the date columns. Preserve title/body/tags/visibility.
+            $dbw->update( 'pcp_life_events', [
+                'le_date_iso'       => $iso,
+                'le_date_precision' => $precision,
+                'le_date_display'   => $display,
+                'le_date_struct'    => $kfStructJson,
+                'le_updated'        => $dbw->timestamp(),
+            ], [ 'le_id' => $existingId ], __METHOD__ );
+            return;
+        }
+
+        // Create a fresh auto-birth event.
+        $this->addEvent( $profileId, [
+            'date_iso'       => $iso,
+            'date_precision' => $precision,
+            'date_display'   => $display,
+            'date_struct'    => $kfStructJson,
+            'type'           => self::TYPE_STORY,
+            'title'          => 'Born!',
+            'body'           => null,
+            'visibility'     => 0,
+            'tags'           => 'auto-birth',
+        ] );
+    }
+
 }

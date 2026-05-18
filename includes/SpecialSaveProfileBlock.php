@@ -143,6 +143,7 @@ class SpecialSaveProfileBlock extends SpecialPage {
         $v = $request->getArray( 'v' ) ?: [];
         $demo = is_array( $f['demographics'] ?? null ) ? $f['demographics'] : [];
         $demoVis = is_array( $v['demographics'] ?? null ) ? $v['demographics'] : [];
+        $birthdayWritten = null;
         foreach ( $demo as $key => $val ) {
             $vis = isset( $demoVis[ $key ] ) ? max( 0, min( 3, (int)$demoVis[ $key ] ) ) : 0;
             $raw = (string)$val;
@@ -153,6 +154,7 @@ class SpecialSaveProfileBlock extends SpecialPage {
                     continue;
                 }
                 $raw = json_encode( $struct, JSON_UNESCAPED_UNICODE );
+                $birthdayWritten = $raw;
             }
             if ( $raw === '' ) {
                 $store->deleteField( $profileId, 'demographics', $key );
@@ -163,6 +165,12 @@ class SpecialSaveProfileBlock extends SpecialPage {
             } else {
                 $store->setField( $profileId, 'demographics', $key, $raw, null, $vis );
             }
+        }
+        // After demographics are saved, mirror the birthday into a keyframe event.
+        // Only the date is synced on update; any user-edited title/body/tags are preserved.
+        if ( $birthdayWritten !== null ) {
+            ( new \MediaWiki\Extension\Pharmacopedia\LifeStoryStore() )
+                ->syncBirthEvent( $profileId, $birthdayWritten );
         }
     }
 
