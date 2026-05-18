@@ -67,6 +67,27 @@ class SpecialMyLifeStory extends SpecialPage {
         // ----- POST routing -----
         if ( $request->wasPosted() && $user->matchEditToken( $request->getVal( 'wpEditToken' ) ) ) {
             $action = $request->getVal( 'action', '' );
+            if ( $action === 'duplicate_event' ) {
+                $eid = (int)$request->getVal( 'event_id', 0 );
+                $src = $store->getEvent( $eid );
+                if ( $src && (int)$src->le_profile_id === $profileId ) {
+                    $newId = $store->duplicateEvent( $eid, $profileId );
+                    $type  = (int)$src->le_type;
+                    if ( $type === LifeStoryStore::TYPE_EPISODE ) {
+                        $out->redirect( $this->getPageTitle( 'edit-episode/' . $newId )->getLocalURL() );
+                    } elseif ( $type === LifeStoryStore::TYPE_OBSERVATION ) {
+                        $out->redirect( $this->getPageTitle( 'edit-observation/' . $newId )->getLocalURL() );
+                    } else {
+                        $out->redirect( $this->getPageTitle()->getLocalURL( [ 'edit_event' => $newId ] ) );
+                    }
+                    return;
+                }
+            }
+            if ( $action === 'save_observation' ) {
+                $eventId = $this->saveObservation( $store, $profileId, $request );
+                $out->redirect( $this->getPageTitle()->getLocalURL( [ 'saved' => $eventId ] ) );
+                return;
+            }
             if ( $action === 'save_episode' ) {
                 $eventId = $this->saveEpisode( $store, $profileId, $request );
                 $out->redirect( $this->getPageTitle()->getLocalURL( [ 'saved' => $eventId ] ) );
@@ -84,6 +105,29 @@ class SpecialMyLifeStory extends SpecialPage {
                     $store->deleteEvent( $eid );
                 }
                 $out->redirect( $this->getPageTitle()->getLocalURL( [ 'deleted' => 1 ] ) );
+                return;
+            }
+            if ( $action === 'set_visibility' ) {
+                $eid = (int)$request->getVal( 'event_id', 0 );
+                $vis = max( 0, min( 3, (int)$request->getVal( 'visibility', 0 ) ) );
+                $event = $store->getEvent( $eid );
+                if ( $event && (int)$event->le_profile_id === $profileId ) {
+                    $dbw = \MediaWiki\MediaWikiServices::getInstance()
+                        ->getConnectionProvider()->getPrimaryDatabase();
+                    $dbw->newUpdateQueryBuilder()
+                        ->update( 'pcp_life_events' )
+                        ->set( [ 'le_visibility' => $vis, 'le_updated' => $dbw->timestamp() ] )
+                        ->where( [ 'le_id' => $eid ] )
+                        ->caller( __METHOD__ )
+                        ->execute();
+                }
+                if ( $request->getVal( 'ajax' ) === '1' ) {
+                    $out->disable();
+                    header( 'Content-Type: application/json' );
+                    echo json_encode( [ 'ok' => true, 'visibility' => $vis ] );
+                    return;
+                }
+                $out->redirect( $this->getPageTitle()->getFullURL() );
                 return;
             }
             if ( $action === 'delete_image' ) {
@@ -117,6 +161,14 @@ class SpecialMyLifeStory extends SpecialPage {
         // ----- View / Form routing -----
         $par = trim( (string)$par );
         $editId = (int)$request->getVal( 'edit_event', 0 );
+        if ( preg_match( '#^edit-observation/(\d+)$#', $par, $om ) ) {
+            $event = $store->getEvent( (int)$om[1] );
+            if ( $event && (int)$event->le_profile_id === $profileId
+                 && (int)$event->le_type === LifeStoryStore::TYPE_OBSERVATION ) {
+                $this->renderObservationForm( $out, $user, $profileId, $event );
+                return;
+            }
+        }
         if ( $par === 'add-episode' ) {
             $this->renderEpisodeForm( $out, $user, $profileId, null );
             return;
@@ -226,48 +278,85 @@ class SpecialMyLifeStory extends SpecialPage {
 
 
 
-    private function renderTraitGraph( $out, $store, int $profileId ): void {
+            private function renderTraitGraph( $out, $store, int $profileId ): void {
         $ts = $store->getKeyframeTimeseries( $profileId );
-        $groups = [];
-        $items  = [];
-        // Stable palette: pull from a curated set; cycle if more series.
-        $palette = [ '#c4b5fd', '#86efac', '#fda4af', '#fdba74', '#7dd3fc', '#a78bfa', '#f0abfc', '#34d399', '#fb923c' ];
-        $idx = 0;
+        $palette = [ '#c4b5fd', '#86efac', '#fda4af', '#fdba74', '#7dd3fc', '#a78bfa', '#f0abfc', '#34d399', '#fb923c', '#60a5fa', '#facc15', '#f472b6' ];
+        $groups = []; $items = []; $idx = 0;
         foreach ( $ts as $ns => $byKey ) {
             foreach ( $byKey as $key => $points ) {
-                if ( count( $points ) < 2 ) continue;  // need ≥2 for a line
+                if ( !$points ) continue;
+                // Compute observed (or provided) min/max for normalization.
+                $vals = array_map( function ( $p ) { return (float)$p['value']; }, $points );
+                $omin = min( $vals );
+                $omax = max( $vals );
+                $min  = $points[0]['min'] !== null ? (float)$points[0]['min'] : $omin;
+                $max  = $points[0]['max'] !== null ? (float)$points[0]['max'] : $omax;
+                if ( $max <= $min ) { $min = $omin - 1; $max = $omax + 1; }  // avoid div-by-0
                 $gid = $ns . ':' . $key;
                 $color = $palette[ $idx % count( $palette ) ];
                 $idx++;
+                $label = $points[0]['label'] ?? $key;
                 $groups[] = [
                     'id'      => $gid,
-                    'content' => $ns . ' / ' . $key,
+                    'content' => $ns . ' / ' . $label,
+                    'style'   => 'stroke: ' . $color . '; stroke-width: 2.5; fill: ' . $color . ';',
                     'options' => [
-                        'drawPoints' => [ 'size' => 6, 'style' => 'circle' ],
+                        'drawPoints' => [ 'size' => 7, 'style' => 'circle' ],
                         'shaded'     => false,
-                        'style'      => 'stroke: ' . $color . '; stroke-width: 2; fill: ' . $color . ';'
-                    ]
+                    ],
                 ];
                 foreach ( $points as $p ) {
                     if ( empty( $p['date'] ) || !isset( $p['value'] ) ) continue;
+                    $rawV = (float)$p['value'];
+                    $normY = max( 0, min( 100, ( ( $rawV - $min ) / ( $max - $min ) ) * 100 ) );
                     $items[] = [
                         'x'     => (string)$p['date'],
-                        'y'     => (float)$p['value'],
+                        'y'     => $normY,
                         'group' => $gid,
-                        'label' => isset( $p['label'] ) ? (string)$p['label'] : null,
+                        'label' => $rawV . ' (range ' . $min . '..' . $max . ')',
                     ];
                 }
             }
         }
-        $payload = [ 'groups' => $groups, 'items' => $items ];
+        // Compute tight y-axis range from actual data to avoid the -10/110 default padding.
+        $yMin = INF; $yMax = -INF;
+        foreach ( $items as $it ) {
+            if ( isset( $it['y'] ) ) {
+                $yMin = min( $yMin, (float)$it['y'] );
+                $yMax = max( $yMax, (float)$it['y'] );
+            }
+        }
+        if ( $yMin === INF ) { $yMin = 0; $yMax = 1; }
+        $yRange = max( 1.0, $yMax - $yMin );
+        $payload = [
+            'groups' => $groups,
+            'items'  => $items,
+            'yRange' => [ 'min' => $yMin - $yRange * 0.08, 'max' => $yMax + $yRange * 0.08 ],
+        ];
         $out->addHTML( '<script>window.PCP_LIFE_GRAPH_DATA = ' . json_encode( $payload, JSON_UNESCAPED_SLASHES ) . ';</script>' );
-        $out->addHTML(
-            '<div class="pcp-life-graph-header">'
-            . '<h3>📈 Trait trajectories</h3>'
-            . '<button type="button" class="pcp-life-graph-fit">Fit graph</button>'
-            . '</div>'
-            . '<div id="pcp-life-graph-mount"></div>'
-        );
+        // The mount + legend are emitted INSIDE the visual pane wrapper —
+        // placed BEFORE the timeline mount in renderTimelineMount.
+    }
+
+
+
+
+    /** Count this profile's free-text refs that are not dismissed. */
+    private function countUnmatchedRefs( int $profileId ): int {
+        $dbr = \MediaWiki\MediaWikiServices::getInstance()
+            ->getConnectionProvider()->getReplicaDatabase();
+        $row = $dbr->newSelectQueryBuilder()
+            ->select( 'COUNT(*) AS n' )
+            ->from( 'pcp_life_event_refs', 'r' )
+            ->join( 'pcp_life_events', 'e', 'e.le_id = r.ler_event_id' )
+            ->where( [
+                'e.le_profile_id' => $profileId,
+                'r.ler_ref_type'  => 'free',
+            ] )
+            ->andWhere( 'r.ler_role NOT LIKE ' . $dbr->addQuotes( '%:dismissed' ) )
+            ->caller( __METHOD__ )
+            ->fetchRow();
+        return $row ? (int)$row->n : 0;
     }
 
     private function renderTimelineMount( $out, $store, int $profileId, bool $derivedOn ): void {
@@ -289,7 +378,7 @@ class SpecialMyLifeStory extends SpecialPage {
             'episodes'     => [ 'label' => 'Episodes',     'on' => true  ],
             'events'       => [ 'label' => 'Events',       'on' => true  ],
             'observations' => [ 'label' => 'Observations', 'on' => true  ],
-            'keyframes'    => [ 'label' => 'Keyframes',    'on' => true  ],
+            'keyframes'    => [ 'label' => 'Keyframes',    'on' => false ],
             'derived'      => [ 'label' => 'Derived',      'on' => false ],
         ];
         $togglesHtml = '';
@@ -308,18 +397,23 @@ class SpecialMyLifeStory extends SpecialPage {
             . '<div class="pcp-life-timeline-controls">'
                 . $togglesHtml
                 . '<span class="pcp-life-toolbar-spacer"></span>'
+                . '<span class="pcp-life-timeline-zoom-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="27" height="27"><circle cx="7" cy="7" r="4.5" fill="#000" stroke="#fff" stroke-width="0.9"/><line x1="10.2" y1="10.2" x2="14" y2="14" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></span>'
                 . '<button type="button" class="pcp-life-timeline-zoomout" title="Zoom out">&minus;</button>'
                 . '<button type="button" class="pcp-life-timeline-zoomin" title="Zoom in">+</button>'
                 . '<button type="button" class="pcp-life-timeline-fit" title="Fit visible groups">Fit visible</button>'
                 . '<button type="button" class="pcp-life-timeline-fit-all" title="Fit everything (incl. derived/keyframes)">Fit everything</button>'
             . '</div>'
         );
-        $out->addHTML( '<div class="pcp-life-view active" data-view="visual">'
-            . '<div id="pcp-life-timeline-mount"></div>'
-        . '</div>' );
-        $out->addHTML( '<div class="pcp-life-view active" data-view="visual" data-section="graph">' );
+        $out->addHTML(
+            '<div class="pcp-life-view active" data-view="visual">'
+                . '<div class="pcp-life-graph-legend"></div>'
+                . '<div class="pcp-life-overlay-wrap">'
+                    . '<div id="pcp-life-timeline-mount"></div>'
+                    . '<div id="pcp-life-graph-mount" class="pcp-life-graph-overlay"></div>'
+                . '</div>'
+            . '</div>'
+        );
         $this->renderTraitGraph( $out, $store, $profileId );
-        $out->addHTML( '</div>' );
         $out->addHTML( '<div class="pcp-life-view" data-view="list">' );
     }
 
@@ -343,9 +437,13 @@ class SpecialMyLifeStory extends SpecialPage {
             }
         }
         if ( !$start && $e->le_date_iso ) $start = (string)$e->le_date_iso;
-        $editUrl = $type === 4
-            ? $linkPage->getSubpage( 'edit-episode/' . (int)$e->le_id )->getLocalURL()
-            : $linkPage->getLocalURL( [ 'edit_event' => (int)$e->le_id ] );
+        if ( $type === 4 ) {
+            $editUrl = $linkPage->getSubpage( 'edit-episode/' . (int)$e->le_id )->getLocalURL();
+        } elseif ( $type === 3 ) {
+            $editUrl = $linkPage->getSubpage( 'edit-observation/' . (int)$e->le_id )->getLocalURL();
+        } else {
+            $editUrl = $linkPage->getLocalURL( [ 'edit_event' => (int)$e->le_id ] );
+        }
         return [
             'id'        => (int)$e->le_id,
             'group'     => $group,
@@ -430,7 +528,8 @@ class SpecialMyLifeStory extends SpecialPage {
         $visIcon   = [ 0=>'🔒', 1=>'👁', 2=>'🆔', 3=>'🎭' ][ (int)$event->le_visibility ] ?? '🔒';
         $dateText  = $this->formatDate( $event );
 
-        $out = '<div class="pcp-life-card pcp-life-type-' . $h( $typeLabel ) . '">';
+        $token = $this->getUser()->getEditToken();
+        $out = '<div class="pcp-life-card pcp-life-type-' . $h( $typeLabel ) . '" data-event-id="' . (int)$event->le_id . '">';
         $out .= '<div class="pcp-life-card-header">';
         $out .= '<span class="pcp-life-date">' . $h( $dateText ) . '</span> ';
         $out .= '<span class="pcp-life-type-badge">' . $h( $typeLabel ) . '</span> ';
@@ -442,10 +541,27 @@ class SpecialMyLifeStory extends SpecialPage {
                 $out .= '<span class="pcp-obs-polarity-pos">✓ did</span> ';
             }
         }
-        $out .= '<span class="pcp-life-vis-badge" title="visibility">' . $visIcon . '</span>';
+        // Clickable visibility cycle (JS-enhanced; falls back to button form post).
+        $visLabels = [ 0 => 'private', 1 => 'public-default', 2 => 'public-username', 3 => 'public-anonymous' ];
+        $visCur = (int)$event->le_visibility;
+        $out .= '<button type="button" class="pcp-life-vis-toggle" data-event-id="' . (int)$event->le_id . '" data-vis="' . $visCur . '" title="' . $h( $visLabels[ $visCur ] ?? '?' ) . ' (click to cycle)">' . $visIcon . '</button>';
+        if ( $editable ) {
+            // Inline delete button (X). Submits a tiny form so it works without JS,
+            // and JS adds a confirm() before submit.
+            $delAction = $this->getPageTitle()->getLocalURL();
+            $out .= ' <form method="post" action="' . $h( $delAction ) . '" class="pcp-life-card-delete-form" data-confirm="Delete this event? This cannot be undone.">'
+                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="wpEditToken" value="' . $h( $token ) . '">'
+                . '<input type="hidden" name="action" value="delete_event">'
+                . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+                . '<button type="submit" class="pcp-life-card-delete" title="Delete this event">&times;</button>'
+                . '</form>';
+        }
         if ( $editable ) {
             if ( (int)$event->le_type === LifeStoryStore::TYPE_EPISODE ) {
                 $editUrl = htmlspecialchars( $this->getPageTitle( 'edit-episode/' . (int)$event->le_id )->getLocalURL() );
+            } elseif ( (int)$event->le_type === LifeStoryStore::TYPE_OBSERVATION ) {
+                $editUrl = htmlspecialchars( $this->getPageTitle( 'edit-observation/' . (int)$event->le_id )->getLocalURL() );
             } else {
                 $editUrl = htmlspecialchars( $this->getPageTitle()->getLocalURL(
                     [ 'edit_event' => (int)$event->le_id ] ) );
@@ -606,6 +722,146 @@ class SpecialMyLifeStory extends SpecialPage {
     // ===== Form (add / edit) =====
 
 
+
+    private function renderObservationForm( $out, $user, int $profileId, \stdClass $event ): void {
+        $h = function ( $s ) { return htmlspecialchars( (string)$s ); };
+        $store  = new LifeStoryStore();
+        $struct = null;
+        if ( $event->le_date_struct ) {
+            $struct = json_decode( (string)$event->le_date_struct, true );
+        }
+        $structJson = $struct ? $h( json_encode( $struct ) ) : '';
+        $rawText  = (string)( $event->le_raw_text ?? '' );
+        $polarity = $event->le_polarity !== null ? (int)$event->le_polarity : null;
+        $refs     = $store->getRefsForEvent( (int)$event->le_id );
+
+        $out->setPageTitle( 'Edit observation' );
+        $token  = $h( $user->getEditToken() );
+        $action = $h( $this->getPageTitle()->getLocalURL() );
+        $out->addModules( [ 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.observation' ] );
+
+        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-obs-edit-form">' );
+        $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
+        $out->addHTML( '<input type="hidden" name="action" value="save_observation">' );
+        $out->addHTML( '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">' );
+
+        // Raw text (with live re-parse preview).
+        $out->addHTML( '<div class="pcp-form-row"><label>Observation (free text)</label>' );
+        $out->addHTML( '<div class="pcp-obs-quickadd">' );
+        $out->addHTML( '<textarea name="text" rows="3" class="pcp-obs-input" required>' . $h( $rawText ) . '</textarea>' );
+        $out->addHTML( '<div class="pcp-obs-preview"></div>' );
+        $out->addHTML( '</div></div>' );
+
+        // Override polarity (3-state radio).
+        $out->addHTML( '<div class="pcp-form-row"><label>Polarity override (optional)</label>' );
+        foreach ( [ '' => 'auto (from text)', '1' => 'did experience', '0' => 'did NOT experience' ] as $val => $lab ) {
+            $chk = ( ( $val === '' && $polarity === null ) || ( (string)$polarity === $val ) ) ? ' checked' : '';
+            $out->addHTML( '<label class="pcp-obs-pol-radio"><input type="radio" name="polarity_override" value="' . $val . '"' . $chk . '> ' . $h( $lab ) . '</label> ' );
+        }
+        $out->addHTML( '</div>' );
+
+        // Override date (optional, point picker).
+        $out->addHTML( '<div class="pcp-form-row"><label>Date override (optional, point in time)</label>' );
+        $out->addHTML( \MediaWiki\Extension\Pharmacopedia\DatePicker::renderWidget( 'date_struct_override', $struct, [ 'lock_mode' => 'point' ] ) );
+        $out->addHTML( '<p class="pcp-form-help">Leave blank to use the date parsed from the text above.</p>' );
+        $out->addHTML( '</div>' );
+
+        // Current refs (read-only display).
+        if ( $refs ) {
+            $out->addHTML( '<div class="pcp-form-row"><label>Current linked references (regenerated from text on save)</label>' );
+            $out->addHTML( '<div class="pcp-obs-edit-refs">' );
+            foreach ( $refs as $r ) {
+                $cls = 'pcp-obs-refchip ' . ( $r['matched'] ? 'matched' : 'unmatched' );
+                $roleLabel = $r['role'] === 'subject' ? '' :
+                             ( $r['role'] === 'cause' ? 'from ' :
+                             ( $r['role'] === 'context' ? 'with ' : $r['role'] . ' ' ) );
+                $out->addHTML( '<span class="' . $cls . '">' . $h( $roleLabel . $r['text'] )
+                    . ' <small>[' . $h( $r['type'] ) . ']</small></span> ' );
+            }
+            $out->addHTML( '</div></div>' );
+        }
+
+        // Submit + cancel.
+        $out->addHTML( '<div class="pcp-life-form-actions">' );
+        $out->addHTML( '<button type="submit" class="pcp-btn pcp-btn-primary">Save changes</button> ' );
+        $out->addHTML( '<a href="' . $h( $this->getPageTitle()->getLocalURL() ) . '" class="pcp-btn">Cancel</a>' );
+        $out->addHTML( '</div></form>' );
+
+        // Delete.
+        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
+            . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+            . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
+            . '<input type="hidden" name="action" value="delete_event">'
+            . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+            . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this observation?\')">Delete observation</button>'
+            . '</form>' );
+        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
+                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
+                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+                . '<button type="submit" class="pcp-btn">Duplicate observation</button>'
+                . '</form>' );
+    }
+
+    private function saveObservation( $store, int $profileId, $request ): int {
+        $eventId = (int)$request->getVal( 'event_id', 0 );
+        $text    = trim( (string)$request->getVal( 'text', '' ) );
+        if ( $text === '' || $eventId <= 0 ) {
+            throw new \RuntimeException( 'Observation text and event_id required' );
+        }
+        $parser = new \MediaWiki\Extension\Pharmacopedia\ObservationParser();
+        $parsed = $parser->parse( $text, $profileId );
+
+        // Apply overrides.
+        $polOver = (string)$request->getVal( 'polarity_override', '' );
+        if ( $polOver !== '' ) $parsed['polarity'] = (int)$polOver;
+
+        $dateOverJson = (string)$request->getVal( 'date_struct_override', '' );
+        if ( $dateOverJson !== '' ) {
+            $j = json_decode( $dateOverJson, true );
+            if ( is_array( $j ) && ( $j['kind'] ?? '' ) === 'point' ) {
+                $parsed['date_struct'] = $j;
+            }
+        }
+
+        // Update the row in place (rather than insert+delete).
+        $dbw = \MediaWiki\MediaWikiServices::getInstance()
+            ->getConnectionProvider()->getPrimaryDatabase();
+        $iso = $parsed['date_struct']['point']['parsed']['iso'] ?? null;
+        $disp = $parsed['date_struct']['point']['raw_text'] ?? '';
+        $dbw->newUpdateQueryBuilder()
+            ->update( 'pcp_life_events' )
+            ->set( [
+                'le_raw_text'     => $text,
+                'le_title'        => $this->observationTitle( $parsed ),
+                'le_polarity'     => $parsed['polarity'] !== null ? (int)$parsed['polarity'] : null,
+                'le_date_struct'  => $parsed['date_struct'] ? json_encode( $parsed['date_struct'] ) : null,
+                'le_date_iso'     => $iso,
+                'le_date_display' => (string)$disp,
+                'le_updated'      => $dbw->timestamp(),
+            ] )
+            ->where( [ 'le_id' => $eventId, 'le_profile_id' => $profileId ] )
+            ->caller( __METHOD__ )
+            ->execute();
+
+        // Replace refs from the new parse.
+        $store->setEventRefs( $eventId, $parsed['refs'] );
+        return $eventId;
+    }
+
+    private function observationTitle( array $parsed ): string {
+        $parts = [];
+        if ( $parsed['polarity'] === 0 ) $parts[] = 'no';
+        if ( !empty( $parsed['subject_text'] ) ) $parts[] = $parsed['subject_text'];
+        foreach ( $parsed['refs'] as $r ) {
+            if ( $r['role'] === 'cause' )   $parts[] = 'from ' . $r['label'];
+            if ( $r['role'] === 'context' ) $parts[] = 'with ' . $r['label'];
+        }
+        $title = trim( implode( ' ', $parts ) );
+        return mb_substr( $title !== '' ? $title : (string)( $parsed['original_text'] ?? '' ), 0, 200 );
+    }
+
     private function renderEpisodeForm( $out, $user, int $profileId, ?\stdClass $event ) {
         $h = function ( $s ) { return htmlspecialchars( (string)$s ); };
         $isEdit = (bool)$event;
@@ -710,6 +966,22 @@ class SpecialMyLifeStory extends SpecialPage {
         $out->addHTML( '<button type="submit" class="pcp-btn">' . ( $isEdit ? 'Save' : 'Create episode' ) . '</button> ' );
         $out->addHTML( '<a class="pcp-btn" href="' . $h( $this->getPageTitle()->getLocalURL() ) . '">Cancel</a>' );
         $out->addHTML( '</div></form>' );
+        if ( $isEdit ) {
+            $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
+                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
+                . '<input type="hidden" name="action" value="delete_event">'
+                . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+                . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this episode?\')">Delete episode</button>'
+                . '</form>' );
+            $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
+                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
+                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+                . '<button type="submit" class="pcp-btn">Duplicate episode</button>'
+                . '</form>' );
+        }
 
         // Inline JS: populate subtype datalist when type changes.
         $out->addHTML( '<script>(function(){var m=' . $subtypesJson . ';var t=document.querySelector(".pcp-ep-type");var dl=document.getElementById("pcp-ep-subtypes");function refresh(){dl.innerHTML="";var arr=m[t.value]||[];arr.forEach(function(s){var o=document.createElement("option");o.value=s;dl.appendChild(o);});}if(t){t.addEventListener("change",refresh);refresh();}})();</script>' );
@@ -872,6 +1144,13 @@ class SpecialMyLifeStory extends SpecialPage {
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
                 . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this event and its images?\')">Delete event</button>'
                 . '</form>' );
+            $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-dup-form">'
+                . '<input type="hidden" name="title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
+                . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
+                . '<input type="hidden" name="action" value="duplicate_event">'
+                . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
+                . '<button type="submit" class="pcp-btn">Duplicate event</button>'
+                . '</form>' );
         }
     }
 
@@ -964,8 +1243,11 @@ class SpecialMyLifeStory extends SpecialPage {
             throw new \RuntimeException( 'File is not a parseable image.' );
         }
 
-        // Antivirus scan (no-op if scanner unavailable; throws on hit).
-        AntivirusHelper::scan( $tmp );
+        // Antivirus scan (FAIL-CLOSED: rejects if scanner missing or errors).
+        $avScan = \MediaWiki\Extension\Pharmacopedia\VirusScanner::scanFile( $tmp );
+        if ( !$avScan['ok'] ) {
+            throw new \RuntimeException( 'Upload rejected by antivirus: ' . $avScan['reason'] );
+        }
 
         // Per-user cap
         $totalBytes = $store->totalImageBytesForProfile( $profileId );

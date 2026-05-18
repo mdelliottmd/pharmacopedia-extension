@@ -3029,7 +3029,109 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
                 state[ key ] = collapsed ? 'collapsed' : 'expanded';
                 try { localStorage.setItem( STORAGE_KEY, JSON.stringify( state ) ); } catch ( e ) {}
             } );
-        }() );
+        
+    // ===== Choice / multi voting (added with type=single|multi) =====
+    $( '.pcp-vote-choice' ).each( function () {
+        var $wrap = $( this );
+        var $sum  = $wrap.find( '.pcp-vote-choice-summary' );
+        var $pick = $wrap.find( '.pcp-vote-choice-picker' );
+        $sum.on( 'click keydown', function ( e ) {
+            if ( e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ' ) return;
+            e.preventDefault();
+            if ( !$pick.prop( 'hidden' ) ) { $pick.prop( 'hidden', true ); return; }
+            renderPicker( $wrap );
+            $pick.prop( 'hidden', false );
+        } );
+    } );
+
+    function renderPicker( $wrap ) {
+        var payload = JSON.parse( $wrap.attr( 'data-payload' ) || '{}' );
+        var elementId = $wrap.data( 'element-id' );
+        var optionsH = $wrap.attr( 'data-options-h' );
+        var type = $wrap.attr( 'data-vote-type' );
+        var input = type === 'single' ? 'radio' : 'checkbox';
+        var name  = 'pcp-vote-' + elementId;
+        var total = payload.total || 0;
+        var $pick = $wrap.find( '.pcp-vote-choice-picker' );
+        $pick.empty();
+        ( payload.options || [] ).forEach( function ( label, i ) {
+            var hasTally = payload.tally != null;
+            var count = hasTally ? ( ( payload.tally && payload.tally[ i ] ) || 0 ) : null;
+            var pct   = ( hasTally && total > 0 ) ? Math.round( count * 100 / total ) : 0;
+            var checked = ( payload.user || [] ).indexOf( i ) !== -1 ? ' checked' : '';
+            var $row = $( '<label class="pcp-vote-choice-row">' );
+            $row.append(
+                '<input type="' + input + '" name="' + name + '" value="' + i + '"' + checked + '>',
+                $( '<span class="pcp-vote-choice-label">' ).text( label )
+            );
+            if ( hasTally ) {
+                $row.append(
+                    $( '<span class="pcp-vote-choice-bar">' ).append(
+                        $( '<span class="pcp-vote-choice-bar-fill">' ).css( 'width', pct + '%' )
+                    ),
+                    $( '<span class="pcp-vote-choice-count">' ).text( count )
+                );
+            }
+            $pick.append( $row );
+        } );
+        var $submit = $( '<button type="button" class="pcp-btn pcp-vote-choice-submit">Save vote</button>' );
+        var $clear  = $( '<button type="button" class="pcp-btn pcp-vote-choice-clear">Clear</button>' );
+        $pick.append( $( '<div class="pcp-vote-choice-actions">' ).append( $submit, ' ', $clear ) );
+
+        $submit.on( 'click', function () { submitChoices( $wrap, optionsH ); } );
+        $clear.on( 'click', function () { submitChoices( $wrap, optionsH, [] ); } );
+    }
+
+    function submitChoices( $wrap, optionsH, override ) {
+        if ( !mw.user.isAnon() === false || mw.user.isAnon() ) {
+            mw.notify( mw.msg( 'pharmacopedia-login-required' ), { type: 'warn' } );
+            return;
+        }
+        var elementId = $wrap.data( 'element-id' );
+        var $pick = $wrap.find( '.pcp-vote-choice-picker' );
+        var picks = override !== undefined ? override : $pick.find( 'input:checked' ).map( function () { return this.value; } ).get();
+        var csv = picks.join( ',' );
+        var api = new mw.Api();
+        api.postWithToken( 'csrf', {
+            action: 'pharmacopediavote',
+            element_id: elementId,
+            choices:    csv,
+            options_h:  optionsH
+        } ).done( function ( r ) {
+            // Update payload in place.
+            var payload = JSON.parse( $wrap.attr( 'data-payload' ) || '{}' );
+            payload.tally = r && r.pharmacopediavote && r.pharmacopediavote.tally || {};
+            payload.user  = r && r.pharmacopediavote && r.pharmacopediavote.user_choices || [];
+            if ( payload.tally != null ) {
+                payload.total = 0;
+                $.each( payload.tally, function ( k, v ) { payload.total += v; } );
+            } else {
+                payload.total = null;
+            }
+            $wrap.attr( 'data-payload', JSON.stringify( payload ) );
+            // Update summary chip.
+            var label = '';
+            if ( payload.user.length ) {
+                label = ' · you: ' + ( payload.options[ payload.user[0] ] || '?' ) + ( payload.user.length > 1 ? ' +' + ( payload.user.length - 1 ) : '' );
+            }
+            $wrap.find( '.pcp-vote-choice-total' ).text( payload.total != null ? payload.total : '–' );
+            var $u = $wrap.find( '.pcp-vote-choice-user' );
+            if ( label ) {
+                if ( !$u.length ) {
+                    $u = $( '<span class="pcp-vote-choice-user">' );
+                    $wrap.find( '.pcp-vote-choice-summary' ).append( $u );
+                }
+                $u.text( label );
+            } else {
+                $u.remove();
+            }
+            renderPicker( $wrap );
+        } ).fail( function ( e ) {
+            mw.notify( 'Vote failed: ' + e, { type: 'error' } );
+        } );
+    }
+
+}() );
         /* ===== End collapsible sections ===== */
 
     } );
@@ -3116,3 +3218,42 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
     } );
 }() );
 /* ===== End feature-request review console ===== */
+
+/* ===== Share-profile button: copy URL to clipboard ===== */
+( function () {
+    'use strict';
+    $( function () {
+        $( document ).on( 'click', '.pcp-profile-share-btn', function () {
+            var $btn = $( this );
+            var url = $btn.attr( 'data-share-url' ) || '';
+            if ( !url ) return;
+            var oldText = $btn.text();
+            function flashCopied() {
+                $btn.addClass( 'is-copied' ).text( 'Copied!' );
+                setTimeout( function () {
+                    $btn.removeClass( 'is-copied' ).text( oldText );
+                }, 1400 );
+            }
+            if ( navigator.clipboard && navigator.clipboard.writeText ) {
+                navigator.clipboard.writeText( url ).then( flashCopied, function () {
+                    // Fallback below.
+                    fallbackCopy();
+                } );
+            } else {
+                fallbackCopy();
+            }
+            function fallbackCopy() {
+                var ta = document.createElement( 'textarea' );
+                ta.value = url;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild( ta );
+                ta.select();
+                try { document.execCommand( 'copy' ); flashCopied(); }
+                catch ( e ) { window.prompt( 'Copy your profile URL:', url ); }
+                document.body.removeChild( ta );
+            }
+        } );
+    } );
+}() );
+/* ===== End share-profile button ===== */

@@ -918,6 +918,77 @@ class LifeStoryStore {
         return '';
     }
 
+
+    /**
+     * Duplicate an event (any type) for the given profile. Copies row fields
+     * + refs; does NOT copy images. Returns the new event id.
+     */
+    public function duplicateEvent( int $sourceEventId, int $profileId ): int {
+        $src = $this->getEvent( $sourceEventId );
+        if ( !$src || (int)$src->le_profile_id !== $profileId ) {
+            throw new \RuntimeException( 'Cannot duplicate: event not found or not owned' );
+        }
+        $dbw = \MediaWiki\MediaWikiServices::getInstance()
+            ->getConnectionProvider()->getPrimaryDatabase();
+        $now = $dbw->timestamp();
+        $row = [
+            'le_profile_id'      => $profileId,
+            'le_type'            => (int)$src->le_type,
+            'le_title'           => 'Copy of ' . (string)$src->le_title,
+            'le_body'            => $src->le_body,
+            'le_tags'            => $src->le_tags,
+            'le_visibility'      => (int)$src->le_visibility,
+            'le_polarity'        => $src->le_polarity !== null ? (int)$src->le_polarity : null,
+            'le_raw_text'        => $src->le_raw_text,
+            'le_episode_type'    => $src->le_episode_type,
+            'le_episode_subtype' => $src->le_episode_subtype,
+            'le_severity'        => $src->le_severity !== null ? (float)$src->le_severity : null,
+            'le_date_iso'        => $src->le_date_iso,
+            'le_date_struct'     => $src->le_date_struct,
+            'le_date_display'    => $src->le_date_display,
+            'le_date_precision'  => (int)$src->le_date_precision,
+            'le_created'         => $now,
+            'le_updated'         => $now,
+        ];
+        $dbw->newInsertQueryBuilder()
+            ->insertInto( 'pcp_life_events' )
+            ->row( $row )
+            ->caller( __METHOD__ )
+            ->execute();
+        $newId = (int)$dbw->insertId();
+        // Copy refs.
+        $refs = $this->getRefsForEvent( $sourceEventId );
+        $copyRefs = [];
+        foreach ( $refs as $r ) {
+            $copyRefs[] = [
+                'role'    => $r['role'],
+                'type'    => $r['type'],
+                'id'      => $r['ref_id'],
+                'text'    => $r['text'],
+                'matched' => $r['matched'],
+            ];
+        }
+        if ( $copyRefs ) $this->setEventRefs( $newId, $copyRefs );
+        // Copy keyframe traits if this is a keyframe.
+        if ( (int)$src->le_type === self::TYPE_KEYFRAME ) {
+            $traits = $this->getTraitsForEvent( $sourceEventId );
+            $copyTraits = [];
+            foreach ( $traits as $t ) {
+                $copyTraits[] = [
+                    'namespace' => (string)$t->lt_namespace,
+                    'key'       => (string)$t->lt_key,
+                    'label'     => $t->lt_label !== null ? (string)$t->lt_label : null,
+                    'value'     => (float)$t->lt_value_num,
+                    'min'       => $t->lt_min !== null ? (float)$t->lt_min : null,
+                    'max'       => $t->lt_max !== null ? (float)$t->lt_max : null,
+                    'estimated' => (int)$t->lt_estimated,
+                ];
+            }
+            if ( $copyTraits ) $this->setTraits( $newId, $copyTraits );
+        }
+        return $newId;
+    }
+
     public function canViewEvent( \stdClass $event, ?int $viewerProfileId, bool $viewerIsSysop ): bool {
         if ( $viewerIsSysop ) return true;
         if ( $viewerProfileId !== null && (int)$event->le_profile_id === $viewerProfileId ) return true;

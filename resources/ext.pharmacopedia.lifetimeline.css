@@ -247,3 +247,177 @@
     font-size: 0.86em !important;
 }
 .vis-foreground .vis-group { min-height: 32px !important; }
+
+/* Integrated graph + timeline */
+#pcp-life-graph-mount {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    padding: 0.3em 0.4em;
+    margin: 0;
+}
+#pcp-life-timeline-mount {
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    margin-top: 0;
+}
+.pcp-life-graph-legend {
+    background: #1a1a1a;
+    border-left: 1px solid #5d3b8e;
+    border-right: 1px solid #5d3b8e;
+    padding: 0.3em 0.5em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em;
+    margin: 0;
+}
+.pcp-life-graph-legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    background: #2a2a2a;
+    border: 1px solid #5d3b8e;
+    border-radius: 12px;
+    padding: 0.1em 0.5em 0.1em 0.35em;
+    font-size: 0.74em;
+    color: #fff;
+    cursor: pointer;
+}
+.pcp-life-graph-legend-chip input { margin: 0; }
+.pcp-life-graph-legend-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+}
+.pcp-life-graph-legend-chip:has(input:not(:checked)) {
+    opacity: 0.4;
+    background: #1a1a1a;
+}
+.pcp-life-graph-empty {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 0.6em;
+    margin: 0;
+}
+/* Graph2d palette */
+.vis-graph2d .vis-time-axis .vis-text { color: #c4b5fd !important; }
+.vis-graph2d .vis-axis text { fill: #c4b5fd !important; }
+.vis-graph2d .vis-axis path,
+.vis-graph2d .vis-axis line { stroke: #5d3b8e !important; }
+.vis-graph2d .vis-line { stroke-width: 2.5px !important; }
+
+/* === Trait-graph overlay on timeline === */
+.pcp-life-overlay-wrap {
+    position: relative;
+    margin: 0;
+}
+#pcp-life-timeline-mount {
+    border-radius: 8px;
+    border-top: 1px solid #5d3b8e;
+    margin-top: 0;
+}
+.pcp-life-graph-overlay {
+    position: absolute;
+    inset: 0;
+    background: transparent !important;
+    pointer-events: none;
+    z-index: 5;
+    border: none !important;
+    border-radius: 8px;
+    padding: 0 !important;
+    overflow: hidden;
+}
+/* Make the graph itself fully transparent so swimlanes show through */
+.pcp-life-graph-overlay .vis-panel,
+.pcp-life-graph-overlay .vis-foreground,
+.pcp-life-graph-overlay .vis-background,
+.pcp-life-graph-overlay .vis-itemset,
+.pcp-life-graph-overlay .vis-graph2d {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+/* Hide graph's own Y-axis labels (they'd overlap timeline swimlane labels) */
+.pcp-life-graph-overlay .vis-data-axis,
+.pcp-life-graph-overlay .vis-y-axis {
+    display: none !important;
+}
+/* Hide graph's own X-axis (use the timeline's) */
+.pcp-life-graph-overlay .vis-time-axis {
+    visibility: hidden !important;
+}
+/* Hide graph's gridlines (timeline already has them) */
+.pcp-life-graph-overlay .vis-grid {
+    display: none !important;
+}
+/* Lines remain visible above swimlane items */
+.pcp-life-graph-overlay .vis-line { z-index: 10; }
+.pcp-life-graph-overlay .vis-point { z-index: 12; }
+
+/* Legend now sits ABOVE the overlay wrapper */
+.pcp-life-graph-legend {
+    margin: 0 0 0.4em;
+    padding: 0.4em 0.5em;
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em;
+}
+
+/* Banner pointing to Special:MyRefLinks when there are unmatched free-text refs */
+.pcp-life-reflinks-banner {
+    background: linear-gradient(135deg, #2a1f47, #1a1a1a);
+    border: 1px solid #c4b5fd;
+    border-radius: 6px;
+    padding: 0.6em 0.9em;
+    margin: 0 0 0.7em;
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    color: #c4b5fd;
+}
+.pcp-life-reflinks-banner span { flex: 1; }
+.pcp-life-reflinks-banner a { white-space: nowrap; }
+
+/* POLISH5-OVERRIDES (2026-05-18) */
+/* Force-hide the trait graph's own data + time axes when overlaid on timeline */
+#pcp-life-graph-mount .vis-data-axis,
+#pcp-life-graph-mount .vis-y-axis,
+.pcp-life-graph-overlay .vis-data-axis,
+.pcp-life-graph-overlay .vis-y-axis,
+#pcp-life-graph-mount .vis-time-axis,
+.pcp-life-graph-overlay .vis-time-axis {
+    display: none !important;
+    width: 0 !important;
+}
+/* Stable scrollbar so vertical scroll is always discoverable inside timeline */
+#pcp-life-timeline-mount {
+    scrollbar-gutter: stable;
+    overflow-y: auto !important;
+}
+#pcp-life-timeline-mount::-webkit-scrollbar { width: 10px; }
+#pcp-life-timeline-mount::-webkit-scrollbar-track { background: #1a1a1a; }
+#pcp-life-timeline-mount::-webkit-scrollbar-thumb {
+    background: #5d3b8e;
+    border-radius: 5px;
+    border: 2px solid #1a1a1a;
+}
+#pcp-life-timeline-mount::-webkit-scrollbar-thumb:hover { background: #b599e0; }
+
+/* Hide swimlane name labels (episodes/events/observations/keyframes) in the timeline column,
+   keeping the row guides + Y-axis '100%' from the trait graph. */
+#pcp-life-timeline-mount .vis-labelset .vis-inner {
+    visibility: hidden !important;
+}
+
+.pcp-life-timeline-zoom-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.3em;
+}
+.pcp-life-timeline-zoom-icon svg { display: block; }

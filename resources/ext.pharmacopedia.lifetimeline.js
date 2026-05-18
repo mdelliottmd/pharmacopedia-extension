@@ -8,7 +8,7 @@
         { id: 'episodes',     content: 'Episodes',     order: 1, visible: true  },
         { id: 'events',       content: 'Events',       order: 2, visible: true  },
         { id: 'observations', content: 'Observations', order: 3, visible: true  },
-        { id: 'keyframes',    content: 'Keyframes',    order: 4, visible: true  },
+        { id: 'keyframes',    content: 'Keyframes',    order: 4, visible: false },
         { id: 'derived',      content: 'Derived',      order: 5, visible: false }   // hidden by default
     ];
 
@@ -71,6 +71,10 @@
         };
 
         var timeline = new vis.Timeline( mount, itemsDS, groupsDS, options );
+        // Expose globally for race-safe pickup by the chart module.
+        window.pcpLifeTimeline = timeline;
+        // Also notify via event (for modules that prefer event-based wiring).
+        document.dispatchEvent( new CustomEvent( 'pcp-life-timeline-ready', { detail: { timeline: timeline } } ) );
 
         function fit( includeOptionalGroups ) {
             var ids;
@@ -103,10 +107,60 @@
         var zoutBtn = document.querySelector( '.pcp-life-timeline-zoomout' );
         if ( zoutBtn ) zoutBtn.addEventListener( 'click', function () { timeline.zoomOut( 0.4 ); } );
 
-        // Group-visibility checkboxes.
+        // Group-visibility checkboxes: drive both the visual timeline AND the card list.
+        function applyCardFilter( gid, on ) {
+            var listView = document.querySelector( '.pcp-life-view[data-view="list"]' );
+            if ( !listView ) return;
+            listView.classList.toggle( 'pcp-hide-' + gid, !on );
+        }
         document.querySelectorAll( '.pcp-life-timeline-group-toggle' ).forEach( function ( cb ) {
+            // Initial state -> apply filter on card list.
+            applyCardFilter( cb.value, cb.checked );
             cb.addEventListener( 'change', function () {
                 groupsDS.update( { id: cb.value, visible: cb.checked } );
+                applyCardFilter( cb.value, cb.checked );
+            } );
+        } );
+
+        // Delete-card confirmation.
+        document.querySelectorAll( '.pcp-life-card-delete-form' ).forEach( function ( f ) {
+            f.addEventListener( 'submit', function ( e ) {
+                var msg = f.getAttribute( 'data-confirm' ) || 'Delete this event?';
+                if ( !window.confirm( msg ) ) { e.preventDefault(); }
+            } );
+        } );
+
+        // Visibility cycle on click.
+        document.querySelectorAll( '.pcp-life-vis-toggle' ).forEach( function ( btn ) {
+            btn.addEventListener( 'click', function () {
+                var eid = parseInt( btn.getAttribute( 'data-event-id' ), 10 );
+                var cur = parseInt( btn.getAttribute( 'data-vis' ) || '0', 10 );
+                var next = ( cur + 1 ) % 4;
+                var icons = { 0: '\ud83d\udd12', 1: '\ud83d\udc41', 2: '\ud83c\udd94', 3: '\ud83c\udfad' };
+                var labels = { 0: 'private', 1: 'public-default', 2: 'public-username', 3: 'public-anonymous' };
+                var tokenEl = document.querySelector( 'input[name="wpEditToken"]' );
+                var token = tokenEl ? tokenEl.value : '';
+                // Post back to the current Special page (avoid grabbing the search
+                // form's hidden title input, which would route to Special:Search).
+                var url = mw.util.getUrl( mw.config.get( 'wgPageName' ) );
+                btn.disabled = true;
+                var form = new FormData();
+                form.append( 'action', 'set_visibility' );
+                form.append( 'event_id', String( eid ) );
+                form.append( 'visibility', String( next ) );
+                form.append( 'wpEditToken', token );
+                form.append( 'ajax', '1' );
+                fetch( url, { method: 'POST', body: form, credentials: 'same-origin' } )
+                    .then( function ( r ) { return r.json(); } )
+                    .then( function ( j ) {
+                        if ( j && j.ok ) {
+                            btn.setAttribute( 'data-vis', String( next ) );
+                            btn.textContent = icons[ next ] || '?';
+                            btn.setAttribute( 'title', ( labels[ next ] || '?' ) + ' (click to cycle)' );
+                        }
+                    } )
+                    .catch( function () {} )
+                    .finally( function () { btn.disabled = false; } );
             } );
         } );
 

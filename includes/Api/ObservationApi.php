@@ -58,6 +58,93 @@ class ObservationApi extends ApiBase {
                 }
 
                 $ls = new LifeStoryStore();
+
+                // Special case: subject is a custom trait + date range + numeric value.
+                // Emit TWO keyframes (one at each endpoint of the range) with the
+                // trait+value attached, instead of a single observation/episode.
+                $traitRef = null;
+                foreach ( $parsed['refs'] as $rr ) {
+                    if ( ( $rr['role'] ?? '' ) === 'subject' && ( $rr['type'] ?? '' ) === 'trait' ) {
+                        $traitRef = $rr;
+                        break;
+                    }
+                }
+                $kind = $parsed['date_struct']['kind'] ?? '';
+                $isTraitValue = $traitRef && $parsed['numeric_value'] !== null
+                    && ( $kind === 'range' || $kind === 'point' );
+
+                if ( $isTraitValue ) {
+                    $val = (float)$parsed['numeric_value'];
+                    $label = (string)$traitRef['label'];
+                    $key   = strtolower( preg_replace( '/[^a-z0-9_]+/i', '_', $label ) );
+                    $key   = trim( $key, '_' );
+                    if ( $key === '' ) $key = 'trait';
+                    $endpoints = [];
+                    if ( $kind === 'range' ) {
+                        foreach ( [ 'from', 'through' ] as $end ) {
+                            $iso = $parsed['date_struct'][ $end ]['parsed']['iso'] ?? null;
+                            if ( !$iso ) continue;
+                            $endpoints[] = [
+                                'iso' => $iso,
+                                'raw' => (string)( $parsed['date_struct'][ $end ]['raw_text'] ?? '' ),
+                                'prec'=> (string)( $parsed['date_struct'][ $end ]['parsed']['precision'] ?? 'year' ),
+                            ];
+                        }
+                    } else {
+                        $iso = $parsed['date_struct']['point']['parsed']['iso'] ?? null;
+                        if ( $iso ) {
+                            $endpoints[] = [
+                                'iso' => $iso,
+                                'raw' => (string)( $parsed['date_struct']['point']['raw_text'] ?? '' ),
+                                'prec'=> (string)( $parsed['date_struct']['point']['parsed']['precision'] ?? 'year' ),
+                            ];
+                        }
+                    }
+                    $eventIds = [];
+                    foreach ( $endpoints as $ep ) {
+                        $kfStruct = [
+                            'kind' => 'point',
+                            'point' => [
+                                'raw_text' => $ep['raw'],
+                                'parsed'   => [
+                                    'kind'      => 'point',
+                                    'precision' => $ep['prec'],
+                                    'iso'       => $ep['iso'],
+                                ],
+                            ],
+                        ];
+                        $eid = $ls->addEvent( $profileId, [
+                            'date_iso'       => $ep['iso'],
+                            'date_precision' => 5, // DP_YEAR; setEventTraits will keep value
+                            'date_display'   => $ep['raw'],
+                            'date_struct'    => json_encode( $kfStruct, JSON_UNESCAPED_UNICODE ),
+                            'type'           => \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_KEYFRAME,
+                            'title'          => $label . ' = ' . $val,
+                            'body'           => $text,
+                            'visibility'     => 0,
+                            'tags'           => 'quickadd,trait',
+                        ] );
+                        $ls->setTraits( $eid, [ [
+                            'namespace' => 'custom',
+                            'key'       => $key,
+                            'label'     => $label,
+                            'value'     => $val,
+                            'min'       => null,
+                            'max'       => null,
+                            'estimated' => 0,
+                        ] ] );
+                        $eventIds[] = $eid;
+                    }
+                    if ( $eventIds ) {
+                        $this->getResult()->addValue( null, 'event_ids', $eventIds );
+                        $this->getResult()->addValue( null, 'event_id', $eventIds[0] );
+                        $this->getResult()->addValue( null, 'parsed', $parsed );
+                        $this->getResult()->addValue( null, 'keyframes_count', count( $eventIds ) );
+                        $this->getResult()->addValue( null, 'success', true );
+                        break;
+                    }
+                }
+
                 if ( !empty( $parsed['is_episode'] ) ) {
                     $eventId = $ls->addEpisode( $profileId, [
                         'title'           => $this->titleFromParse( $parsed ),

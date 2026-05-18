@@ -51,8 +51,14 @@ class SpecialMyProfile extends SpecialPage {
     // ===== Header / status =====
 
     private function renderHeader( $out, $store, $profile ) {
+        $userName = $this->getUser()->getName();
+        $shareUrl = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'UserProfile', $userName )->getFullURL();
+        $shareBtn = '<button type="button" class="pcp-profile-share-btn" data-share-url="'
+            . htmlspecialchars( $shareUrl ) . '" title="Copy your public profile URL to the clipboard">'
+            . '🔗 Share profile</button>';
         $out->addHTML(
-            '<div class="pcp-banner">' .
+            '<div class="pcp-banner pcp-banner-with-action">' .
+            $shareBtn .
             '<span class="pcp-banner__title">Your profile</span>' .
             '<span class="pcp-banner__body">You. And your story. With unparalleled fidelity. Private as you need. Share as you please. ' .
             'Every entry can be private (user+sysop only) ' .
@@ -807,6 +813,23 @@ class SpecialMyProfile extends SpecialPage {
         echo '<p class="pcp-prof-help pcp-report-toplink"><small><a href="' . htmlspecialchars( $oceanReportUrl ) . '">View full Big Five report &rarr;</a></small> ';
         echo '<button type="button" class="pcp-share-chip" data-share-url="' . htmlspecialchars( $oceanShareUrl ) . '" data-assessment-key="ocean" title="Copy a shareable link to this report">🔗 Share</button>';
         echo '</p>';
+        // Visibility dropdowns at the top, matching the layout of the other assessments.
+        echo '<div class="pcp-assess-vis">';
+        echo '<label>Visibility for Big Five (OCEAN) <strong>summary scores</strong>: ';
+        echo '<select name="tv[ocean]">';
+        foreach ( [ 0 => "Private", 1 => "Public (default attribution)", 2 => "Public (username)", 3 => "Public (anonymous)" ] as $vv => $lab ) {
+            $sel = $oceanSumVis === $vv ? " selected" : "";
+            echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<br><label class="pcp-assess-vis-raw">Visibility for BFI-10 <strong>raw item responses</strong>: ';
+        echo '<select name="tvr[bfi10]">';
+        foreach ( [ 0 => "Private", 1 => "Public (default attribution)", 2 => "Public (username)", 3 => "Public (anonymous)" ] as $vv => $lab ) {
+            $sel = $bfi10RawVis === $vv ? " selected" : "";
+            echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
+        }
+        echo '</select></label>';
+        echo '</div>';
         echo '<p class="pcp-bfi10-instructions">I see myself as someone who&hellip;</p>';
         $items = [
             [ "is reserved",                                           "E", true  ],
@@ -839,24 +862,6 @@ class SpecialMyProfile extends SpecialPage {
         echo '</ol>';
         // Compute happens automatically on any slider change; status line stays.
         echo '<div class="pcp-bfi10-status"></div>';
-        // Summary scores visibility (controls all 5 ocean.* values).
-        echo '<div class="pcp-assess-vis">';
-        echo '<label>Visibility for Big Five (OCEAN) <strong>summary scores</strong>: ';
-        echo '<select name="tv[ocean]">';
-        foreach ( [ 0 => "Private", 1 => "Public (default attribution)", 2 => "Public (username)", 3 => "Public (anonymous)" ] as $vv => $lab ) {
-            $sel = $oceanSumVis === $vv ? " selected" : "";
-            echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
-        }
-        echo '</select></label>';
-        // Raw-responses visibility for the 10 BFI-10 items.
-        echo '<br><label class="pcp-assess-vis-raw">Visibility for BFI-10 <strong>raw item responses</strong>: ';
-        echo '<select name="tvr[bfi10]">';
-        foreach ( [ 0 => "Private", 1 => "Public (default attribution)", 2 => "Public (username)", 3 => "Public (anonymous)" ] as $vv => $lab ) {
-            $sel = $bfi10RawVis === $vv ? " selected" : "";
-            echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
-        }
-        echo '</select></label>';
-        echo '</div>';
         echo '</div></details>';
 
         // ---- Remaining assessments (simple to complex) ----

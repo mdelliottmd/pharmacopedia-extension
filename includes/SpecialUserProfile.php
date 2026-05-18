@@ -356,7 +356,7 @@ class SpecialUserProfile extends SpecialPage {
             'ocean'     => [
                 'label'     => 'Big Five (OCEAN)',
                 'short'     => 'OCEAN',
-                'report'    => false,
+                'report'    => true,
                 'build'     => function ( $s ) { return $this->oceanHeadline( $s ); },
             ],
             'cati'      => [
@@ -545,9 +545,10 @@ class SpecialUserProfile extends SpecialPage {
 
     private function enneagramHeadline( array $s ): array {
         // Pick the highest-scoring type and its second-highest neighbor as the wing.
+        // Enneagram stores scores under pf_key 'type_1' .. 'type_9'.
         $top = null; $topVal = -INF;
         for ( $t = 1; $t <= 9; $t++ ) {
-            $k = 'type' . $t;
+            $k = 'type_' . $t;
             if ( !isset( $s[ $k ] ) || $s[ $k ] === null ) continue;
             $v = (float)$s[ $k ];
             if ( $v > $topVal ) { $topVal = $v; $top = $t; }
@@ -556,8 +557,8 @@ class SpecialUserProfile extends SpecialPage {
         // Wing: higher-scoring of the two neighbors (mod 9)
         $left  = $top === 1 ? 9 : $top - 1;
         $right = $top === 9 ? 1 : $top + 1;
-        $lv = isset( $s[ 'type' . $left ] ) && $s[ 'type' . $left ] !== null ? (float)$s[ 'type' . $left ] : -INF;
-        $rv = isset( $s[ 'type' . $right ] ) && $s[ 'type' . $right ] !== null ? (float)$s[ 'type' . $right ] : -INF;
+        $lv = isset( $s[ 'type_' . $left ] ) && $s[ 'type_' . $left ] !== null ? (float)$s[ 'type_' . $left ] : -INF;
+        $rv = isset( $s[ 'type_' . $right ] ) && $s[ 'type_' . $right ] !== null ? (float)$s[ 'type_' . $right ] : -INF;
         $wing = $lv >= $rv ? $left : $right;
         $code = $top . 'w' . $wing;
         $typeInfo = \MediaWiki\Extension\Pharmacopedia\Assessments\Enneagram::TYPES[ $top ] ?? null;

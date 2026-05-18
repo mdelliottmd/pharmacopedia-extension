@@ -56,5 +56,7 @@
   "myCohorts": "My cohorts",
   "special-mycohorts": "My cohorts",
   "myShareLog": "Who has viewed my shared content",
-  "special-mysharelog": "Who has viewed my shared content"
+  "special-mysharelog": "Who has viewed my shared content",
+  "myRefLinks": "Link my free-text references",
+  "special-myreflinks": "Link my free-text references"
 }

@@ -155,8 +155,11 @@ class LiteratureStore {
             throw new \RuntimeException( 'File does not look like a PDF' );
         }
 
-        // ClamAV scan via shared helper (no-op if scanner unavailable; throws on hit).
-        AntivirusHelper::scan( $tmpName );
+        // ClamAV scan (FAIL-CLOSED: rejects if scanner missing or errors).
+        $avScan = \MediaWiki\Extension\Pharmacopedia\VirusScanner::scanFile( $tmpName );
+        if ( !$avScan['ok'] ) {
+            throw new \RuntimeException( 'Upload rejected by antivirus: ' . $avScan['reason'] );
+        }
 
         $dir = $this->filesDir();
         if ( !is_dir( $dir ) ) {

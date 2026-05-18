@@ -1,0 +1,59 @@
+/*!
+ * Bulk-linker styles for Special:MyRefLinks.
+ */
+.pcp-reflinks { max-width: 760px; }
+.pcp-reflinks-count {
+    color: #c4b5fd;
+    font-size: 0.95em;
+    margin: 0.5em 0 1em;
+}
+.pcp-reflinks-empty {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 1.5em;
+    border: 1px dashed #5d3b8e;
+    border-radius: 6px;
+    background: #1a1a1a;
+}
+.pcp-reflinks-card {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    padding: 0.7em 0.9em;
+    margin: 0.6em 0;
+}
+.pcp-reflinks-card-head { margin-bottom: 0.4em; }
+.pcp-reflinks-card-head strong { color: #fff; font-size: 1.05em; }
+.pcp-reflinks-meta { color: #888; font-size: 0.85em; }
+.pcp-reflinks-matches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+    margin-top: 0.3em;
+}
+.pcp-reflinks-match-btn {
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #b599e0;
+    border-radius: 6px;
+    padding: 0.3em 0.7em;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+.pcp-reflinks-match-btn:hover { background: #4a2e72; }
+.pcp-reflinks-dismiss-btn { margin-left: auto; }
+.pcp-reflinks-done {
+    color: #d4f0d6;
+    background: #1e5128;
+    padding: 0.4em 0.7em;
+    border-radius: 4px;
+    margin: 0;
+}
+.pcp-reflinks-error {
+    color: #f3d4d4;
+    background: #5e1e1e;
+    padding: 0.4em 0.7em;
+    border-radius: 4px;
+    margin: 0.3em 0 0;
+}

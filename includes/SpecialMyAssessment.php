@@ -15,6 +15,7 @@ use MediaWiki\Extension\Pharmacopedia\Assessments\Bpns;
 use MediaWiki\Extension\Pharmacopedia\Assessments\BpnsNorms;
 use MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref;
 use MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBrefNorms;
+use MediaWiki\Extension\Pharmacopedia\Assessments\OceanNorms;
 
 /**
  * Special:MyAssessment/<key>: owner-facing rich results report for a
@@ -209,6 +210,10 @@ class SpecialMyAssessment extends SpecialPage {
         }
         if ( $key === 'whoqolbref' ) {
             $this->renderWhoqolBrefReport( $user );
+            return;
+        }
+        if ( $key === 'ocean' || $key === 'bfi10' ) {
+            $this->renderOceanReport( $user );
             return;
         }
         if ( $key === 'pid5bf' ) {
@@ -1081,336 +1086,6 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     // ===== End PID-5-BF report =====
-    // ===== OCEAN / Big Five report =====
-
-    private function renderOceanReport( $user ) {
-        $out = $this->getOutput();
-        $store = new UserProfileStore();
-        $profile = $store->getOrCreateForUser( $user->getId() );
-        $profileId = (int)$profile->prof_id;
-
-        // ---- Load OCEAN scores ----
-        $scores = [];
-        foreach ( $store->getFields( $profileId, 'ocean', $this->visMin() ) as $f ) {
-            $k = (string)$f->pf_key;
-            $scores[ $k ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
-        }
-
-        // ---- Load BFI-10 raw items (if any) ----
-        $bfiByIdx = [];
-        foreach ( $store->getFields( $profileId, 'bfi10', $this->visMin() ) as $f ) {
-            $k = (string)$f->pf_key;
-            if ( strpos( $k, 'item_' ) !== 0 ) continue;
-            $bfiByIdx[ (int)substr( $k, 5 ) ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
-        }
-
-        // ---- Load companion personality data from this profile for cross-mapping ----
-        $mbti = [];
-        foreach ( $store->getFields( $profileId, 'mbti', $this->visMin() ) as $f ) {
-            $k = (string)$f->pf_key;
-            if ( $k === '_vis' || $k === 'taken_at' ) continue;
-            $mbti[ $k ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
-        }
-        $enn = [];
-        foreach ( $store->getFields( $profileId, 'enneagram', $this->visMin() ) as $f ) {
-            $k = (string)$f->pf_key;
-            if ( $k === '_vis' || $k === 'taken_at' ) continue;
-            $enn[ $k ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
-        }
-        $pid = [];
-        foreach ( $store->getFields( $profileId, 'pid5bf', $this->visMin() ) as $f ) {
-            $k = (string)$f->pf_key;
-            if ( $k === '_vis' || $k === 'taken_at' ) continue;
-            $pid[ $k ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
-        }
-
-        $out->setPageTitle( 'My Big Five (OCEAN) report' );
-
-        $hasOcean = isset( $scores['O'] ) || isset( $scores['C'] ) || isset( $scores['E'] )
-                 || isset( $scores['A'] ) || isset( $scores['N'] );
-        if ( !$hasOcean ) {
-            $out->addWikiTextAsInterface(
-                "No Big Five (OCEAN) scores on file. Set them on [[Special:MyProfile]] under '''Personality''', either directly via the five sliders or by taking the BFI-10 test."
-            );
-            return;
-        }
-
-        $h  = '<div class="pcp-cati-report pcp-ocean-report">';
-        $h .= '<p style="opacity:0.75;">';
-        $h .= 'Big Five personality model (Costa &amp; McCrae 1992; lexical hypothesis: Goldberg 1990). Five continuous dimensions, scored 0&ndash;100 here.';
-        $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#personality">Edit on Special:MyProfile</a>';
-        $h .= '</p>';
-
-        $h .= '<h2>Your Big Five</h2>';
-        $h .= $this->renderOceanScoreTable( $scores );
-
-        $h .= '<h2>What each trait captures</h2>';
-        $h .= $this->renderOceanTraitNarratives( $scores );
-
-        if ( $bfiByIdx ) {
-            $h .= '<h2>BFI-10 item responses</h2>';
-            $h .= '<p style="opacity:0.75; margin-top:-0.3em;">The 10 items you answered on the embedded BFI-10 (Rammstedt &amp; John 2007). Each trait has 2 items; one is reverse-keyed. Items where you sat at the extremes contributed most to the OCEAN scores above.</p>';
-            $h .= $this->renderBfi10ItemTable( $bfiByIdx );
-        }
-
-        $h .= '<h2>How Big Five maps to other systems on your profile</h2>';
-        $h .= $this->renderOceanCrossSystemMap( $scores, $mbti, $enn, $pid );
-
-        $h .= '<h2>About the Big Five</h2>';
-        $h .= $this->renderOceanMethodologyBlurb();
-
-        $h .= '</div>';
-        $out->addHTML( $h );
-    }
-
-    private function renderOceanScoreTable( array $scores ): string {
-        $traits = [
-            'O' => [ 'Openness',          'Curiosity, imagination, aesthetic sensitivity, intellectual exploration.' ],
-            'C' => [ 'Conscientiousness', 'Organization, discipline, follow-through, future orientation.' ],
-            'E' => [ 'Extraversion',      'Sociability, assertiveness, positive affect, stimulation-seeking.' ],
-            'A' => [ 'Agreeableness',     'Trust, cooperation, warmth, deference to others over self.' ],
-            'N' => [ 'Neuroticism',       'Emotional reactivity, tendency toward negative affect, threat sensitivity.' ],
-        ];
-
-        $bucket = function ( ?float $s ): string {
-            if ( $s === null ) return '<span style="opacity:0.5;">no data</span>';
-            if ( $s < 30 )  return 'low';
-            if ( $s < 45 )  return 'somewhat low';
-            if ( $s < 56 )  return 'average';
-            if ( $s < 71 )  return 'somewhat high';
-            return '<strong>high</strong>';
-        };
-
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-scores pcp-ocean-scores">';
-        $h .= '<thead><tr>'
-            . '<th>Trait</th>'
-            . '<th>Score (0&ndash;100)</th>'
-            . '<th>Position</th>'
-            . '<th>What it captures</th>'
-            . '</tr></thead><tbody>';
-        foreach ( $traits as $code => [ $name, $gloss ] ) {
-            $s = $scores[ $code ] ?? null;
-            $h .= '<tr>';
-            $h .= '<th style="text-align:left;">' . htmlspecialchars( $name ) . ' <small style="opacity:0.6;">(' . $code . ')</small></th>';
-            $h .= '<td style="text-align:center; font-weight:bold; font-variant-numeric:tabular-nums;">' . ( $s === null ? '&ndash;' : number_format( $s, 0 ) ) . '</td>';
-            // Position cell: text bucket above a mini bar (matches MBTI report style)
-            if ( $s !== null && abs( $s - 50 ) > 0.5 ) {
-                $h .= '<td><div class="pcp-mbti-pos-text">' . $bucket( $s ) . '</div>';
-                // Bar centered at 50, fills toward extremes proportional to distance
-                $left  = min( $s, 50.0 );
-                $width = abs( $s - 50.0 );
-                $h .= '<div class="pcp-mbti-axis-bar"><div class="pcp-mbti-axis-bar-fill" style="left:' . number_format( $left, 1 ) . '%; width:' . number_format( $width, 1 ) . '%;"></div><div class="pcp-mbti-axis-bar-midpoint"></div></div></td>';
-            } elseif ( $s !== null ) {
-                $h .= '<td><div class="pcp-mbti-pos-text" style="opacity:0.55;"><em>average</em></div></td>';
-            } else {
-                $h .= '<td></td>';
-            }
-            $h .= '<td>' . htmlspecialchars( $gloss ) . '</td>';
-            $h .= '</tr>';
-        }
-        $h .= '</tbody></table></div>';
-        return $h;
-    }
-
-    private function renderOceanTraitNarratives( array $scores ): string {
-        $traits = [
-            'O' => [
-                'name'  => 'Openness to experience',
-                'high'  => 'Drawn to novel ideas, art, theory, and unconventional ways of doing things. Comfortable with ambiguity and abstraction. Likely to enjoy hypotheticals, alternative perspectives, and aesthetic complexity.',
-                'low'   => 'Prefers familiarity, concrete and practical thinking, and conventional approaches. Less drawn to abstract or unconventional ideas; values what is reliable over what is novel.',
-                'mid'   => 'Balances curiosity with grounding; engages with new ideas when relevant but does not actively seek constant novelty.',
-            ],
-            'C' => [
-                'name'  => 'Conscientiousness',
-                'high'  => 'Organized, dependable, plan-driven. Sees follow-through to completion, values order, considers long-term consequences before acting. Tendency toward self-discipline and structure.',
-                'low'   => 'Loose with structure; relaxed about plans, deadlines, and tidiness. May start more projects than finish; prefers spontaneity to rigid scheduling.',
-                'mid'   => 'Capable of structure when needed, but not driven by it. Maintains follow-through on what matters; flexible elsewhere.',
-            ],
-            'E' => [
-                'name'  => 'Extraversion',
-                'high'  => 'Energized by social interaction; gravitates to groups, conversation, stimulation. Tends toward positive emotion, assertiveness, sociability. External world feels rewarding to engage.',
-                'low'   => 'Drained by extensive social interaction; prefers smaller groups or solitude. Comfortable with quiet, reflection, and one-on-one over crowds. Not the same as shy; introversion is about energy, not anxiety.',
-                'mid'   => 'Ambivert range; comfortable in social situations but also values solitude. Energy depends on context and depth of connection rather than sheer volume.',
-            ],
-            'A' => [
-                'name'  => 'Agreeableness',
-                'high'  => 'Cooperative, trusting, prioritizes harmony. Tendency to attribute good intent to others, defer to group preferences, and avoid open conflict. Warm and forgiving in interpersonal dynamics.',
-                'low'   => 'Skeptical, competitive, willing to challenge. Comfortable with disagreement, prioritizes own judgment over consensus, less concerned with social smoothing. Can read as direct or contrarian.',
-                'mid'   => 'Cooperative by default but willing to push back when warranted. Trust is conditional rather than automatic.',
-            ],
-            'N' => [
-                'name'  => 'Neuroticism',
-                'high'  => 'Emotionally reactive; quick to feel anxiety, worry, sadness, frustration. Threats register vividly; recovery from setbacks takes effort. Inner emotional world is intense and changeable.',
-                'low'   => 'Emotionally steady; recovers quickly from stress, less likely to dwell on negatives. Inner experience tends toward calm baseline regardless of external pressure.',
-                'mid'   => 'Reactive enough to register what matters, stable enough to not be overwhelmed. Emotions calibrate to circumstances.',
-            ],
-        ];
-        $h = '';
-        foreach ( $traits as $code => $d ) {
-            $s = $scores[ $code ] ?? null;
-            $tone = $s === null ? 'na' : ( $s >= 65 ? 'high' : ( $s < 35 ? 'low' : 'mid' ) );
-            $border = $tone === 'high' ? '4px solid #6d28d9' : ( $tone === 'low' ? '4px solid #f59e0b' : '4px solid rgba(196,181,253,0.4)' );
-            $bg     = $tone === 'high' ? 'rgba(109,40,217,0.10)' : ( $tone === 'low' ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.02)' );
-            $h .= '<div style="padding:12px 16px; margin:12px 0; border-left:' . $border . '; background:' . $bg . '; border-radius:4px;">';
-            $h .= '<h3 style="margin-top:0;">' . htmlspecialchars( $d['name'] ) . ' <small style="opacity:0.55;">(' . $code . ')</small>';
-            $h .= '<span style="float:right; font-variant-numeric:tabular-nums; color:#c4b5fd; font-weight:bold;">' . ( $s === null ? '&ndash;' : (string)(int)round( $s ) . ' / 100' ) . '</span></h3>';
-            if ( $s !== null ) {
-                if ( $tone === 'high' ) {
-                    $h .= '<p><strong>For you (high):</strong> ' . $d['high'] . '</p>';
-                } elseif ( $tone === 'low' ) {
-                    $h .= '<p><strong>For you (low):</strong> ' . $d['low'] . '</p>';
-                } else {
-                    $h .= '<p><strong>For you (mid-range):</strong> ' . $d['mid'] . '</p>';
-                }
-            }
-            $h .= '<details style="margin-top:6px;"><summary style="cursor:pointer; opacity:0.75;">Show all positions</summary>';
-            $h .= '<p style="margin-top:6px;"><strong>High:</strong> ' . $d['high'] . '</p>';
-            $h .= '<p><strong>Mid-range:</strong> ' . $d['mid'] . '</p>';
-            $h .= '<p><strong>Low:</strong> ' . $d['low'] . '</p>';
-            $h .= '</details>';
-            $h .= '</div>';
-        }
-        return $h;
-    }
-
-    private function renderBfi10ItemTable( array $bfiByIdx ): string {
-        // Mirror of the items array in SpecialMyProfile.renderOcean (BFI-10 stems)
-        $items = [
-            [ "is reserved",                       "E", true  ],
-            [ "is generally trusting",             "A", false ],
-            [ "tends to be lazy",                  "C", true  ],
-            [ "is relaxed, handles stress well",   "N", true  ],
-            [ "has few artistic interests",        "O", true  ],
-            [ "is outgoing, sociable",             "E", false ],
-            [ "tends to find fault with others",   "A", true  ],
-            [ "does a thorough job",               "C", false ],
-            [ "gets nervous easily",               "N", false ],
-            [ "has an active imagination",         "O", false ],
-        ];
-        $h  = '<table class="wikitable pcp-cati-responses">';
-        $h .= '<thead><tr><th>#</th><th>Trait</th><th>Reverse-keyed?</th><th>Stem: I see myself as someone who&hellip;</th><th>Your slider (0&ndash;100)</th></tr></thead><tbody>';
-        foreach ( $items as $idx => [ $stem, $dim, $reverse ] ) {
-            $v = $bfiByIdx[ $idx ] ?? null;
-            $h .= '<tr>';
-            $h .= '<td style="text-align:right; font-variant-numeric:tabular-nums;">' . ( $idx + 1 ) . '</td>';
-            $h .= '<td style="font-family:monospace;">' . htmlspecialchars( $dim ) . '</td>';
-            $h .= '<td style="text-align:center;">' . ( $reverse ? 'yes' : 'no' ) . '</td>';
-            $h .= '<td>&hellip;' . htmlspecialchars( $stem ) . '.</td>';
-            $h .= '<td style="text-align:right; font-variant-numeric:tabular-nums; font-weight:bold;">' . ( $v === null ? '&ndash;' : (string)(int)round( $v ) ) . '</td>';
-            $h .= '</tr>';
-        }
-        $h .= '</tbody></table>';
-        return $h;
-    }
-
-    private function renderOceanCrossSystemMap( array $ocean, array $mbti, array $enn, array $pid ): string {
-        $h  = '<p>The Big Five is the empirical backbone of modern trait psychology and has well-replicated correspondences with every other personality framework on your profile. Approximate mappings:</p>';
-
-        // MBTI section
-        $h .= '<h3>Big Five and MBTI</h3>';
-        $h .= '<p>MBTI dichotomies correlate with four of the Big Five at moderate-to-strong levels (McCrae &amp; Costa 1989; Furnham 1996):</p>';
-        $h .= '<table class="wikitable" style="width:100%;"><thead><tr><th>Big Five</th><th>MBTI dichotomy</th><th>Your OCEAN</th><th>Your MBTI score</th><th>Coherent?</th></tr></thead><tbody>';
-        $mbtiRows = [
-            [ 'E', 'Extraversion',     'EI', 'E ↔ I axis (positive = I, negative = E)' ],
-            [ 'O', 'Openness',         'SN', 'S ↔ N axis (positive = N, negative = S)' ],
-            [ 'A', 'Agreeableness',    'TF', 'T ↔ F axis (positive = F, negative = T)' ],
-            [ 'C', 'Conscientiousness','JP', 'J ↔ P axis (positive = P, negative = J)' ],
-        ];
-        foreach ( $mbtiRows as [ $bf, $bfName, $mbtiAxis, $mbtiDesc ] ) {
-            $bfScore = $ocean[ $bf ] ?? null;
-            $mbtiScore = $mbti[ $mbtiAxis ] ?? null;
-            // Coherence: for E,O,A,C we expect HIGH big-five = NEGATIVE mbti (I,N,F,P inverted).
-            // Actually: MBTI uses positive = right pole. For EI right=I, so high E (big5) = low/negative EI score.
-            // For SN right=N. High O = high (positive) N side. So O high  +SN.
-            // For TF right=F. High A = high F side  +TF.
-            // For JP right=P. High C = high J = negative JP.
-            $expected = '';
-            if ( $bf === 'E' )  $expected = $bfScore !== null && $mbtiScore !== null ? (($bfScore - 50) * (-1) * $mbtiScore > 0 ? 'yes' : 'mismatch') : '&ndash;';
-            if ( $bf === 'O' )  $expected = $bfScore !== null && $mbtiScore !== null ? (($bfScore - 50) * $mbtiScore > 0 ? 'yes' : 'mismatch') : '&ndash;';
-            if ( $bf === 'A' )  $expected = $bfScore !== null && $mbtiScore !== null ? (($bfScore - 50) * $mbtiScore > 0 ? 'yes' : 'mismatch') : '&ndash;';
-            if ( $bf === 'C' )  $expected = $bfScore !== null && $mbtiScore !== null ? (($bfScore - 50) * (-1) * $mbtiScore > 0 ? 'yes' : 'mismatch') : '&ndash;';
-            $h .= '<tr><th style="text-align:left;">' . htmlspecialchars( $bfName ) . '</th>';
-            $h .= '<td><small>' . htmlspecialchars( $mbtiDesc ) . '</small></td>';
-            $h .= '<td style="text-align:center; font-variant-numeric:tabular-nums;">' . ( $bfScore === null ? '&ndash;' : (string)(int)round( $bfScore ) ) . '</td>';
-            $h .= '<td style="text-align:center; font-variant-numeric:tabular-nums;">' . ( $mbtiScore === null ? '&ndash;' : number_format( $mbtiScore, 2 ) ) . '</td>';
-            $h .= '<td style="text-align:center;">' . $expected . '</td>';
-            $h .= '</tr>';
-        }
-        $h .= '<tr><th style="text-align:left;">Neuroticism</th>';
-        $h .= '<td><small>No MBTI correlate; MBTI does not measure emotional stability.</small></td>';
-        $h .= '<td style="text-align:center; font-variant-numeric:tabular-nums;">' . ( isset( $ocean['N'] ) ? (string)(int)round( $ocean['N'] ) : '&ndash;' ) . '</td>';
-        $h .= '<td style="text-align:center; opacity:0.5;">&ndash;</td>';
-        $h .= '<td style="text-align:center; opacity:0.5;">n/a</td></tr>';
-        $h .= '</tbody></table>';
-
-        // Enneagram (only if we have Enneagram data)
-        $hasEnn = !empty( $enn );
-        if ( $hasEnn ) {
-            $h .= '<h3>Big Five and Enneagram</h3>';
-            $h .= '<p>Enneagram type correspondences (Sutton et al. 2018 meta-analysis):</p>';
-            $h .= '<ul>';
-            $ennMap = [
-                'O' => [ 'Openness',         [ '5 (Investigator)', '4 (Individualist)', '7 (Enthusiast)' ] ],
-                'C' => [ 'Conscientiousness',[ '1 (Reformer)', '3 (Achiever)' ] ],
-                'E' => [ 'Extraversion',     [ '7 (Enthusiast)', '3 (Achiever)', '8 (Challenger)' ] ],
-                'A' => [ 'Agreeableness',    [ '2 (Helper)', '9 (Peacemaker)' ] ],
-                'N' => [ 'Neuroticism',      [ '4 (Individualist)', '6 (Loyalist)' ] ],
-            ];
-            foreach ( $ennMap as $bf => [ $bfName, $ennTypes ] ) {
-                $bfScore = $ocean[ $bf ] ?? null;
-                $bfPos = $bfScore === null ? '' : ' (you: ' . (int)round( $bfScore ) . '/100)';
-                $h .= '<li><strong>' . htmlspecialchars( $bfName ) . '</strong>' . htmlspecialchars( $bfPos ) . ': associated with Enneagram ' . htmlspecialchars( implode( ', ', $ennTypes ) ) . '.</li>';
-            }
-            $h .= '</ul>';
-        }
-
-        // PID-5-BF (only if we have it)
-        if ( !empty( $pid ) ) {
-            $h .= '<h3>Big Five and PID-5-BF (maladaptive trait domains)</h3>';
-            $h .= '<p>The PID-5 trait model is essentially the Big Five reframed in maladaptive form. Direct relationships:</p>';
-            $h .= '<table class="wikitable" style="width:100%;"><thead><tr><th>PID-5-BF domain</th><th>Big Five correspondence</th><th>Your OCEAN</th><th>Your PID-5-BF mean</th></tr></thead><tbody>';
-            $pidRows = [
-                [ 'Negative Affectivity', 'NA',  'High Neuroticism',                'N', '+' ],
-                [ 'Detachment',           'DET', 'Low Extraversion + anhedonia',    'E', '-' ],
-                [ 'Antagonism',           'ANT', 'Low Agreeableness',               'A', '-' ],
-                [ 'Disinhibition',        'DIS', 'Low Conscientiousness',           'C', '-' ],
-                [ 'Psychoticism',         'PSY', 'Maladaptive Openness (bizarre face)', 'O', '+' ],
-            ];
-            foreach ( $pidRows as [ $name, $code, $bfDesc, $bfCode, $sign ] ) {
-                $pidScore = $pid[ 'subscale_' . $code ] ?? null;
-                $bfScore  = $ocean[ $bfCode ] ?? null;
-                $h .= '<tr><th style="text-align:left;">' . htmlspecialchars( $name ) . '</th>';
-                $h .= '<td>' . htmlspecialchars( $bfDesc ) . '</td>';
-                $h .= '<td style="text-align:center; font-variant-numeric:tabular-nums;">' . ( $bfScore === null ? '&ndash;' : (string)(int)round( $bfScore ) ) . '</td>';
-                $h .= '<td style="text-align:center; font-variant-numeric:tabular-nums;">' . ( $pidScore === null ? '&ndash;' : number_format( $pidScore, 2 ) ) . '</td>';
-                $h .= '</tr>';
-            }
-            $h .= '</tbody></table>';
-        }
-
-        if ( !$hasEnn && empty( $pid ) ) {
-            $h .= '<p style="opacity:0.75;"><em>Take the Enneagram and PID-5-BF on Special:MyProfile to see the full cross-system map here.</em></p>';
-        }
-
-        return $h;
-    }
-
-    private function renderOceanMethodologyBlurb(): string {
-        $h  = '<p>The Big Five (also called OCEAN or the Five-Factor Model) is the dominant empirical taxonomy of personality traits in psychology. It emerged from two converging lines of work: the <em>lexical hypothesis</em> (Goldberg 1990, building on Cattell and Allport) that the most important individual differences would be encoded as single words in natural language, and Costa &amp; McCrae&apos;s factor-analytic work on the NEO-PI (1985, 1992) demonstrating that five dimensions consistently emerge across instruments, raters, and cultures.</p>';
-        $h .= '<p><strong>Why five and not more.</strong> Across decades of factor analyses on a wide range of trait descriptors (single words, sentence stems, observer ratings, longitudinal data, cross-cultural samples), five orthogonal factors keep replicating. Other systems exist (HEXACO adds Honesty/Humility as a sixth factor; the lexical Big One/Two collapse the five into broader composites) but the Big Five is the most-validated and most-used.</p>';
-        $h .= '<p><strong>BFI-10 specifically.</strong> Rammstedt &amp; John (2007), "Measuring personality in one minute or less: A 10-item short version of the Big Five Inventory in English and German" (Journal of Research in Personality, 41(1):203&ndash;212), is the 10-item brief form that backs the optional inline test on this wiki. Each trait is measured by 2 items (one positively keyed, one reverse-keyed). Reliability is necessarily lower than the full 44-item BFI (much lower than the 240-item NEO-PI-R), but the 5-factor structure is preserved and the trait scores correlate &gt; 0.70 with the full-form versions in validation samples. Treat scores as "where you sit roughly" rather than precision measurement.</p>';
-        $h .= '<p><strong>Suggested reading.</strong> Costa &amp; McCrae 1992 &ndash; <em>Revised NEO Personality Inventory and NEO Five-Factor Inventory professional manual</em>. John &amp; Srivastava 1999 &ndash; <em>The Big Five trait taxonomy: history, measurement, and theoretical perspectives</em>. Goldberg 1990 &ndash; lexical hypothesis paper. Rammstedt &amp; John 2007 &ndash; BFI-10 validation. McCrae &amp; Costa 1989 &ndash; Big Five vs MBTI joint-factor analysis. DeYoung et al. 2007 &ndash; the 10-aspect model that sits between the Big Five domains and the NEO facets.</p>';
-        $h .= '<p style="opacity:0.75; font-size:0.92em;">Presentational ideas drawn from the same NovoPsych / NeurodivUrgent templates as the CATI, CAT-Q, and PID-5-BF reports on this wiki.</p>';
-        return $h;
-    }
-
-    // ===== End OCEAN report =====
-
-
-
-
-
     private function renderRawPrivate(): string {
         return '<div class="pcp-cati-cutoff-box" style="border-left-color:#666; opacity:0.85;"><p><em>The owner of this report has not shared the raw item responses publicly. Summary scores, cutoffs, and subscale interpretation are visible above; the per-item breakdown and full response table are hidden.</em></p></div>';
     }
@@ -1886,6 +1561,230 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     // ===== End generic helpers =====
+
+    // ===== Big Five (OCEAN) / BFI-10 report =====
+
+    private function renderOceanReport( $user ) {
+        $out = $this->getOutput();
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( $user->getId() );
+        $profileId = (int)$profile->prof_id;
+
+        // Load OCEAN trait values (the "summary").
+        $traits = [];
+        foreach ( $store->getFields( $profileId, 'ocean', 0 ) as $f ) {
+            $fk = (string)$f->pf_key;
+            if ( $fk === '_vis' ) continue;
+            if ( in_array( $fk, [ 'O', 'C', 'E', 'A', 'N' ], true ) ) {
+                $traits[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
+            }
+        }
+
+        // Load BFI-10 raw item responses (the "raw").
+        $rawByN = [];
+        foreach ( $store->getFields( $profileId, 'bfi10', 0 ) as $f ) {
+            $k = (string)$f->pf_key;
+            if ( strpos( $k, 'item_' ) === 0 ) {
+                $rawByN[ (int)substr( $k, 5 ) ] = [
+                    'num'  => $f->pf_value_num !== null ? (float)$f->pf_value_num : null,
+                    'text' => $f->pf_value_text,
+                ];
+            }
+        }
+
+        $out->setPageTitle( 'My Big Five (OCEAN) report' );
+        if ( !$traits ) {
+            $out->addWikiTextAsInterface(
+                "No Big Five scores on file. Take the BFI-10 on [[Special:MyProfile]] (or move the OCEAN sliders directly) to see your report here."
+            );
+            return;
+        }
+
+        $h  = '<div class="pcp-cati-report pcp-ocean-report">';
+        $h .= '<p style="opacity:0.75;">Big Five (OCEAN), 5 trait scores 0&ndash;100. BFI-10 (Rammstedt &amp; John 2007) is the underlying 10-item calculator.';
+        $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#bfi10-take">Retake / adjust</a></p>';
+
+        $h .= '<h2>OCEAN Results</h2>';
+        $h .= $this->renderOceanScoreTable( $traits );
+
+        $h .= '<h2>What your scores mean</h2>';
+        $h .= $this->renderOceanInterpretation( $traits );
+
+        $h .= '<h2>Trait reference</h2>';
+        $h .= $this->renderOceanTraitReference();
+
+        // Raw item visibility (mirrors the pattern from other reports).
+        $canRaw = $this->canViewRaw( $store, $profile, 'bfi10', $this->isOwner ?? true );
+        $h .= '<h2>Top-scoring items per trait</h2>';
+        if ( !$rawByN ) {
+            $h .= '<p><em>You filled in OCEAN sliders directly without taking the BFI-10. There are no item-level responses to show here. Take the BFI-10 from your profile if you want this section to populate.</em></p>';
+        } elseif ( $canRaw ) {
+            $h .= '<p style="opacity:0.75; margin-top:-0.3em;">For each trait, the BFI-10 items you endorsed most strongly in that trait\'s direction. Reverse-keyed items are inverted before ranking.</p>';
+            $h .= $this->renderBfi10TopItems( $rawByN );
+        } else {
+            $h .= $this->renderRawPrivate();
+        }
+
+        $h .= '<h2>All 10 BFI-10 responses</h2>';
+        if ( !$rawByN ) {
+            $h .= '<p><em>No BFI-10 item responses on file.</em></p>';
+        } elseif ( $canRaw ) {
+            $h .= $this->renderBfi10ResponseTable( $rawByN );
+        } else {
+            $h .= $this->renderRawPrivate();
+        }
+
+        $h .= '<h2>About the Big Five &amp; BFI-10</h2>';
+        $h .= $this->renderOceanMethodology();
+
+        $h .= '</div>';
+        $out->addHTML( $h );
+    }
+
+    private function renderOceanScoreTable( array $traits ): string {
+        $h  = '<div class="pcp-cati-scores-wrap">';
+        $h .= '<table class="wikitable pcp-cati-scores pcp-ocean-scores">';
+        $h .= '<thead><tr><th>Trait</th><th>Score (0&ndash;100)</th><th>Band</th><th style="width:40%;">Distribution</th></tr></thead><tbody>';
+        foreach ( OceanNorms::TRAIT_BLURBS as $code => $blurb ) {
+            $v = $traits[ $code ] ?? null;
+            $name = (string)$blurb[0];
+            $h .= '<tr>';
+            $h .= '<th style="text-align:left;">' . htmlspecialchars( $name ) . '</th>';
+            if ( $v === null ) {
+                $h .= '<td colspan="3" style="opacity:0.5;">not set</td></tr>';
+                continue;
+            }
+            $band = OceanNorms::classify( $v );
+            $bandLabel = OceanNorms::bandLabel( $band );
+            $h .= '<td style="text-align:center; font-weight:bold;">' . number_format( $v, 0 ) . '</td>';
+            $bandClass = $band === 'high' ? 'pcp-cati-pronounced' : ( $band === 'low' ? '' : '' );
+            $h .= '<td style="text-align:center;" class="' . $bandClass . '">' . htmlspecialchars( $bandLabel ) . '</td>';
+            // Distribution bar with low/avg/high bands marked
+            $pos = max( 0, min( 100, (int)round( $v ) ) );
+            $h .= '<td><div class="pcp-ocean-bar"><div class="pcp-ocean-bar-fill" style="width:' . $pos . '%"></div></div></td>';
+            $h .= '</tr>';
+        }
+        $h .= '</tbody></table></div>';
+        return $h;
+    }
+
+    private function renderOceanInterpretation( array $traits ): string {
+        $h = '<dl class="pcp-cati-subscale-list">';
+        foreach ( OceanNorms::TRAIT_BLURBS as $code => $blurb ) {
+            $v = $traits[ $code ] ?? null;
+            if ( $v === null ) continue;
+            $name = (string)$blurb[0];
+            $band = OceanNorms::classify( $v );
+            $desc = OceanNorms::descriptionFor( $code, $band );
+            $bandLabel = OceanNorms::bandLabel( $band );
+            $h .= '<dt><strong>' . htmlspecialchars( $name ) . '</strong>, ' . number_format( $v, 0 )
+                . ' &middot; <span style="opacity:0.85;">' . htmlspecialchars( $bandLabel ) . '</span></dt>';
+            $h .= '<dd>' . htmlspecialchars( $desc ) . '</dd>';
+        }
+        $h .= '</dl>';
+        return $h;
+    }
+
+    private function renderOceanTraitReference(): string {
+        $h = '<dl class="pcp-cati-subscale-list">';
+        foreach ( OceanNorms::TRAIT_BLURBS as $code => [ $name, $blurb ] ) {
+            $h .= '<dt><strong>' . htmlspecialchars( (string)$name ) . '</strong> (' . htmlspecialchars( (string)$code ) . ')</dt>';
+            $h .= '<dd>' . htmlspecialchars( (string)$blurb ) . '</dd>';
+        }
+        $h .= '</dl>';
+        return $h;
+    }
+
+    /**
+     * BFI-10 item table (from Rammstedt & John 2007). Each item maps to a Big Five
+     * trait; some items are reverse-keyed. Mirrors the structure in renderOcean()
+     * on Special:MyProfile to keep scoring consistent.
+     */
+    private function bfi10Items(): array {
+        return [
+            0 => [ 'is reserved',                       'E', true  ],
+            1 => [ 'is generally trusting',             'A', false ],
+            2 => [ 'tends to be lazy',                  'C', true  ],
+            3 => [ 'is relaxed, handles stress well',   'N', true  ],
+            4 => [ 'has few artistic interests',        'O', true  ],
+            5 => [ 'is outgoing, sociable',             'E', false ],
+            6 => [ 'tends to find fault with others',   'A', true  ],
+            7 => [ 'does a thorough job',               'C', false ],
+            8 => [ 'gets nervous easily',               'N', false ],
+            9 => [ 'has an active imagination',         'O', false ],
+        ];
+    }
+
+    private function renderBfi10TopItems( array $rawByN ): string {
+        $items = $this->bfi10Items();
+        $byTrait = [ 'O' => [], 'C' => [], 'E' => [], 'A' => [], 'N' => [] ];
+        foreach ( $items as $idx => [ $stem, $trait, $reverse ] ) {
+            $entry = $rawByN[ $idx ] ?? null;
+            if ( !$entry || $entry['num'] === null ) continue;
+            $raw = (float)$entry['num']; // 0-100
+            $directionScore = $reverse ? ( 100 - $raw ) : $raw;
+            $byTrait[ $trait ][] = [ 'idx' => $idx, 'stem' => $stem, 'reverse' => $reverse, 'raw' => $raw, 'score' => $directionScore ];
+        }
+        $h = '<dl class="pcp-cati-top-items">';
+        foreach ( OceanNorms::TRAIT_BLURBS as $trait => $blurb ) {
+            $list = $byTrait[ $trait ] ?? [];
+            if ( !$list ) continue;
+            usort( $list, function ( $a, $b ) { return $b['score'] <=> $a['score']; } );
+            $top = array_slice( $list, 0, 2 ); // BFI-10 has only 2 items per trait
+            $h .= '<dt>' . htmlspecialchars( (string)$blurb[0] ) . '</dt><dd><ul class="pcp-cati-top-items-list">';
+            foreach ( $top as $row ) {
+                $rev = $row['reverse'] ? ' <span class="pcp-cati-top-rev" title="reverse-keyed item">&#x21bb;</span>' : '';
+                $h .= '<li><strong>' . ( $row['idx'] + 1 ) . '.</strong> I see myself as someone who ' . htmlspecialchars( $row['stem'] )
+                    . ' <span class="pcp-cati-top-meta">you rated ' . number_format( $row['raw'], 0 )
+                    . '/100 &middot; <strong>' . number_format( $row['score'], 0 ) . '/100</strong> in the ' . htmlspecialchars( $trait ) . ' direction'
+                    . $rev . '</span></li>';
+            }
+            $h .= '</ul></dd>';
+        }
+        $h .= '</dl>';
+        return $h;
+    }
+
+    private function renderBfi10ResponseTable( array $rawByN ): string {
+        $items = $this->bfi10Items();
+        $h  = '<div class="pcp-cati-scores-wrap">';
+        $h .= '<table class="wikitable pcp-bfi10-response-table" style="width:100%;">';
+        $h .= '<thead><tr><th>#</th><th>I see myself as someone who&hellip;</th><th>Trait</th><th>Raw (0&ndash;100)</th><th>Trait-direction score</th></tr></thead><tbody>';
+        foreach ( $items as $idx => [ $stem, $trait, $reverse ] ) {
+            $entry = $rawByN[ $idx ] ?? null;
+            if ( !$entry || $entry['num'] === null ) {
+                $h .= '<tr><th style="text-align:center;">' . ( $idx + 1 ) . '</th>'
+                    . '<td>' . htmlspecialchars( $stem ) . '</td>'
+                    . '<td style="text-align:center;">' . htmlspecialchars( $trait ) . '</td>'
+                    . '<td colspan="2" style="opacity:0.5;">not answered</td></tr>';
+                continue;
+            }
+            $raw = (float)$entry['num'];
+            $directionScore = $reverse ? ( 100 - $raw ) : $raw;
+            $h .= '<tr>';
+            $h .= '<th style="text-align:center;">' . ( $idx + 1 ) . '</th>';
+            $h .= '<td>' . htmlspecialchars( $stem );
+            if ( $reverse ) $h .= ' <em style="opacity:0.6;">(reverse-keyed)</em>';
+            $h .= '</td>';
+            $h .= '<td style="text-align:center;">' . htmlspecialchars( $trait ) . '</td>';
+            $h .= '<td style="text-align:center;">' . number_format( $raw, 0 ) . '</td>';
+            $h .= '<td style="text-align:center; font-weight:bold;">' . number_format( $directionScore, 0 ) . '</td>';
+            $h .= '</tr>';
+        }
+        $h .= '</tbody></table>';
+        $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Raw is your slider value 0&ndash;100 (totally disagree &harr; totally agree). Trait-direction score inverts reverse-keyed items so higher always means "more of that trait".</p>';
+        $h .= '</div>';
+        return $h;
+    }
+
+    private function renderOceanMethodology(): string {
+        $h  = '<p>The Big Five (OCEAN) is the most widely-validated trait-personality model in academic psychology. It identifies five broadly stable dimensions that emerge from factor-analysing how people describe themselves and others: <strong>Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism</strong>. Sources: <a href="https://doi.org/10.1037/0022-3514.59.6.1216">Goldberg 1990, JPSP 59(6):1216-1229</a>; <a href="https://www.ocf.berkeley.edu/~johnlab/2008chapter.pdf">John, Naumann &amp; Soto 2008, Handbook of Personality</a>.</p>';
+        $h .= '<p>The BFI-10 (<a href="https://doi.org/10.1016/j.jrp.2006.02.001">Rammstedt &amp; John 2007, J Research in Personality 41:203-212</a>) is a 10-item ultra-brief Big Five inventory designed for time-constrained surveys. Trade-offs vs longer instruments: lower per-trait reliability (Cronbach\'s &alpha; ~0.5&ndash;0.7 vs 0.8+ for full BFI-44), but ~80% retention of the factor structure. Best used for quick screening; longer instruments give better single-person estimates.</p>';
+        $h .= '<p>Scoring on this wiki uses a continuous 0&ndash;100 slider per trait. Bands (Low &lt; 30, Average 30&ndash;70, High &gt; 70) are descriptive, not clinical thresholds. The Big Five model does not yield diagnostic categories.</p>';
+        return $h;
+    }
+
+    // ===== End Big Five (OCEAN) / BFI-10 report =====
 
     // ===== MBTI report =====
 

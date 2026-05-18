@@ -105,6 +105,11 @@ class ProviderAppStore {
         $newName = sprintf( '%s_%s.%s', date( 'Ymd_His' ), $randomId, $ext );
         $newPath = $dir . '/' . $newName;
 
+        // PROJECT RULE: virus-scan every upload before storing (see feedback_clamav_upload_rule.md).
+        $scan = \MediaWiki\Extension\Pharmacopedia\VirusScanner::scanFile( $tmpName );
+        if ( !$scan['ok'] ) {
+            throw new \RuntimeException( 'Upload rejected by antivirus: ' . $scan['reason'] );
+        }
         if ( !@move_uploaded_file( $tmpName, $newPath ) ) {
             throw new \RuntimeException( 'Failed to store uploaded file' );
         }

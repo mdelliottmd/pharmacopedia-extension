@@ -77,6 +77,7 @@ class ObservationParser {
             'date_struct'   => null,
             'date_text'     => null,
             'subject_text'  => null,
+            'numeric_value' => null,
             'refs'          => [],
             'confidence'    => 'low',
             'warnings'      => [],
@@ -85,11 +86,13 @@ class ObservationParser {
             'episode_subtype' => null,
         ];
 
-        // 1) Date extraction. Try range first, then point.
-        $dateRes = $this->extractDateRange( $working );
-        if ( !$dateRes ) {
-            $dateRes = $this->extractDate( $working );
-        }
+        // 1) Date extraction. Pre-process partial-pair shapes, then try:
+        //    relative-now -> holiday -> range -> point.
+        $working = $this->expandPartialMonthPair( $working );
+        $dateRes = $this->extractRelativeNow( $working );
+        if ( !$dateRes ) $dateRes = $this->extractHoliday( $working );
+        if ( !$dateRes ) $dateRes = $this->extractDateRange( $working );
+        if ( !$dateRes ) $dateRes = $this->extractDate( $working );
         if ( $dateRes ) {
             $result['date_text']   = $dateRes['text'];
             $result['date_struct'] = $dateRes['struct'];
@@ -109,6 +112,21 @@ class ObservationParser {
         }
         if ( $result['polarity'] === null && trim( $working ) !== '' ) {
             $result['polarity'] = 1;
+        }
+
+        // 2a) Extract a numeric value from the working text, e.g. "shyness was 33.33".
+        // Match a standalone float / int that isn't part of a year-like 4-digit
+        // number; strip the leading "was a" / "was" / "is" if present.
+        if ( preg_match( '/\b(?:was|is|are|were|=)\s+(?:a\s+|an\s+)?(\d+(?:\.\d+)?)\b/i', $working, $nm, PREG_OFFSET_CAPTURE ) ) {
+            $val = (float)$nm[1][0];
+            // Sanity: skip year-like values which are usually dates, not values.
+            $isYearLike = ( $val >= 1900 && $val <= 2100 && $val == (int)$val && preg_match( '/^\d{4}$/', $nm[1][0] ) );
+            if ( !$isYearLike ) {
+                $result['numeric_value'] = $val;
+                // Strip the whole "was 33.33" phrase from working text so it doesn't
+                // pollute the subject string.
+                $working = substr_replace( $working, ' ', $nm[0][1], strlen( $nm[0][0] ) );
+            }
         }
 
         // 2b) Strip leading verb phrases ("diagnosed with", "I experienced", etc.)
@@ -154,8 +172,20 @@ class ObservationParser {
                 $result['episode_subtype'] = $epMap[$key][1];
             }
         }
-        // A range date by itself is a strong episode signal.
-        if ( $result['date_struct'] && ( $result['date_struct']['kind'] ?? '' ) === 'range' ) {
+        // A range date is normally an episode signal, BUT if the subject is a
+        // user trait + we have a numeric value, the API submit handler treats
+        // it as two keyframes instead. Avoid clobbering that branch here.
+        $subjectIsTrait = false;
+        if ( !empty( $result['refs'] ) ) {
+            foreach ( $result['refs'] as $r ) {
+                if ( ( $r['role'] ?? '' ) === 'subject' && ( $r['type'] ?? '' ) === 'trait' ) {
+                    $subjectIsTrait = true;
+                    break;
+                }
+            }
+        }
+        if ( $result['date_struct'] && ( $result['date_struct']['kind'] ?? '' ) === 'range'
+             && !( $subjectIsTrait && $result['numeric_value'] !== null ) ) {
             $result['is_episode'] = true;
         }
 
@@ -193,12 +223,54 @@ class ObservationParser {
      */
 
     /**
+     * Catch age-range phrases like "ages 2-10", "from ages 2 through 10",
+     * "between age 5 and 12". Resolved against the owner's birthdate when
+     * available (otherwise the 1990 fallback in applyAge() applies).
+     */
+    private function extractAgeRange( string $working ): ?array {
+        $re = '/\b(?:from\s+|between\s+)?ages?\s+(\d{1,2})\s*(?:to|through|thru|till|until|\-|\x{2013}|\x{2014}|and)\s*(\d{1,2})\b/iu';
+        if ( !preg_match( $re, $working, $m, PREG_OFFSET_CAPTURE ) ) return null;
+        $a1 = (int)$m[1][0];
+        $a2 = (int)$m[2][0];
+        if ( $a1 > $a2 ) { $tmp = $a1; $a1 = $a2; $a2 = $tmp; }
+        $birthIso = $this->getBirthDate( $this->currentProfileId ?? 0 );
+        $A = $this->applyAge( $a1, 0, 0, 0, 'age-year', "age $a1", $birthIso );
+        $B = $this->applyAge( $a2, 0, 0, 0, 'age-year', "age $a2", $birthIso );
+        if ( !$A || !$B ) return null;
+        $struct = [
+            'kind'    => 'range',
+            'from'    => [
+                'raw_text' => "age $a1",
+                'parsed'   => [ 'kind' => 'point', 'precision' => $A['precision'], 'iso' => $A['iso'] ],
+            ],
+            'through' => [
+                'raw_text' => "age $a2",
+                'parsed'   => [ 'kind' => 'point', 'precision' => $B['precision'], 'iso' => $B['iso'] ],
+            ],
+        ];
+        $remaining = substr_replace( $working, ' ', $m[0][1], strlen( $m[0][0] ) );
+        // Also strip a leading "from " just before "ages" (if it survived).
+        $remaining = preg_replace( '/\bfrom\s+$/i', '', $remaining );
+        return [
+            'text'      => "ages $a1 to $a2",
+            'struct'    => $struct,
+            'remaining' => $remaining,
+            'warning'   => $A['warning'] ?? null,
+        ];
+    }
+
+    /**
      * Try to extract a date RANGE from working text. Recognizes:
      *   "X to Y", "X till Y", "X until Y", "X through Y", "X thru Y",
-     *   "X - Y" (with spaces), "from X to Y", "between X and Y"
+     *   "X - Y" (with spaces), "from X to Y", "between X and Y",
+     *   plus age ranges "ages 2-10", "between age 5 and 12".
      * Returns the same shape as extractDate (struct kind='range') or null.
      */
     private function extractDateRange( string $working ): ?array {
+        // Age-range pattern first (it has a specific shape and the generic
+        // logic below would partially match "ages 2" and then fail).
+        $ageR = $this->extractAgeRange( $working );
+        if ( $ageR ) return $ageR;
         // Strategy: find the first parseable date in the text. If immediately
         // after that date there's a range separator (till/until/through/thru/
         // to/and/-) followed by another parseable date, return a range struct.
@@ -237,15 +309,191 @@ class ObservationParser {
     }
 
 
+
+    /**
+     * Relative-to-now phrases: "yesterday", "last week/month/year",
+     * "X years/months/weeks/days ago", "a few months ago".
+     */
+    private function extractRelativeNow( string $working ): ?array {
+        $now = new \DateTime();
+        $patterns = [
+            '/\byesterday\b/i'                                  => [ 'days',   1 ],
+            '/\btoday\b/i'                                      => [ 'days',   0 ],
+            '/\b(?:the\s+day\s+before\s+yesterday)\b/i'      => [ 'days',   2 ],
+            '/\blast\s+(week|month|year)\b/i'                  => null,  // dynamic
+            '/\b(\d+|a|an|a\s+few|several)\s+(day|week|month|year)s?\s+ago\b/i' => null,
+        ];
+        // Try each in order; first match wins.
+        foreach ( $patterns as $re => $static ) {
+            if ( !preg_match( $re, $working, $m, PREG_OFFSET_CAPTURE ) ) continue;
+            $dt = clone $now;
+            $disp = trim( $m[0][0] );
+            if ( $static ) {
+                $dt->modify( '-' . $static[1] . ' ' . $static[0] );
+                $prec = 'day';
+            } elseif ( stripos( $disp, 'last' ) === 0 ) {
+                $unit = strtolower( $m[1][0] );
+                $dt->modify( '-1 ' . $unit );
+                $prec = $unit === 'year' ? 'year' : ( $unit === 'month' ? 'month' : 'day' );
+            } else {
+                // "X UNIT ago"
+                $n = strtolower( trim( $m[1][0] ) );
+                $unit = strtolower( $m[2][0] );
+                $count = is_numeric( $n ) ? (int)$n : ( $n === 'a few' ? 3 : ( $n === 'several' ? 4 : 1 ) );
+                $dt->modify( '-' . $count . ' ' . $unit );
+                $prec = $unit === 'year' ? 'year' : ( $unit === 'month' ? 'month' : 'day' );
+            }
+            $iso = $dt->format( 'Y-m-d' );
+            $remaining = substr_replace( $working, ' ', $m[0][1], strlen( $m[0][0] ) );
+            $struct = [
+                'kind'  => 'point',
+                'point' => [
+                    'raw_text' => $disp,
+                    'parsed'   => [ 'kind' => 'point', 'precision' => $prec, 'iso' => $iso ],
+                ],
+            ];
+            return [ 'text' => $disp, 'struct' => $struct, 'remaining' => $remaining ];
+        }
+        return null;
+    }
+
+    /**
+     * Holiday-anchored dates: christmas, halloween, new year's, valentine's,
+     * independence day / july 4th, thanksgiving (US: 4th Thursday of Nov).
+     * Year may be specified or omitted (current year assumed).
+     */
+    private function extractHoliday( string $working ): ?array {
+        $holidays = [
+            'christmas eve'         => [ 12, 24 ],
+            'christmas'             => [ 12, 25 ],
+            'xmas'                  => [ 12, 25 ],
+            'halloween'             => [ 10, 31 ],
+            "new year's eve"        => [ 12, 31 ],
+            "new years eve"         => [ 12, 31 ],
+            "new year's"            => [  1,  1 ],
+            "new years"             => [  1,  1 ],
+            "new year"              => [  1,  1 ],
+            "valentine's day"       => [  2, 14 ],
+            "valentines day"        => [  2, 14 ],
+            "valentine's"           => [  2, 14 ],
+            'independence day'      => [  7,  4 ],
+            'july 4th'              => [  7,  4 ],
+            'fourth of july'        => [  7,  4 ],
+            "st patrick's day"      => [  3, 17 ],
+            'st patricks day'       => [  3, 17 ],
+            'mardi gras'            => [  2, 13 ],   // approximate (varies)
+            'super bowl'            => [  2,  1 ],   // approximate (early Feb)
+            'mlk day'               => [  1, 15 ],
+            'memorial day'          => [  5, 25 ],   // approximate (last Mon May)
+            'labor day'             => [  9,  1 ],   // approximate (first Mon Sep)
+        ];
+        // Sort by length descending so "christmas eve" matches before "christmas".
+        $keys = array_keys( $holidays );
+        usort( $keys, function ( $a, $b ) { return strlen( $b ) - strlen( $a ); } );
+        foreach ( $keys as $name ) {
+            $reName = preg_quote( $name, '/' );
+            $re = '/\b(?:around\s+|on\s+|,?\s*)?' . $reName . '(?:\s+(\d{4}))?\b/i';
+            if ( !preg_match( $re, $working, $m, PREG_OFFSET_CAPTURE ) ) continue;
+            list( $mo, $dy ) = $holidays[ $name ];
+            $yr = !empty( $m[1][0] ) ? (int)$m[1][0] : (int)date( 'Y' );
+            $iso = sprintf( '%04d-%02d-%02d', $yr, $mo, $dy );
+            $disp = trim( $m[0][0] );
+            $remaining = substr_replace( $working, ' ', $m[0][1], strlen( $m[0][0] ) );
+            $struct = [
+                'kind'  => 'point',
+                'point' => [
+                    'raw_text' => $disp,
+                    'parsed'   => [ 'kind' => 'point', 'precision' => 'day', 'iso' => $iso ],
+                ],
+            ];
+            // Thanksgiving needs dynamic calculation: 4th Thursday of November.
+            if ( $name === 'thanksgiving' ) {
+                $iso = self::computeThanksgiving( $yr );
+                $struct['point']['parsed']['iso'] = $iso;
+            }
+            return [ 'text' => $disp, 'struct' => $struct, 'remaining' => $remaining ];
+        }
+        // Thanksgiving is special-cased separately because of the 4th Thu rule.
+        if ( preg_match( '/\b(?:around\s+|on\s+|,?\s*)?thanksgiving(?:\s+(\d{4}))?\b/i', $working, $m, PREG_OFFSET_CAPTURE ) ) {
+            $yr  = !empty( $m[1][0] ) ? (int)$m[1][0] : (int)date( 'Y' );
+            $iso = self::computeThanksgiving( $yr );
+            $disp = trim( $m[0][0] );
+            $remaining = substr_replace( $working, ' ', $m[0][1], strlen( $m[0][0] ) );
+            $struct = [
+                'kind'  => 'point',
+                'point' => [
+                    'raw_text' => $disp,
+                    'parsed'   => [ 'kind' => 'point', 'precision' => 'day', 'iso' => $iso ],
+                ],
+            ];
+            return [ 'text' => $disp, 'struct' => $struct, 'remaining' => $remaining ];
+        }
+        return null;
+    }
+
+    /** 4th Thursday of November for a given year. */
+    private static function computeThanksgiving( int $year ): string {
+        $d = new \DateTime( "$year-11-01" );
+        $weekday = (int)$d->format( 'N' );  // 1=Mon..7=Sun
+        // Distance from current day to next Thursday (4).
+        $offset = ( 4 - $weekday + 7 ) % 7;
+        $d->modify( "+$offset days" );
+        // Now $d is the first Thursday; add 3 weeks for the 4th.
+        $d->modify( '+21 days' );
+        return $d->format( 'Y-m-d' );
+    }
+
+    /**
+     * Pre-process: if working text contains "between X and Y YYYY" where X is
+     * a bare month and Y is a bare month, expand both to "X YYYY and Y YYYY".
+     * Lets the range parser handle "between july and september 2021".
+     */
+    private function expandPartialMonthPair( string $working ): string {
+        $months = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)';
+        $re = '/\b(' . $months . ')\s+(?:and|to|till|until|through|thru|\-)\s+(' . $months . ')\s+(\d{4})\b/i';
+        return preg_replace_callback( $re, function ( $m ) {
+            return $m[1] . ' ' . $m[3] . ' to ' . $m[2] . ' ' . $m[3];
+        }, $working );
+    }
+
     private function extractDate( string $working ): ?array {
         // Strip leading "in " before the date if present (consumed).
         // Patterns tried in order of specificity.
+
+        // Bare age reference: "when I was 8" / "while I was 12". The number
+        // has no unit; we treat it as years-of-age. Variants with units (yo,
+        // years, etc.) are handled by the more general age regex below.
+        if ( preg_match( '/\b(?:when|while)\s+i\s+(?:was|were)\s+(\d{1,2})\b(?!\s*(?:yo|y|yr|yrs|year|years|mo|mos|month|months|w|wk|wks|week|weeks|d|day|days))/i', $working, $bm, PREG_OFFSET_CAPTURE ) ) {
+            $birthIso = $this->getBirthDate( $this->currentProfileId ?? 0 );
+            $age = $this->applyAge( (int)$bm[1][0], 0, 0, 0, 'age-year', 'age ' . $bm[1][0], $birthIso );
+            if ( $age ) {
+                $remaining = substr_replace( $working, ' ', $bm[0][1], strlen( $bm[0][0] ) );
+                $struct = [
+                    'kind'  => 'point',
+                    'point' => [
+                        'raw_text' => $age['text'],
+                        'parsed'   => [
+                            'kind'      => 'point',
+                            'precision' => $age['precision'],
+                            'iso'       => $age['iso'],
+                        ],
+                    ],
+                ];
+                return [
+                    'text'      => $age['text'],
+                    'struct'    => $struct,
+                    'remaining' => $remaining,
+                    'warning'   => $age['warning'] ?? null,
+                ];
+            }
+        }
+
         //
         // First: age-relative patterns. These can appear like "anxiety at 7y8mo"
         // or "depressed around age 14" or "happy in childhood". We look for an
         // age token preceded by "at ", "around ", "approx ", "approximately ",
         // "circa ", "when ", "during ", "in ", or none, and try to parse it.
-        $ageRe = '/\b(?:at|around|approx(?:imately)?|circa|when|during)?\s*((?:as\s+(?:a|an)\s+(?:newborn|infant|baby|toddler|kid|child|tween|preteen|teen|teenager|young\s+adult))|(?:in\s+(?:toddlerhood|childhood|adolescence|young\s+adulthood|college|high\s+school|middle\s+school|elementary\s+school|grade\s+school))|(?:age\s+\d{1,3})|(?:\d+(?:\.\d+)?\s*yo)|(?:\d+\s*(?:y|yr|yrs|year|years|mo|mos|month|months|w|wk|wks|week|weeks|d|day|days)(?:\s*(?:and\s+)?\d+\s*(?:y|yr|yrs|year|years|mo|mos|month|months|w|wk|wks|week|weeks|d|day|days))*(?:\s+old)?))\b/i';
+        $ageRe = '/\b(?:at|around|approx(?:imately)?|circa|when|during)?\s*((?:as\s+(?:a|an)\s+(?:newborn|infant|baby|toddler|kid|child|tween|preteen|teen|teenager|young\s+adult|freshman|sophomore|junior|senior))|(?:(?:freshman|sophomore|junior|senior)\s+year)|(?:in\s+(?:toddlerhood|childhood|adolescence|young\s+adulthood|college|high\s+school|middle\s+school|elementary\s+school|grade\s+school))|(?:age\s+\d{1,3})|(?:(?:on\s+|at\s+)?(?:my\s+)?\d{1,3}(?:st|nd|rd|th)\s+(?:birthday|bday))|(?:\d+(?:\.\d+)?\s*yo)|(?:\d+\s*(?:y|yr|yrs|year|years|mo|mos|month|months|w|wk|wks|week|weeks|d|day|days)(?:\s*(?:and\s+)?\d+\s*(?:y|yr|yrs|year|years|mo|mos|month|months|w|wk|wks|week|weeks|d|day|days))*(?:\s+old)?))\b/i';
         if ( preg_match( $ageRe, $working, $am, PREG_OFFSET_CAPTURE ) ) {
             $birthIso = $this->getBirthDate( $this->currentProfileId ?? 0 );
             $age = $this->parseAgePhrase( trim( $am[1][0] ), $birthIso );
@@ -389,6 +637,12 @@ class ObservationParser {
             'as a baby'    => 1,
             'as a toddler' => 3,
             'in toddlerhood' => 3,
+            'as a freshman' => 14, 'freshman year' => 14,
+            'as a sophomore' => 15, 'sophomore year' => 15,
+            'as a junior' => 16, 'junior year' => 16,
+            'as a senior' => 17, 'senior year' => 17,
+            'in college freshman year' => 18, 'in college sophomore year' => 19,
+            'in college junior year' => 20, 'in college senior year' => 21,
             'as a kid'     => 8,
             'as a child'   => 8,
             'in childhood' => 8,
@@ -407,13 +661,19 @@ class ObservationParser {
         ];
         foreach ( $STAGES as $phrase => $age ) {
             if ( $p === $phrase || $p === substr( $phrase, 3 ) /* drop "as " for bare form */ ) {
-                return $this->applyAge( $age, 0, 0, 0, 'age-year', $phrase, $birthIso );
+                return $this->applyAge( $age, 0, 0, 0, 'age-year', $phrase, $birthIso, 'stage' );
             }
+        }
+
+
+        // "my Nth birthday" / "on my Nth"
+        if ( preg_match( '/^(?:on\s+|at\s+)?(?:my\s+)?(\d{1,3})(?:st|nd|rd|th)\s+(?:birthday|bday)?$/i', $p, $m ) ) {
+            return $this->applyAge( (int)$m[1], 0, 0, 0, 'age-year', $m[1] . 'th birthday', $birthIso, 'stage' );
         }
 
         // "(around|approx|approximately|circa|~) age N" — coarse year precision
         if ( preg_match( '/^(?:around\s+|approx(?:imately)?\s+|circa\s+|~\s*)?age\s+(\d{1,3})$/i', $p, $m ) ) {
-            return $this->applyAge( (int)$m[1], 0, 0, 0, 'age-year', "age {$m[1]}", $birthIso );
+            return $this->applyAge( (int)$m[1], 0, 0, 0, 'age-year', "age {$m[1]}", $birthIso, 'age' );
         }
 
         // Single token like "51.2yo" (decimal years)
@@ -454,28 +714,43 @@ class ObservationParser {
         return null;
     }
 
-    private function applyAge( int $y, int $mo, int $w, int $d, string $prec, string $display, ?string $birthIso ): ?array {
+    private function applyAge( int $y, int $mo, int $w, int $d, string $prec, string $display, ?string $birthIso, string $wrap = 'old' ): ?array {
+        $displayText = $this->wrapAgeDisplay( $display, $wrap );
         if ( !$birthIso ) {
             // No birthdate set; return a year-precision approximation using
             // 1990 as default birth year (matches PCPDatePicker's DEMO_BIRTH_YEAR).
             $year = 1990 + $y;
             return [
-                'text'      => "when {$display} old",
+                'text'      => $displayText,
                 'iso'       => sprintf( '%04d-01-01', $year ),
                 'precision' => 'year',
                 'warning'   => 'No birthdate on file; approximated via 1990 birth-year fallback. Add a birthday to Special:MyProfile for accuracy.',
             ];
         }
-        $bp = explode( '-', $birthIso );
         $start = new \DateTime( $birthIso );
         $start->modify( "+{$y} years" );
         $start->modify( "+{$mo} months" );
         $start->modify( "+{$d} days" );
+        $now = new \DateTime();
+        $isFuture = $start > $now;
         return [
-            'text'      => "when {$display} old",
+            'text'      => $displayText,
             'iso'       => $start->format( 'Y-m-d' ),
             'precision' => $prec,
+            'warning'   => $isFuture ? 'This is the future. are you comfortable with that?' : null,
         ];
+    }
+
+    /**
+     * Wrap an age display token in idiomatic English depending on its form:
+     *   wrap='stage' -> as-is ("in childhood", "as a teen", "30th birthday")
+     *   wrap='age'   -> "at age N"
+     *   wrap='old'   -> "when {token} old" (for "7y8mo", "51.2yo", "3mo", etc.)
+     */
+    private function wrapAgeDisplay( string $display, string $wrap ): string {
+        if ( $wrap === 'stage' ) return $display;
+        if ( $wrap === 'age' )   return 'at ' . $display;
+        return 'when ' . $display . ' old';
     }
 
     private static function monthNumber( string $name ): int {
@@ -542,6 +817,13 @@ class ObservationParser {
         'diagnosed with', 'diagnosed',
         'i experienced', 'i had', 'i have', 'i felt', 'i feel',
         'i developed', 'i got', 'i was',
+        'i started taking', 'started taking',
+        'i stopped taking', 'stopped taking',
+        'i was on', 'was on', 'i am on', 'am on',
+        'i was taking', 'was taking', 'i am taking', 'am taking',
+        'i took', 'took', 'i tried', 'tried',
+        'i started', 'started', 'i stopped', 'stopped',
+        'i used', 'used', 'i use', 'use',
         'experienced', 'felt', 'feeling', 'feel',
         'developed', 'noticed', 'observed',
         'had a', 'had', 'have a', 'have',
@@ -570,6 +852,8 @@ class ObservationParser {
         $s = trim( $s, " ,.;:!?\"'" );
         // Strip leading articles / filler verbs
         $s = preg_replace( '/^(an?\s+|the\s+|some\s+|any\s+|experiencing\s+|experienced\s+|having\s+|had\s+|having\s+a\s+|got\s+|getting\s+)/i', '', $s );
+        // Strip trailing adverbs that are descriptive but not part of the noun.
+        $s = preg_replace( '/\s+(briefly|occasionally|frequently|regularly|often|sometimes|always|usually|rarely|barely|currently|now|lately|recently)$/i', '', $s );
         return $s;
     }
 
@@ -682,6 +966,31 @@ class ObservationParser {
             ->fetchRow();
         if ( $row ) {
             return [ 'type' => 'problem', 'id' => (int)$row->pa_problem_id, 'label' => (string)$row->p_name ];
+        }
+
+        // 4a. User's custom keyframe traits (pcp_life_traits) — substring match
+        //     on the trait label or key. This lets phrases like "my shyness was X"
+        //     route to the existing "Shyness" trait the user has been tracking.
+        $traitRes = $this->dbr->newSelectQueryBuilder()
+            ->select( [ 'lt.lt_label', 'lt.lt_key' ] )
+            ->distinct()
+            ->from( 'pcp_life_traits', 'lt' )
+            ->join( 'pcp_life_events', 'le', 'le.le_id = lt.lt_event_id' )
+            ->where( [
+                'le.le_profile_id' => $profileId,
+                'lt.lt_namespace'  => 'custom',
+            ] )
+            ->caller( __METHOD__ )
+            ->fetchResultSet();
+        foreach ( $traitRes as $tr ) {
+            $label = (string)$tr->lt_label;
+            $key   = (string)$tr->lt_key;
+            $needle = '';
+            if ( $label !== '' && stripos( $text, $label ) !== false ) { $needle = $label; }
+            elseif ( $key !== '' && stripos( $text, $key ) !== false ) { $needle = $label !== '' ? $label : $key; }
+            if ( $needle !== '' ) {
+                return [ 'type' => 'trait', 'id' => 0, 'label' => $needle ];
+            }
         }
 
         // 4. user's diagnoses — substring on pd_description
