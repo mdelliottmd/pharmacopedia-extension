@@ -7,7 +7,7 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
-## [0.9.6.9] — 2026-05-19
+## [0.9.6.9] - 2026-05-19
 
 ### Added
 - Pharmacogenomic + mechanism rendering inside `<pharmaInteractions/>`:
@@ -74,7 +74,7 @@ Dates are UTC.
   cpic_strong 40, cpic_C 39, cpic_moderate 22, fda_box 20, primary 7,
   derived 4, theoretical 3.
 
-## [0.9.6] — 2026-05-18
+## [0.9.6] - 2026-05-18
 
 ### Changed
 - CAT-Q and PID-5-BF rich-report pages on `Special:MyAssessment`
