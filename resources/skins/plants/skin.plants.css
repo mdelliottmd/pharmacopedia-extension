@@ -1,0 +1,636 @@
+/* ====================================================================
+   Plants skin overlay, Phase B: base tokens, typography, topbar mark.
+
+   Loaded only when <body> carries .pcp-skin-plants, set by
+   Hooks::onBeforePageDisplay when a page's category chain resolves
+   to Category:Plant. See DESIGN_TOKENS.md for the visual contract.
+
+   Phase B is deliberately conservative: colour, type, mark. It does
+   not touch layout. Page patterns are Phase C; PendellsCorner and
+   infobox are Phase D; the Main Page is Phase E; atmospheric texture
+   (vellum noise, vines, radial washes) is Phase F.
+   ==================================================================== */
+
+/* ====================================================================
+   STEP 1. Self-hosted web fonts (Source Serif 4 + Inter).
+   Subset -> file mapping reused verbatim from the Google webfont CSS;
+   only the URL prefix is repointed at this module's assets/ dir.
+   No external network request; CSP font-src 'self' compatible.
+   ==================================================================== */
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAHr4cXk.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kCXr4cXk.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDnr4cXk.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAnr4cXk.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kA3r4cXk.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDXr4.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAHr4cXk.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kCXr4cXk.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDnr4cXk.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAnr4cXk.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kA3r4cXk.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDXr4.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAHr4cXk.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kCXr4cXk.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDnr4cXk.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kAnr4cXk.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kA3r4cXk.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/fonts/sourceserif4/v14/vEFF2_tTDB4M7-auWDN0ahZJW3IX2ih5nk3AucvUHf6kDXr4.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ====================================================================
+   STEP 2. Plants palette (DESIGN_TOKENS.md v2.1) + Codex token re-tint.
+
+   pharmacopedia.wiki runs Vector 2022 in night mode. The dark theme
+   is the stock skin-theme-clientpref-night Codex token set, not
+   custom CSS. The plants overlay redefines that token set in brown.
+
+   <body class="pcp-skin-plants"> is a descendant of the <html> that
+   carries the night-mode tokens, so these definitions win for every
+   element inside <body>: custom-property resolution always takes the
+   value from the nearest defining ancestor.
+
+   Semantic colours (error / warning / success / destructive) are
+   deliberately left alone: a contraindication must still read as
+   danger. Only surfaces, text, borders, and the progressive / link /
+   accent family are re-tinted.
+   ==================================================================== */
+.pcp-skin-plants {
+    /* palette */
+    --plants-void:        #08050300;
+    --plants-loam:        #110a05;
+    --plants-loam-warm:   #160c06;
+    --plants-bark:        #221610;
+    --plants-bark-raised: #2e1f15;
+    --plants-bark-edge:   #3d2a1d;
+    --plants-bone:        #d4c5a8;
+    --plants-bone-dim:    #a8927a;
+    --plants-lichen:      #7a6650;
+    --plants-whisper:     #5a4636;
+    --plants-moss:        #6a8a52;
+    --plants-fern:        #8eb070;
+    --plants-amber:       #b67a44;
+    --plants-amber-deep:  #8e5d33;
+    --plants-rust:        #7a3a22;
+    --plants-bloom:       #5a3528;
+    --plants-walnut:      #6b4423;
+    --plants-tobacco:     #4a2f1a;
+    --plants-rule:        rgba(212, 197, 168, 0.08);
+    --plants-rule-strong: rgba(212, 197, 168, 0.16);
+    --plants-rule-moss:   rgba(106, 138, 82, 0.22);
+    --plants-mark-summary:      #2e3a3a;  /* cool grey-brown */
+    --plants-mark-pharmacy:     #44502e;  /* olive earth */
+    --plants-mark-pharmacology: #5a3a20;  /* walnut earth */
+
+    /* Codex surfaces */
+    --background-color-base:                       var(--plants-loam);
+    --background-color-neutral:                    var(--plants-bark);
+    --background-color-neutral-subtle:             var(--plants-loam-warm);
+    --background-color-interactive:                var(--plants-bark);
+    --background-color-interactive--hover:         var(--plants-bark-raised);
+    --background-color-interactive--active:        var(--plants-bark-edge);
+    --background-color-interactive-subtle:         var(--plants-loam-warm);
+    --background-color-interactive-subtle--hover:  var(--plants-bark);
+    --background-color-interactive-subtle--active: var(--plants-bark-raised);
+    --background-color-notice-subtle:              var(--plants-bark);
+    --background-color-disabled:                   var(--plants-bark-raised);
+    --background-color-disabled-subtle:            var(--plants-bark);
+
+    /* Codex text */
+    --color-base:                var(--plants-bone);
+    --color-base--hover:         var(--plants-bone);
+    --color-base--subtle:        var(--plants-bone-dim);
+    --color-emphasized:          var(--plants-bone);
+    --color-subtle:              var(--plants-bone-dim);
+    --color-neutral:             var(--plants-bone-dim);
+    --color-notice:              var(--plants-lichen);
+    --color-placeholder:         var(--plants-lichen);
+    --color-disabled:            var(--plants-whisper);
+    --color-disabled-emphasized: var(--plants-lichen);
+
+    /* Codex links / progressive / accent */
+    --color-progressive:                    var(--plants-moss);
+    --color-progressive--hover:             var(--plants-fern);
+    --color-progressive--active:            var(--plants-fern);
+    --color-progressive--focus:             var(--plants-fern);
+    --color-icon-progressive:               var(--plants-moss);
+    --color-visited:                        var(--plants-amber-deep);
+    --color-visited--hover:                 var(--plants-amber);
+    --color-visited--active:                var(--plants-amber);
+    --accent-color-base:                    var(--plants-moss);
+    --background-color-progressive:         var(--plants-moss);
+    --background-color-progressive--hover:  var(--plants-fern);
+    --background-color-progressive--active: var(--plants-amber-deep);
+    --background-color-progressive-subtle:  var(--plants-bark);
+    --border-color-progressive:             var(--plants-moss);
+    --border-color-progressive--hover:      var(--plants-fern);
+
+    /* Codex borders */
+    --border-color-base:                var(--plants-lichen);
+    --border-color-subtle:              var(--plants-tobacco);
+    --border-color-muted:               var(--plants-rule-strong);
+    --border-color-interactive:         var(--plants-lichen);
+    --border-color-interactive--hover:  var(--plants-bone-dim);
+    --border-color-interactive--active: var(--plants-bone);
+    --border-color-emphasized:          var(--plants-bone-dim);
+    --border-color-divider:             var(--plants-tobacco);
+}
+
+/* ====================================================================
+   STEP 3. Body surface, base text, body type face.
+   The html rule covers the limited-width gutter outside
+   .mw-page-container, which is not a descendant of <body>.
+   ==================================================================== */
+html:has(> body.pcp-skin-plants) {
+    background-color: var(--plants-loam);
+}
+body.pcp-skin-plants {
+    background-color: var(--plants-loam);
+    color: var(--plants-bone);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                 system-ui, sans-serif;
+}
+
+/* ====================================================================
+   STEP 4. Display type: Source Serif 4 for headings.
+   font-family only; weights and sizes are left to Vector so layout
+   does not move. Heading hierarchy refinement is Phase C.
+   ==================================================================== */
+.pcp-skin-plants #firstHeading,
+.pcp-skin-plants .mw-body h1,
+.pcp-skin-plants .mw-body h2,
+.pcp-skin-plants .mw-body h3,
+.pcp-skin-plants .mw-body h4,
+.pcp-skin-plants .mw-body h5,
+.pcp-skin-plants .mw-body h6,
+.pcp-skin-plants .mw-heading,
+.pcp-skin-plants .vector-page-titlebar .mw-page-title-main {
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+/* ====================================================================
+   STEP 5. Topbar mark: hexagon out, poppy seed capsule in.
+   .mw-logo-icon is an <img>; the `content` property replaces the
+   rendered image (supported on replaced elements in all current
+   browsers; if unsupported the original mark simply remains).
+   The wordmark drops to Source Serif 4 italic. skin-invert is
+   neutralised on the wordmark container so its colour is predictable.
+   ==================================================================== */
+.pcp-skin-plants .mw-logo-icon {
+    display: none;
+}
+.pcp-skin-plants .mw-logo::before {
+    content: '';
+    display: block;
+    flex: 0 0 auto;
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%20fill%3D%27none%27%20stroke%3D%27%236a8a52%27%20stroke-linejoin%3D%27round%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M32%2082%20C28%2078%2026%2065%2028%2050%20C29%2042%2032%2036%2036%2033%20L64%2033%20C68%2036%2071%2042%2072%2050%20C74%2065%2072%2078%2068%2082%20C66%2086%2060%2088%2050%2088%20C40%2088%2034%2086%2032%2082%20Z%27%20stroke-width%3D%274%27%2F%3E%3Cpath%20d%3D%27M30%2033%20L70%2033%20L66%2023%20L34%2023%20Z%27%20stroke-width%3D%274%27%2F%3E%3Cg%20stroke-width%3D%272%27%3E%3Cline%20x1%3D%2742%27%20y1%3D%2714%27%20x2%3D%2744%27%20y2%3D%2721%27%2F%3E%3Cline%20x1%3D%2758%27%20y1%3D%2714%27%20x2%3D%2756%27%20y2%3D%2721%27%2F%3E%3Cline%20x1%3D%2736%27%20y1%3D%2717%27%20x2%3D%2740%27%20y2%3D%2722%27%2F%3E%3Cline%20x1%3D%2764%27%20y1%3D%2717%27%20x2%3D%2760%27%20y2%3D%2722%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2713%27%20r%3D%272.6%27%20fill%3D%27%236a8a52%27%20stroke%3D%27none%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+.pcp-skin-plants .mw-logo-container.skin-invert {
+    filter: none;
+}
+.pcp-skin-plants .mw-logo-wordmark {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-style: normal;
+    font-weight: 500;
+    color: var(--plants-bone);
+}
+
+/* ====================================================================
+   Phase D (brought forward): Pendell's Corner, plants register.
+
+   Pharma renders Pendell's Corner (MediaWiki:Common.css) as a
+   purple-bordered box with white text given a thin purple outline via
+   -webkit-text-stroke. On the brown plants page that purple halo
+   reads as discordant. The plants variant drops the heavy box and the
+   text-stroke entirely: a quiet bark panel with a single amber
+   left-rule, amber fleuron + label, bone serif quote. Field-guide
+   voice, not signage. Amber as the Pendell-quote colour is canonical
+   in DESIGN_TOKENS.md (--plants-amber).
+
+   Pharma rules in Common.css are untouched; these .pcp-skin-plants
+   rules win on specificity and load only on plant pages.
+   ==================================================================== */
+.pcp-skin-plants .pcp-pendell {
+    background: var(--plants-bark);
+    border: 1px solid var(--plants-rule-strong);
+    border-left: 3px solid var(--plants-amber);
+    border-radius: 2px;
+    color: var(--plants-bone);
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+.pcp-skin-plants .pcp-pendell-mark {
+    color: var(--plants-amber);
+    -webkit-text-stroke: 0;
+}
+.pcp-skin-plants .pcp-pendell-title {
+    color: var(--plants-amber);
+    font-weight: 600;
+    -webkit-text-stroke: 0;
+}
+.pcp-skin-plants .pcp-pendell-quote {
+    color: var(--plants-bone);
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    -webkit-text-stroke: 0;
+}
+.pcp-skin-plants .pcp-pendell-attr {
+    color: var(--plants-bone-dim);
+}
+.pcp-skin-plants .pcp-pendell-attr i,
+.pcp-skin-plants .pcp-pendell-attr em {
+    color: var(--plants-amber-deep);
+}
+.pcp-skin-plants .pcp-pendell-voice {
+    color: var(--plants-moss);
+}
+
+/* ====================================================================
+   Phase C (brought forward): MedTemplate infobox section bands.
+
+   The infobox emits Summary / Pharmacy / Pharmacology bands as
+   inline-styled <th> (background:#2563eb / #16a34a / #7c3aed). Inline
+   styles beat normal stylesheet rules, so these are targeted by
+   attribute selector and overridden with !important.
+
+   Plants treatment per DESIGN_TOKENS: not a loud solid band but a
+   typographic marker, a subtle raised-bark band carrying a
+   mark-colour left bar and an italic Source Serif 4 name. The
+   three-channel meaning survives; the signage does not.
+   ==================================================================== */
+.pcp-skin-plants th[style*="background:#2563eb"],
+.pcp-skin-plants th[style*="background:#16a34a"],
+.pcp-skin-plants th[style*="background:#7c3aed"] {
+    background: var(--plants-bark-raised) !important;
+    color: var(--plants-bone) !important;
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    font-style: normal;
+    font-weight: 600;
+    border-bottom: 1px solid var(--plants-rule-strong);
+}
+.pcp-skin-plants th[style*="background:#2563eb"] {
+    border-left: 5px solid var(--plants-mark-summary) !important;
+}
+.pcp-skin-plants th[style*="background:#16a34a"] {
+    border-left: 5px solid var(--plants-mark-pharmacy) !important;
+}
+.pcp-skin-plants th[style*="background:#7c3aed"] {
+    border-left: 5px solid var(--plants-mark-pharmacology) !important;
+}
+
+
+/* ============================================================
+   Shulgin's Corner, plants-skin variant. designer-claude spec
+   2026-05-20. Inherits the pharma anatomy; re-points to the plants
+   palette and sets the quote italic (quote-italic follows the skin,
+   per the 2026-05-20 italics-in-quotes amendment).
+   ============================================================ */
+.pcp-skin-plants .pcp-shulgin {
+    background: var(--plants-bark);
+    border: 1px solid var(--plants-rule-strong);
+    border-left: 3px solid var(--plants-amber);
+}
+.pcp-skin-plants .pcp-shulgin-header {
+    border-bottom: 1px solid var(--plants-rule);
+}
+.pcp-skin-plants .pcp-shulgin-title { color: var(--plants-amber); }
+.pcp-skin-plants .pcp-shulgin-mark { color: var(--plants-amber); }
+.pcp-skin-plants .pcp-shulgin-quote {
+    color: var(--plants-bone-dim);
+    font-style: italic;
+}
+.pcp-skin-plants .pcp-shulgin-attr { color: var(--plants-lichen); }
+.pcp-skin-plants .pcp-shulgin-attr .who { color: var(--plants-amber); }
+.pcp-skin-plants .pcp-shulgin-voice { color: var(--plants-lichen); }

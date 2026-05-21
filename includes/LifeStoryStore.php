@@ -19,6 +19,10 @@ class LifeStoryStore {
 
     // Event type codes
     public const TYPE_STORY    = 0;
+    // Slot 1 reassigned: was TYPE_IMAGE (rows migrated to TYPE_STORY); now TYPE_EVENT
+    // (a brief point-in-time happening, distinct from a long-narrative Story).
+    // TYPE_IMAGE kept as deprecated alias for any legacy code.
+    public const TYPE_EVENT    = 1;
     public const TYPE_IMAGE    = 1;
     public const TYPE_KEYFRAME = 2;
     public const TYPE_OBSERVATION = 3;
@@ -68,6 +72,7 @@ class LifeStoryStore {
         $now = $dbw->timestamp();
         $dbw->insert( 'pcp_life_events', [
             'le_profile_id'     => $profileId,
+            'le_page_id'        => isset( $fields['page_id'] ) && $fields['page_id'] !== null ? (int)$fields['page_id'] : null,
             'le_date_iso'       => $fields['date_iso']      ?? null,
             'le_date_precision' => (int)( $fields['date_precision'] ?? self::DP_UNKNOWN ),
             'le_date_display'   => $fields['date_display']  ?? null,
@@ -188,15 +193,33 @@ class LifeStoryStore {
         $dbw = $this->dbw();
         $dbw->delete( 'pcp_life_traits', [ 'lt_event_id' => $eventId ], __METHOD__ );
         foreach ( $traits as $t ) {
+            // Defensive normalize: route non-numeric strings via KeyframeValueNormalizer.
+            $rawVal = $t['value'] ?? null;
+            if ( is_string( $rawVal ) && !is_numeric( $rawVal ) ) {
+                $_r = \MediaWiki\Extension\Pharmacopedia\KeyframeValueNormalizer::normalize( $rawVal );
+                if ( $_r['value'] === null ) continue;
+                $_valueNum = $_r['value'];
+            } else {
+                $_valueNum = (float)$rawVal;
+            }
+            // valence: null = "don't know / N/A"; 0 = explicit neutral (kept).
+            $_valence = null;
+            if ( isset( $t['valence'] ) && $t['valence'] !== '' && $t['valence'] !== null ) {
+                $_valence = (float)$t['valence'];
+            }
             $dbw->insert( 'pcp_life_traits', [
                 'lt_event_id'  => $eventId,
                 'lt_namespace' => (string)$t['namespace'],
                 'lt_key'       => (string)$t['key'],
                 'lt_label'     => $t['label']     ?? null,
-                'lt_value_num' => (float)$t['value'],
+                'lt_value_num' => $_valueNum,
                 'lt_min'       => $t['min']       ?? null,
                 'lt_max'       => $t['max']       ?? null,
                 'lt_estimated' => !empty( $t['estimated'] ) ? 1 : 0,
+                'lt_valence'   => $_valence,
+                'lt_valence_estimated' => !empty( $t['valence_estimated'] ) ? 1 : 0,
+                'lt_traitvstate' => ( isset( $t['traitvstate'] ) && $t['traitvstate'] !== '' && $t['traitvstate'] !== null ) ? (float)$t['traitvstate'] : null,
+                'lt_traitvstate_estimated' => !empty( $t['traitvstate_estimated'] ) ? 1 : 0,
             ], __METHOD__ );
         }
     }
@@ -308,10 +331,12 @@ class LifeStoryStore {
         $res = $dbr->select(
             [ 'e' => 'pcp_life_events', 't' => 'pcp_life_traits' ],
             [ 'e.le_id', 'e.le_date_iso', 't.lt_namespace', 't.lt_key', 't.lt_label',
-              't.lt_value_num', 't.lt_min', 't.lt_max', 't.lt_estimated' ],
+              't.lt_value_num', 't.lt_min', 't.lt_max', 't.lt_estimated', 't.lt_valence', 't.lt_valence_estimated', 't.lt_traitvstate', 't.lt_traitvstate_estimated' ],
             [
                 'e.le_profile_id' => $profileId,
-                'e.le_type'       => self::TYPE_KEYFRAME,
+                // Accept both legacy TYPE_KEYFRAME (2) and current TYPE_OBSERVATION (3);
+                // the INNER JOIN on traits already filters to rows that actually carry data.
+                'e.le_type'       => [ self::TYPE_KEYFRAME, self::TYPE_OBSERVATION ],
                 'e.le_date_iso IS NOT NULL',
             ],
             __METHOD__,
@@ -325,6 +350,8 @@ class LifeStoryStore {
             $byNs[ $ns ][ $key ][] = [
                 'date'      => (string)$r->le_date_iso,
                 'value'     => (float)$r->lt_value_num,
+                'valence'   => isset( $r->lt_valence ) && $r->lt_valence !== null ? (float)$r->lt_valence : null,
+                'traitvstate' => isset( $r->lt_traitvstate ) && $r->lt_traitvstate !== null ? (float)$r->lt_traitvstate : null,
                 'label'     => $r->lt_label ? (string)$r->lt_label : $key,
                 'min'       => $r->lt_min !== null ? (float)$r->lt_min : null,
                 'max'       => $r->lt_max !== null ? (float)$r->lt_max : null,
@@ -744,10 +771,8 @@ class LifeStoryStore {
         $dbw = \MediaWiki\MediaWikiServices::getInstance()
             ->getConnectionProvider()->getPrimaryDatabase();
         $now = $dbw->timestamp();
-        $iso = null;
-        if ( isset( $fields['date_struct']['point']['parsed']['iso'] ) ) {
-            $iso = (string)$fields['date_struct']['point']['parsed']['iso'];
-        }
+        // Derive ISO sort key from point OR range structs (post-DatePicker-unlock).
+        $iso = $this->isoFromStruct( $fields['date_struct'] ?? null );
         $dbw->newInsertQueryBuilder()
             ->insertInto( 'pcp_life_events' )
             ->row( [
@@ -761,7 +786,7 @@ class LifeStoryStore {
                 'le_raw_text'       => (string)( $fields['raw_text'] ?? '' ),
                 'le_date_iso'       => $iso,
                 'le_date_struct'    => $fields['date_struct'] ? json_encode( $fields['date_struct'] ) : null,
-                'le_date_display'   => isset( $fields['date_struct']['point']['raw_text'] ) ? (string)$fields['date_struct']['point']['raw_text'] : '',
+                'le_date_display'   => \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $fields['date_struct'] ?? null ),
                 'le_date_precision' => self::DP_DAY,
                 'le_created'        => $now,
                 'le_updated'        => $now,
@@ -907,15 +932,7 @@ class LifeStoryStore {
 
     private function dateDisplayFromStruct( $struct ): string {
         if ( !is_array( $struct ) ) return '';
-        if ( ( $struct['kind'] ?? '' ) === 'range' ) {
-            $f = $struct['from']['raw_text']    ?? ( $struct['from']['parsed']['iso']    ?? '' );
-            $t = $struct['through']['raw_text'] ?? ( $struct['through']['parsed']['iso'] ?? 'ongoing' );
-            return "$f - $t";
-        }
-        if ( ( $struct['kind'] ?? '' ) === 'point' ) {
-            return (string)( $struct['point']['raw_text'] ?? $struct['point']['parsed']['iso'] ?? '' );
-        }
-        return '';
+        return \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $struct );
     }
 
 

@@ -20,6 +20,7 @@ class VoteApi extends ApiBase {
         $elementId   = (int)$params['element_id'];
         $value       = (int)$params['value'];
         $choicesRaw  = (string)( $params['choices']   ?? '' );
+        $addOptionLabel = (string)( $params['add_option'] ?? '' );
         $optionsH    = (string)( $params['options_h'] ?? '' );
         $userId      = (int)$user->getId();
 
@@ -32,7 +33,14 @@ class VoteApi extends ApiBase {
         $isChoice = in_array( (string)$element->ve_type, [ 'single', 'multi' ], true );
 
         // ===== Routing =====
-        if ( $choicesRaw !== '' || $optionsH !== '' ) {
+        if ( $addOptionLabel !== '' ) {
+            try {
+                $store->addOption( $elementId, $userId, $addOptionLabel );
+            } catch ( \Throwable $e ) {
+                $this->dieWithError( [ 'apierror-exceptioncaught', wfEscapeWikiText( $e->getMessage() ) ], 'addoption-failed' );
+            }
+            $userVote = 0;
+        } elseif ( $choicesRaw !== '' || $optionsH !== '' ) {
             // Choice / multi vote path.
             $choices = [];
             foreach ( explode( ',', $choicesRaw ) as $c ) {
@@ -59,6 +67,15 @@ class VoteApi extends ApiBase {
         // Compute tally + user choices for response.
         $tally  = $isChoice ? $store->tallyChoices( $elementId ) : null;
         $userCh = $isChoice ? $store->getUserChoices( $elementId, $userId ) : null;
+        // For choice elements, also pass back the (potentially updated) options list.
+        $optionsOut = null;
+        if ( $isChoice && $updated && $updated->ve_options ) {
+            $raw = json_decode( (string)$updated->ve_options, true ) ?: [];
+            $optionsOut = [];
+            foreach ( $raw as $e ) {
+                $optionsOut[] = is_string( $e ) ? $e : (string)( $e['label'] ?? '' );
+            }
+        }
 
         // Apply results-visibility policy.
         $policy    = (string)( $updated->ve_results_policy ?? 'live' );
@@ -77,6 +94,8 @@ class VoteApi extends ApiBase {
             'user_choices' => $userCh,
             'policy'       => $policy,
             'show_tally'   => $showTally,
+            'options'      => $optionsOut,
+            'options_h'    => $updated ? (string)( $updated->ve_options_h ?? '' ) : '',
         ] );
     }
 
@@ -85,6 +104,7 @@ class VoteApi extends ApiBase {
             'element_id' => [ ApiBase::PARAM_TYPE => 'integer', ApiBase::PARAM_REQUIRED => true ],
             'value'      => [ ApiBase::PARAM_TYPE => 'integer', ApiBase::PARAM_REQUIRED => false, ApiBase::PARAM_DFLT => 0 ],
             'choices'    => [ ApiBase::PARAM_TYPE => 'string',  ApiBase::PARAM_REQUIRED => false ],
+            'add_option' => [ ApiBase::PARAM_TYPE => 'string',  ApiBase::PARAM_REQUIRED => false ],
             'options_h'  => [ ApiBase::PARAM_TYPE => 'string',  ApiBase::PARAM_REQUIRED => false ],
         ];
     }

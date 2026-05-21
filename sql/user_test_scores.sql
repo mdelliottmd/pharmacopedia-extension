@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS /*_*/pcp_user_test_scores (
+    uts_id                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    uts_prof_id            INT UNSIGNED NOT NULL,
+    uts_test_id            INT UNSIGNED NULL,
+    uts_custom_abbrev      VARBINARY(40) NULL,
+    uts_custom_name        VARBINARY(255) NULL,
+    uts_raw_score          FLOAT NULL,
+    uts_scaled_score       FLOAT NULL,
+    uts_percentile         FLOAT NULL,
+    uts_year_taken         SMALLINT NULL,
+    uts_pass_fail          TINYINT NULL,
+    uts_notes              VARBINARY(2048) NULL,
+    uts_vis                VARBINARY(20) NOT NULL DEFAULT 'private',
+    uts_vis_raw            TINYINT NOT NULL DEFAULT 0,
+    uts_vis_pct            TINYINT NOT NULL DEFAULT 0,
+    uts_vis_passfail       TINYINT NOT NULL DEFAULT 0,
+    uts_created_at         DATETIME NOT NULL,
+    uts_updated_at         DATETIME NOT NULL,
+    PRIMARY KEY (uts_id),
+    KEY /*i*/uts_prof (uts_prof_id, uts_year_taken),
+    KEY /*i*/uts_test (uts_test_id)
+) /*$wgDBTableOptions*/;

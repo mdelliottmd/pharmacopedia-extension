@@ -99,6 +99,11 @@ class SpecialMyProfile extends SpecialPage {
                 <legend>Public identity</legend>
                 <div data-pcp-save-block="identity">
 
+                <div class="pcp-username-row">
+                    <span class="pcp-username-label">Username:</span>
+                    <span class="pcp-username-value"><?= htmlspecialchars( $user->getName() ) ?></span>
+                </div>
+
                 <?php $rid = (string)( $profile->prof_research_id ?? "" ); if ( $rid !== "" ): ?>
                 <div class="pcp-research-id-row" title="Stable opaque identifier for research participation. Never changes.">
                     <span class="pcp-research-id-label">Research ID:</span>
@@ -146,6 +151,7 @@ class SpecialMyProfile extends SpecialPage {
 
             <?php $this->renderDiagnoses( $store, (int)$profile->prof_id ); ?>
             <?php $this->renderMeds( $store, $profile ); ?>
+            <?php $this->renderFormalTesting( $store, $profile ); ?>
 
             <div class="pcp-prof-save">
                 <button type="submit" class="mw-ui-button mw-ui-progressive">Save profile</button>
@@ -235,7 +241,7 @@ class SpecialMyProfile extends SpecialPage {
         echo '<p class="pcp-prof-help"><small>' . htmlspecialchars( $cls::DESCRIPTION )
              . ' <em>Source: ' . htmlspecialchars( $cls::CITATION ) . '</em>';
         // Rich-report link + share chip folded into the description paragraph (mirrors Enneagram/MBTI style).
-        if ( in_array( $cls::KEY, [ 'cati', 'catq', 'pid5bf', 'nfcs', 'bpns', 'whoqolbref' ], true ) ) {
+        if ( in_array( $cls::KEY, [ 'cati', 'catq', 'pid5bf', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs' ], true ) ) {
             $reportUrl = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getLocalURL();
             $shareUrl  = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getFullURL( [ 'user' => $this->getUser()->getName() ] );
             echo ' <a class="pcp-cati-report-link" href="' . htmlspecialchars( $reportUrl ) . '">View full ' . htmlspecialchars( $cls::NAME ) . ' report →</a>';
@@ -317,6 +323,10 @@ class SpecialMyProfile extends SpecialPage {
             \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class => [
                 'min' => 1, 'max' => 5, 'step' => 0.01, 'default' => 3,
                 'lo' => 'Very poor / dissatisfied / not at all', 'hi' => 'Very good / satisfied / completely',
+            ],
+            \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class => [
+                'min' => 0, 'max' => 100, 'step' => 1, 'default' => 50,
+                'lo' => 'Never (0%)', 'hi' => 'Always (100%)',
             ],
         ];
         if ( isset( $sliderTests[ $cls ] ) ) {
@@ -418,7 +428,7 @@ class SpecialMyProfile extends SpecialPage {
                 . ' data-browser-fill="' . htmlspecialchars( $browserFill ?? '0' ) . '">';
             echo '<span class="pcp-chip-list"></span>';
             echo '<input type="text" class="pcp-chip-input" placeholder="' . htmlspecialchars( $placeholder ) . '">';
-            echo '<span class="pcp-chip-suggest" style="display:none;"></span>';
+            echo '<span class="pcp-chip-suggest"></span>';
             echo '<input type="hidden" class="pcp-chip-value" name="f[' . htmlspecialchars( $namespace ) . '][' . htmlspecialchars( $key ) . ']" value="' . htmlspecialchars( $val ) . '">';
             echo '</span>';
         };
@@ -880,6 +890,8 @@ class SpecialMyProfile extends SpecialPage {
         $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class );
         $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class );
         $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class );
+        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class );
+        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class );
 
         echo '</fieldset>';
     }
@@ -1145,7 +1157,7 @@ class SpecialMyProfile extends SpecialPage {
 
         // Per-test visibility for summary scores (tv[test_key]).
         $tv = $request->getArray( 'tv' ) ?: [];
-        $allowedTests = [ 'pid5bf', 'raadsr', 'catq', 'cati', 'mbti', 'enneagram', 'ocean', 'bfi10', 'nfcs', 'bpns', 'whoqolbref' ];
+        $allowedTests = [ 'pid5bf', 'raadsr', 'catq', 'cati', 'mbti', 'enneagram', 'ocean', 'bfi10', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs' ];
         foreach ( $tv as $testKey => $visVal ) {
             $visVal = max( 0, min( 3, (int)$visVal ) );
             if ( !in_array( $testKey, $allowedTests, true ) ) continue;
@@ -1216,6 +1228,8 @@ class SpecialMyProfile extends SpecialPage {
             'nfcs'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class,
             'bpns'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class,
             'whoqolbref' => \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class,
+            'amaas'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class,
+            'asrs'       => \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class,
         ];
         $tUnsureAll = $request->getArray( 't_unsure' ) ?: [];
         foreach ( $t as $testKey => $items ) {
@@ -1248,6 +1262,7 @@ class SpecialMyProfile extends SpecialPage {
                 'nfcs'      => [ 1.0, 6.0 ],
                 'bpns'      => [ 1.0, 7.0 ],
                 'whoqolbref' => [ 1.0, 5.0 ],
+                'amaas'      => [ 0.0, 100.0 ],
             ];
             if ( isset( $sliderBounds[ $testKey ] ) ) {
                 [ $lo, $hi ] = $sliderBounds[ $testKey ];
@@ -1690,6 +1705,534 @@ class SpecialMyProfile extends SpecialPage {
         // JS: + add another period / × remove period for each med row
         echo '<script>(function(){function renumber(list){list.querySelectorAll(".pcp-med-period-num").forEach(function(n,i){n.textContent="Period "+(i+1);});}function wireRemove(btn,list){btn.addEventListener("click",function(e){e.preventDefault();var item=btn.closest(".pcp-med-period");if(!item)return;if(list.querySelectorAll(".pcp-med-period").length<=1)return;item.remove();renumber(list);});}function addMedPeriod(btn){var wrap=btn.closest(".pcp-med-periods");if(!wrap)return;var list=wrap.querySelector(".pcp-med-period-list");if(!list)return;var template=list.querySelector(".pcp-med-period");if(!template)return;var clone=template.cloneNode(true);var widget=clone.querySelector(".pcp-date-input");if(widget){widget.innerHTML="";widget.removeAttribute("data-pcpdt-inited");widget.removeAttribute("data-initial");}list.appendChild(clone);renumber(list);if(widget&&window.PCPDatePicker&&window.PCPDatePicker.init){window.PCPDatePicker.init(widget);}var rm=clone.querySelector(".pcp-med-period-remove");if(rm)wireRemove(rm,list);}document.querySelectorAll(".pcp-med-period-add").forEach(function(b){b.addEventListener("click",function(e){e.preventDefault();addMedPeriod(b);});});document.querySelectorAll(".pcp-med-period-list").forEach(function(list){list.querySelectorAll(".pcp-med-period-remove").forEach(function(rm){wireRemove(rm,list);});});})();</script>';
         echo '</div>'; // /data-pcp-save-block="meds"
+        echo '</fieldset>';
+    }
+
+    private function ftVisToggle( int $v, string $hiddenClass ): string {
+        $v = ( $v >= 0 && $v <= 3 ) ? $v : 0;
+        $icons   = [ 0 => '🔒', 1 => '👁', 2 => '🆔', 3 => '🎭' ];
+        $classes = [ 0 => 'pcp-vis-private', 1 => 'pcp-vis-default', 2 => 'pcp-vis-username', 3 => 'pcp-vis-anonymous' ];
+        $titles  = [ 0 => 'Private, sysop only', 1 => 'Public, your default attribution', 2 => 'Public, show real username', 3 => 'Public, anonymous' ];
+        $out  = '<button type="button" class="pcp-vis-toggle ' . $classes[$v] . '" data-vis="' . $v . '" title="' . htmlspecialchars( $titles[$v] ) . '">' . $icons[$v] . '</button>';
+        $out .= '<input type="hidden" class="pcp-vis-hidden ' . htmlspecialchars( $hiddenClass ) . '" value="' . $v . '">';
+        return $out;
+    }
+
+    /**
+     * A small read-only per-field privacy badge for a formal-testing
+     * card. Clicking it opens that card's Edit form (inline JS).
+     */
+    private function ftVisBadge( int $v, int $utsId, string $label ): string {
+        $v = ( $v >= 0 && $v <= 3 ) ? $v : 0;
+        $icons   = [ 0 => '🔒', 1 => '👁', 2 => '🆔', 3 => '🎭' ];
+        $classes = [ 0 => 'pcp-vis-private', 1 => 'pcp-vis-default', 2 => 'pcp-vis-username', 3 => 'pcp-vis-anonymous' ];
+        $words   = [ 0 => 'private', 1 => 'public, default attribution', 2 => 'public, real username', 3 => 'public, anonymous' ];
+        $title = $label . ' privacy: ' . $words[$v] . ' , click to edit';
+        return ' <span class="pcp-ft-vis-badge ' . $classes[$v] . '" role="button" tabindex="0"'
+            . ' data-uts-id="' . $utsId . '" title="' . htmlspecialchars( $title, ENT_QUOTES ) . '">'
+            . $icons[$v] . '</span>';
+    }
+
+    private function ftYearOptions( ?int $selected ): string {
+        $cur = (int)date( 'Y' );
+        $out = '';
+        $sel = $selected ?: 0;
+        // Empty option only when no year selected (new entry default = current).
+        for ( $y = $cur; $y >= 1950; $y-- ) {
+            $isSel = ( $sel === $y ) ? ' selected' : '';
+            $out .= '<option value="' . $y . '"' . $isSel . '>' . $y . '</option>';
+        }
+        return $out;
+    }
+
+    private function renderFormalTesting( $store, $profile ) {
+        $profId = (int)$profile->prof_id;
+        $ftStore = new \MediaWiki\Extension\Pharmacopedia\FormalTestStore();
+        $catalog = $ftStore->getCatalog();
+        $scores  = $ftStore->getUserScores( $profId );
+
+        $h = function ( $s ) { return htmlspecialchars( (string)$s, ENT_QUOTES ); };
+
+        // Build the inline catalog JSON for the typeahead picker.
+        $catalogForJs = [];
+        foreach ( $catalog as $t ) {
+            $catalogForJs[] = [
+                'id'       => (int)$t->ft_id,
+                'abbrev'   => (string)$t->ft_abbrev,
+                'name'     => (string)$t->ft_full_name,
+                'category' => (string)$t->ft_category,
+                'min'      => $t->ft_score_min !== null ? (float)$t->ft_score_min : null,
+                'max'      => $t->ft_score_max !== null ? (float)$t->ft_score_max : null,
+                'format'   => (string)$t->ft_score_format,
+                'aka'      => $t->ft_aka !== null ? (string)$t->ft_aka : '',
+                'legacy'   => (bool)$t->ft_legacy,
+                'notes'    => $t->ft_notes !== null ? (string)$t->ft_notes : '',
+            ];
+        }
+        $catalogJson = json_encode( $catalogForJs, JSON_UNESCAPED_SLASHES );
+
+        echo '<fieldset class="pcp-prof-section is-collapsed"><legend>Formal testing</legend>';
+        echo '<p class="pcp-prof-help">Scores from standardized tests you have taken. Add as many as you like; retakes are welcome (year disambiguates).</p>';
+
+        echo '<div class="pcp-ft-list">';
+        if ( !$scores ) {
+            echo '<p class="pcp-ft-empty">No test scores logged yet.</p>';
+        } else {
+            // Group by category for display.
+            $byCat = [];
+            foreach ( $scores as $s ) {
+                $cat = $s->uts_test_id !== null ? (string)$s->ft_category : 'other';
+                $byCat[ $cat ][] = $s;
+            }
+            foreach ( $byCat as $cat => $rows ) {
+                echo '<div class="pcp-ft-cat-block">';
+                echo '<h4 class="pcp-ft-cat-heading">' . $h( ucfirst( $cat ) ) . '</h4>';
+                foreach ( $rows as $s ) {
+                    $isCustom = $s->uts_test_id === null;
+                    $abbrev = $isCustom ? (string)$s->uts_custom_abbrev : (string)$s->ft_abbrev;
+                    $name   = $isCustom ? (string)$s->uts_custom_name   : (string)$s->ft_full_name;
+                    $utsId  = (int)$s->uts_id;
+                    $visRaw = (int)$s->uts_vis_raw;
+                    $visPct = (int)$s->uts_vis_pct;
+                    $visPf  = (int)$s->uts_vis_passfail;
+                    $scores_str = [];
+                    if ( $s->uts_raw_score !== null )     {
+                        $rawDisp = rtrim( rtrim( sprintf( '%.2f', (float)$s->uts_raw_score ), '0' ), '.' );
+                        if ( isset( $s->uts_raw_is_estimate ) && (int)$s->uts_raw_is_estimate === 1 ) $rawDisp = '~' . $rawDisp;
+                        $scores_str[] = 'Raw score <b>' . $h( $rawDisp ) . '</b>' . $this->ftVisBadge( $visRaw, $utsId, 'Raw score' );
+                    }
+                    if ( $s->uts_percentile !== null )    {
+                        $pctDisp = rtrim( rtrim( sprintf( '%.2f', (float)$s->uts_percentile ), '0' ), '.' );
+                        if ( isset( $s->uts_pct_is_estimate ) && (int)$s->uts_pct_is_estimate === 1 ) $pctDisp = '~' . $pctDisp;
+                        $scores_str[] = 'Percentile <b>' . $h( $pctDisp ) . '</b>' . $this->ftVisBadge( $visPct, $utsId, 'Percentile' );
+                    }
+                    if ( $s->uts_pass_fail !== null )     $scores_str[] = '<b>' . ( (int)$s->uts_pass_fail === 1 ? 'Pass' : 'Fail' ) . '</b>' . $this->ftVisBadge( $visPf, $utsId, 'Pass/Fail' );
+                    $year = $s->uts_year_taken !== null ? (int)$s->uts_year_taken : null;
+                    // Embed full score data so the inline edit form can pre-populate.
+                    $payload = [
+                        'raw'        => $s->uts_raw_score    !== null ? (float)$s->uts_raw_score    : null,
+                        'raw_is_estimate' => isset( $s->uts_raw_is_estimate ) ? (int)$s->uts_raw_is_estimate : 0,
+                        'percentile' => $s->uts_percentile   !== null ? (float)$s->uts_percentile   : null,
+                        'pct_is_estimate' => isset( $s->uts_pct_is_estimate ) ? (int)$s->uts_pct_is_estimate : 0,
+                        'pass_fail'  => $s->uts_pass_fail    !== null ? (int)$s->uts_pass_fail     : null,
+                        'year'       => $s->uts_year_taken   !== null ? (int)$s->uts_year_taken    : null,
+                        'notes'      => (string)( $s->uts_notes ?? '' ),
+                        'vis_raw'    => $visRaw,
+                        'vis_pct'    => $visPct,
+                        'vis_passfail' => $visPf,
+                    ];
+                    $payloadJson = $h( json_encode( $payload, JSON_UNESCAPED_SLASHES ) );
+                    echo '<div class="pcp-ft-card" data-uts-id="' . (int)$s->uts_id . '" data-test-id="' . (int)( $s->uts_test_id ?? 0 ) . '" data-payload="' . $payloadJson . '">';
+
+                    // View block (default visible)
+                    echo '<div class="pcp-ft-card-view">';
+                    echo '<div class="pcp-ft-card-head">';
+                    echo '<span class="pcp-ft-abbrev">' . $h( $abbrev ) . '</span>';
+                    echo '<span class="pcp-ft-name">' . $h( $name ) . '</span>';
+                    if ( $year ) echo '<span class="pcp-ft-year">' . $h( (string)$year ) . '</span>';
+                    if ( $isCustom ) echo '<span class="pcp-ft-custom-badge">custom</span>';
+                    if ( !$isCustom && (int)$s->ft_legacy ) echo '<span class="pcp-ft-legacy-badge">legacy</span>';
+                    echo '</div>';
+                    if ( $scores_str ) {
+                        echo '<div class="pcp-ft-card-scores">' . implode( ' &middot; ', $scores_str ) . '</div>';
+                    }
+                    if ( $s->uts_notes !== null && (string)$s->uts_notes !== '' ) {
+                        echo '<div class="pcp-ft-card-notes">' . $h( (string)$s->uts_notes ) . '</div>';
+                    }
+                    echo '<div class="pcp-ft-card-actions">';
+                    echo '<button type="button" class="pcp-ft-edit" data-uts-id="' . (int)$s->uts_id . '">Edit</button>';
+                    echo '<button type="button" class="pcp-ft-delete" data-uts-id="' . (int)$s->uts_id . '">Delete</button>';
+                    echo '</div>';
+                    echo '</div>'; // /pcp-ft-card-view
+
+                    // Edit block (hidden by default)
+                    echo '<div class="pcp-ft-card-edit is-collapsed">';
+                    echo '<div class="pcp-ft-edit-grid">';
+                    echo '<label>Raw score <span class="pcp-ft-est-wrap"><input type="number" step="any" class="pcp-ft-edit-raw"><button type="button" class="pcp-ft-est-toggle" data-target=".pcp-ft-edit-raw" data-flag=".pcp-ft-edit-raw-est" data-est="0" title="Mark as estimate (or type ~)">~</button></span><input type="hidden" class="pcp-ft-edit-raw-est" value="0"></label>';
+                    echo '<label>Percentile <span class="pcp-ft-est-wrap pcp-ft-est-wrap-left"><button type="button" class="pcp-ft-est-toggle" data-target=".pcp-ft-edit-percentile" data-flag=".pcp-ft-edit-percentile-est" data-est="0" title="Mark as estimate (or type ~)">~</button><input type="number" step="any" min="0" max="100" class="pcp-ft-edit-percentile"></span><input type="hidden" class="pcp-ft-edit-percentile-est" value="0"></label>';
+                    echo '<label>Pass/Fail <select class="pcp-ft-edit-passfail"><option value="">N/A</option><option value="1">Pass</option><option value="0">Fail</option></select></label>';
+                    echo '<label>Year taken <select class="pcp-ft-edit-year">' . $this->ftYearOptions( $year ) . '</select></label>';
+                    echo '<label class="pcp-ft-vis-wrap">Raw score privacy ' . $this->ftVisToggle( $visRaw, 'pcp-ft-edit-vis-raw' ) . '</label>';
+                    echo '<label class="pcp-ft-vis-wrap">Percentile privacy ' . $this->ftVisToggle( $visPct, 'pcp-ft-edit-vis-pct' ) . '</label>';
+                    echo '<label class="pcp-ft-vis-wrap">Pass/Fail privacy ' . $this->ftVisToggle( $visPf, 'pcp-ft-edit-vis-pf' ) . '</label>';
+                    echo '</div>';
+                    echo '<label class="pcp-ft-edit-notes-wrap">Notes <textarea class="pcp-ft-edit-notes" rows="2" maxlength="2000"></textarea></label>';
+                    echo '<div class="pcp-ft-edit-actions">';
+                    echo '<button type="button" class="pcp-ft-edit-save">Save</button>';
+                    echo '<button type="button" class="pcp-ft-edit-cancel">Cancel</button>';
+                    echo '</div>';
+                    echo '</div>'; // /pcp-ft-card-edit
+
+                    echo '</div>'; // /pcp-ft-card
+                }
+                echo '</div>';
+            }
+        }
+        echo '</div>';
+
+        echo '<button type="button" class="pcp-ft-add-btn">+ Add test score</button>';
+
+        // Hidden form template (used for both add + edit).
+        echo '<div class="pcp-ft-form" hidden>';
+        echo '<div class="pcp-ft-form-inner">';
+        echo '<div class="pcp-ft-picker-wrap">';
+        echo '<label>Test <input type="text" class="pcp-ft-search" placeholder="Type to search (e.g. MCAT, AP Calc, GRE)..." autocomplete="off"></label>';
+        echo '<div class="pcp-ft-suggestions" hidden></div>';
+        echo '<div class="pcp-ft-selected" hidden>';
+        echo '<span class="pcp-ft-selected-abbrev"></span> <span class="pcp-ft-selected-name"></span> <span class="pcp-ft-selected-hint"></span>';
+        echo '<button type="button" class="pcp-ft-selected-clear" title="Clear selection">&times;</button>';
+        echo '</div>';
+        echo '</div>';
+        echo '<div class="pcp-ft-customize-row" hidden>';
+        echo '<button type="button" class="pcp-ft-custom-toggle">Customize</button>';
+        echo '</div>';
+        echo '<div class="pcp-ft-custom-inputs" hidden>';
+        echo '<label>Custom abbrev <input type="text" class="pcp-ft-custom-abbrev" maxlength="40"></label>';
+        echo '<label>Custom full name <input type="text" class="pcp-ft-custom-name" maxlength="255"></label>';
+        echo '</div>';
+        echo '<div class="pcp-ft-score-fields">';
+        echo '<label>Raw score <span class="pcp-ft-est-wrap"><input type="number" step="any" class="pcp-ft-raw"><button type="button" class="pcp-ft-est-toggle" data-target=".pcp-ft-raw" data-flag=".pcp-ft-raw-est" data-est="0" title="Mark as estimate (or type ~)">~</button></span><input type="hidden" class="pcp-ft-raw-est" value="0"></label>';
+        echo '<label>Percentile <span class="pcp-ft-est-wrap pcp-ft-est-wrap-left"><button type="button" class="pcp-ft-est-toggle" data-target=".pcp-ft-percentile" data-flag=".pcp-ft-percentile-est" data-est="0" title="Mark as estimate (or type ~)">~</button><input type="number" step="any" min="0" max="100" class="pcp-ft-percentile"></span><input type="hidden" class="pcp-ft-percentile-est" value="0"></label>';
+        echo '<label>Pass/Fail <select class="pcp-ft-passfail"><option value="">N/A</option><option value="1">Pass</option><option value="0">Fail</option></select></label>';
+        echo '</div>';
+        echo '<div class="pcp-ft-meta-fields">';
+        echo '<label>Year taken <select class="pcp-ft-year">' . $this->ftYearOptions( (int)date( 'Y' ) ) . '</select></label>';
+        echo '<label class="pcp-ft-vis-wrap">Raw score privacy ' . $this->ftVisToggle( 0, 'pcp-ft-vis-raw' ) . '</label>';
+        echo '<label class="pcp-ft-vis-wrap">Percentile privacy ' . $this->ftVisToggle( 0, 'pcp-ft-vis-pct' ) . '</label>';
+        echo '<label class="pcp-ft-vis-wrap">Pass/Fail privacy ' . $this->ftVisToggle( 0, 'pcp-ft-vis-pf' ) . '</label>';
+        echo '</div>';
+        echo '<label class="pcp-ft-notes-wrap">Notes <textarea class="pcp-ft-notes" rows="2" maxlength="2000"></textarea></label>';
+        echo '<div class="pcp-ft-form-actions">';
+        echo '<button type="button" class="pcp-ft-save">Save</button>';
+        echo '<button type="button" class="pcp-ft-cancel">Cancel</button>';
+        echo '<input type="hidden" class="pcp-ft-edit-id" value="">';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+
+        // Inline catalog JSON + JS.
+        echo '<script>(function(){';
+        echo 'var CATALOG = ' . $catalogJson . ';';
+        echo <<<'JS'
+var field = function(root, sel) { return root.querySelector(sel); };
+function setEstToggle(rootEl, hiddenSel, val) {
+    var hidden = rootEl.querySelector(hiddenSel);
+    if (!hidden) return;
+    var on = (parseInt(val, 10) === 1) ? 1 : 0;
+    hidden.value = String(on);
+    var label = hidden.closest('label');
+    if (!label) return;
+    var btn = label.querySelector('.pcp-ft-est-toggle[data-flag="' + hiddenSel + '"]');
+    if (btn) {
+        btn.setAttribute('data-est', String(on));
+        btn.classList.toggle('is-active', on === 1);
+    }
+}
+
+function setVisToggle(hidden, val) {
+    if (!hidden) return;
+    var v = parseInt(val, 10); if (isNaN(v) || v < 0 || v > 3) v = 0;
+    hidden.value = String(v);
+    var btn = hidden.parentElement ? hidden.parentElement.querySelector('.pcp-vis-toggle') : null;
+    if (!btn) return;
+    var icons = ['🔒','👁','🆔','🎭'];
+    var classes = ['pcp-vis-private','pcp-vis-default','pcp-vis-username','pcp-vis-anonymous'];
+    var titles = ['Private, sysop only','Public, your default attribution','Public, show real username','Public, anonymous'];
+    btn.setAttribute('data-vis', String(v));
+    btn.textContent = icons[v];
+    btn.classList.remove('pcp-vis-private','pcp-vis-default','pcp-vis-username','pcp-vis-anonymous');
+    btn.classList.add(classes[v]);
+    btn.setAttribute('title', titles[v]);
+}
+
+var section = document.currentScript.closest('fieldset');
+if (!section) return;
+var listEl = section.querySelector('.pcp-ft-list');
+var addBtn = section.querySelector('.pcp-ft-add-btn');
+var formEl = section.querySelector('.pcp-ft-form');
+
+(function restoreScrollAfterSave() {
+    var target;
+    try { target = sessionStorage.getItem('pcp-ft-scroll-to'); } catch (e) { return; }
+    if (!target) return;
+    try { sessionStorage.removeItem('pcp-ft-scroll-to'); } catch (e) {}
+    // Wait for layout to settle, then scroll + flash.
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            var card = listEl.querySelector('.pcp-ft-card[data-uts-id="' + target + '"]');
+            if (!card) return;
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('pcp-ft-card-flash');
+            setTimeout(function() { card.classList.remove('pcp-ft-card-flash'); }, 1800);
+        });
+    });
+})();
+
+// Delegated click on any estimate toggle inside the section.
+section.addEventListener('click', function(e){
+    var btn = e.target.closest('.pcp-ft-est-toggle');
+    if (!btn) return;
+    var hiddenSel = btn.getAttribute('data-flag');
+    var label = btn.closest('label');
+    if (!label || !hiddenSel) return;
+    var hidden = label.querySelector(hiddenSel);
+    var cur = parseInt(btn.getAttribute('data-est'), 10) || 0;
+    var next = cur === 1 ? 0 : 1;
+    btn.setAttribute('data-est', String(next));
+    btn.classList.toggle('is-active', next === 1);
+    if (hidden) hidden.value = String(next);
+});
+// Delegated input on number fields: if value starts with "~", strip it and turn on the estimate flag.
+section.addEventListener('input', function(e){
+    var inp = e.target;
+    if (!inp.matches || !inp.matches('input[type=number]')) return;
+    // Only react if it's one of the est-eligible fields.
+    var label = inp.closest('label');
+    if (!label) return;
+    var btn = label.querySelector('.pcp-ft-est-toggle');
+    if (!btn) return;
+    // type=number strips ~ automatically; the simulated approach: use the parent's previous text via a workaround.
+    // Browsers may report value="" when ~ is typed. So we listen on keydown instead.
+});
+// Keydown: if user presses "~" in an est-eligible field, prevent it from being typed (number input rejects it anyway)
+// AND toggle the estimate flag ON.
+section.addEventListener('keydown', function(e){
+    if (e.key !== '~') return;
+    var inp = e.target;
+    if (!inp.matches || !inp.matches('input[type=number]')) return;
+    var label = inp.closest('label');
+    if (!label) return;
+    var btn = label.querySelector('.pcp-ft-est-toggle');
+    if (!btn) return;
+    e.preventDefault();
+    btn.click();
+});
+
+
+var searchInput = formEl.querySelector('.pcp-ft-search');
+var suggestionsEl = formEl.querySelector('.pcp-ft-suggestions');
+var selectedEl = formEl.querySelector('.pcp-ft-selected');
+var customRow = formEl.querySelector('.pcp-ft-customize-row');
+var customInputs = formEl.querySelector('.pcp-ft-custom-inputs');
+var customToggleBtn = formEl.querySelector('.pcp-ft-custom-toggle');
+var saveBtn = formEl.querySelector('.pcp-ft-save');
+var cancelBtn = formEl.querySelector('.pcp-ft-cancel');
+var clearBtn = formEl.querySelector('.pcp-ft-selected-clear');
+var editIdInput = formEl.querySelector('.pcp-ft-edit-id');
+var selectedTestId = null;
+
+function showForm() { formEl.hidden = false; addBtn.hidden = true; }
+function hideForm() { formEl.hidden = true; addBtn.hidden = false; resetForm(); }
+function resetForm() {
+    selectedTestId = null;
+    searchInput.value = '';
+    suggestionsEl.hidden = true;
+    selectedEl.hidden = true;
+    formEl.querySelectorAll('input[type=text], input[type=number], textarea').forEach(function(i){ if (!i.classList.contains('pcp-ft-search')) i.value = ''; });
+    formEl.querySelectorAll('select').forEach(function(s){ s.selectedIndex = 0; });
+    setVisToggle(formEl.querySelector('.pcp-ft-vis-raw'), 0);
+    setVisToggle(formEl.querySelector('.pcp-ft-vis-pct'), 0);
+    setVisToggle(formEl.querySelector('.pcp-ft-vis-pf'), 0);
+    var yearAdd = formEl.querySelector('.pcp-ft-year');
+    if (yearAdd) yearAdd.value = String(new Date().getFullYear());
+    formEl.querySelectorAll('.pcp-ft-est-toggle').forEach(function(b){ b.setAttribute('data-est','0'); b.classList.remove('is-active'); });
+    formEl.querySelectorAll('input.pcp-ft-raw-est, input.pcp-ft-percentile-est').forEach(function(h){ h.value = '0'; });
+    editIdInput.value = '';
+    if (customRow) customRow.hidden = true;
+    if (customInputs) customInputs.hidden = true;
+    if (customToggleBtn) customToggleBtn.textContent = 'Customize';
+}
+
+function selectTest(t) {
+    selectedTestId = t.id;
+    selectedEl.querySelector('.pcp-ft-selected-abbrev').textContent = t.abbrev;
+    selectedEl.querySelector('.pcp-ft-selected-name').textContent = t.name;
+    var hint = '';
+    if (t.min !== null && t.max !== null) hint = '(typical range: ' + t.min + ' - ' + t.max + ', ' + t.format + ')';
+    else if (t.format) hint = '(' + t.format + ')';
+    selectedEl.querySelector('.pcp-ft-selected-hint').textContent = hint;
+    selectedEl.hidden = false;
+    customRow.hidden = false;
+    customInputs.hidden = true;
+    customToggleBtn.textContent = 'Customize';
+    suggestionsEl.hidden = true;
+    searchInput.value = '';
+}
+function selectCustom() {
+    selectedTestId = null;
+    selectedEl.hidden = true;
+    customRow.hidden = false;
+    customInputs.hidden = false;
+    customToggleBtn.textContent = 'Hide';
+    suggestionsEl.hidden = true;
+    searchInput.value = '';
+}
+clearBtn.addEventListener('click', function(){ selectedTestId = null; selectedEl.hidden = true; });
+if (customToggleBtn && customInputs) {
+    customToggleBtn.addEventListener('click', function(){
+        customInputs.hidden = !customInputs.hidden;
+        customToggleBtn.textContent = customInputs.hidden ? 'Customize' : 'Hide';
+        if (!customInputs.hidden) {
+            var nameInput = customInputs.querySelector('.pcp-ft-custom-name');
+            if (nameInput) nameInput.focus();
+        }
+    });
+}
+
+addBtn.addEventListener('click', function(){ resetForm(); showForm(); searchInput.focus(); });
+cancelBtn.addEventListener('click', hideForm);
+
+searchInput.addEventListener('input', function(){
+    var q = searchInput.value.trim().toLowerCase();
+    if (q.length < 1) { suggestionsEl.hidden = true; return; }
+    var matches = CATALOG.filter(function(t){
+        return t.abbrev.toLowerCase().indexOf(q) !== -1
+            || t.name.toLowerCase().indexOf(q) !== -1
+            || (t.aka && t.aka.toLowerCase().indexOf(q) !== -1);
+    }).slice(0, 12);
+    suggestionsEl.innerHTML = '';
+    matches.forEach(function(t){
+        var d = document.createElement('div');
+        d.className = 'pcp-ft-suggestion' + (t.legacy ? ' is-legacy' : '');
+        d.innerHTML = '<b>' + t.abbrev + '</b> ' + t.name + (t.legacy ? ' <i>(legacy)</i>' : '');
+        d.addEventListener('click', function(){ selectTest(t); });
+        suggestionsEl.appendChild(d);
+    });
+    var custom = document.createElement('div');
+    custom.className = 'pcp-ft-suggestion pcp-ft-suggestion-custom';
+    custom.textContent = '+ Custom test (not in catalog)';
+    custom.addEventListener('click', selectCustom);
+    suggestionsEl.appendChild(custom);
+    suggestionsEl.hidden = false;
+});
+
+function api(action, data, cb) {
+    var fd = new FormData();
+    fd.append('action', 'pharmacopediaformaltest');
+    fd.append('ftaction', action);
+    fd.append('format', 'json');
+    if (action !== 'list') fd.append('token', mw.user.tokens.get('csrfToken'));
+    for (var k in data) if (data[k] !== null && data[k] !== undefined) fd.append(k, data[k]);
+    fetch(mw.util.wikiScript('api'), { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){ cb(null, j); })
+        .catch(function(e){ cb(e); });
+}
+
+saveBtn.addEventListener('click', function(){
+    var payload = {
+        raw_score:    formEl.querySelector('.pcp-ft-raw').value,
+        raw_is_estimate: formEl.querySelector('.pcp-ft-raw-est').value,
+percentile:   formEl.querySelector('.pcp-ft-percentile').value,
+        pct_is_estimate: formEl.querySelector('.pcp-ft-percentile-est').value,
+        pass_fail:    formEl.querySelector('.pcp-ft-passfail').value,
+        year_taken:   formEl.querySelector('.pcp-ft-year').value,
+        notes:        formEl.querySelector('.pcp-ft-notes').value,
+        vis_raw:      formEl.querySelector('.pcp-ft-vis-raw').value,
+        vis_pct:      formEl.querySelector('.pcp-ft-vis-pct').value,
+        vis_passfail: formEl.querySelector('.pcp-ft-vis-pf').value,
+    };
+    if (selectedTestId) {
+        payload.test_id = selectedTestId;
+    } else if (!customInputs.hidden) {
+        payload.custom_abbrev = formEl.querySelector('.pcp-ft-custom-abbrev').value;
+        payload.custom_name = formEl.querySelector('.pcp-ft-custom-name').value;
+        if (!payload.custom_name) { alert('Pick a test or enter a custom name.'); return; }
+    } else {
+        alert('Pick a test from the search results, or click "+ Custom test".');
+        return;
+    }
+    var editId = editIdInput.value;
+    if (editId) {
+        payload.uts_id = editId;
+        api('update', payload, function(err, j){ if (err || j.error) { alert('Save failed: ' + (j && j.error ? j.error.info : err)); return; } location.reload(); });
+    } else {
+        api('add', payload, function(err, j){
+            if (err || j.error) { alert('Save failed: ' + (j && j.error ? j.error.info : err)); return; }
+            if (j.uts_id) try { sessionStorage.setItem('pcp-ft-scroll-to', String(j.uts_id)); } catch (e) {}
+            location.reload();
+        });
+    }
+});
+
+function openCardEdit(card) {
+    if (!card) return;
+    listEl.querySelectorAll('.pcp-ft-card-edit:not(.is-collapsed)').forEach(function(eb){
+        eb.classList.add('is-collapsed');
+    });
+    var payload = {};
+    try { payload = JSON.parse(card.getAttribute('data-payload') || '{}'); } catch (e) {}
+    var editBlock = card.querySelector('.pcp-ft-card-edit');
+    if (!editBlock) return;
+    editBlock.querySelector('.pcp-ft-edit-raw').value        = payload.raw        != null ? payload.raw        : '';
+    setEstToggle(editBlock, '.pcp-ft-edit-raw-est', payload.raw_is_estimate);
+    editBlock.querySelector('.pcp-ft-edit-percentile').value = payload.percentile != null ? payload.percentile : '';
+    setEstToggle(editBlock, '.pcp-ft-edit-percentile-est', payload.pct_is_estimate);
+    editBlock.querySelector('.pcp-ft-edit-passfail').value   = payload.pass_fail  != null ? String(payload.pass_fail) : '';
+    editBlock.querySelector('.pcp-ft-edit-year').value       = payload.year       != null ? payload.year       : '';
+    setVisToggle(editBlock.querySelector('.pcp-ft-edit-vis-raw'), payload.vis_raw);
+    setVisToggle(editBlock.querySelector('.pcp-ft-edit-vis-pct'), payload.vis_pct);
+    setVisToggle(editBlock.querySelector('.pcp-ft-edit-vis-pf'),  payload.vis_passfail);
+    editBlock.querySelector('.pcp-ft-edit-notes').value      = payload.notes      || '';
+    editBlock.classList.remove('is-collapsed');
+    setTimeout(function(){ var f = editBlock.querySelector('.pcp-ft-edit-raw'); if (f) f.focus(); }, 280);
+}
+
+listEl.addEventListener('click', function(e){
+    var del = e.target.closest('.pcp-ft-delete');
+    if (del) {
+        var id = del.getAttribute('data-uts-id');
+        if (!confirm('Delete this test score?')) return;
+        api('delete', { uts_id: id }, function(err, j){ if (err || j.error) { alert('Delete failed.'); return; } location.reload(); });
+        return;
+    }
+    var editTrigger = e.target.closest('.pcp-ft-edit') || e.target.closest('.pcp-ft-vis-badge');
+    if (editTrigger) {
+        openCardEdit(editTrigger.closest('.pcp-ft-card'));
+    }
+    var editCancel = e.target.closest('.pcp-ft-edit-cancel');
+    if (editCancel) {
+        var c = editCancel.closest('.pcp-ft-card');
+        c.querySelector('.pcp-ft-card-edit').classList.add('is-collapsed');
+    }
+    var editSave = e.target.closest('.pcp-ft-edit-save');
+    if (editSave) {
+        var c = editSave.closest('.pcp-ft-card');
+        var utsId = c.getAttribute('data-uts-id');
+        var testId = parseInt(c.getAttribute('data-test-id'), 10) || 0;
+        var eb = c.querySelector('.pcp-ft-card-edit');
+        var payload = {
+            uts_id:       utsId,
+            raw_score:    eb.querySelector('.pcp-ft-edit-raw').value,
+            raw_is_estimate: eb.querySelector('.pcp-ft-edit-raw-est').value,
+percentile:   eb.querySelector('.pcp-ft-edit-percentile').value,
+            pct_is_estimate: eb.querySelector('.pcp-ft-edit-percentile-est').value,
+            pass_fail:    eb.querySelector('.pcp-ft-edit-passfail').value,
+            year_taken:   eb.querySelector('.pcp-ft-edit-year').value,
+            notes:        eb.querySelector('.pcp-ft-edit-notes').value,
+            vis_raw:      eb.querySelector('.pcp-ft-edit-vis-raw').value,
+            vis_pct:      eb.querySelector('.pcp-ft-edit-vis-pct').value,
+            vis_passfail: eb.querySelector('.pcp-ft-edit-vis-pf').value,
+        };
+        if (testId) payload.test_id = testId;
+        api('update', payload, function(err, j){
+            if (err || j.error) { alert('Save failed: ' + (j && j.error ? j.error.info : err)); return; }
+            try { sessionStorage.setItem('pcp-ft-scroll-to', String(utsId)); } catch (e) {}
+            location.reload();
+        });
+    }
+});
+
+listEl.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var badge = e.target.closest('.pcp-ft-vis-badge');
+    if (!badge) return;
+    e.preventDefault();
+    openCardEdit(badge.closest('.pcp-ft-card'));
+});
+JS;
+        echo '})();</script>';
+
         echo '</fieldset>';
     }
 

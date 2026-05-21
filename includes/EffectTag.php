@@ -113,7 +113,7 @@ class EffectTag {
         // set and not -1 (Don't know), otherwise 50 as a neutral midpoint.
         $initFreq = ( $uProFreq !== '' && (int)$uProFreq >= 0 ) ? (int)$uProFreq : 50;
         $h .= '<span class="pcp-effect-fslider-wrap">';
-        $h .= '<input type="range" class="pcp-effect-fslider" min="0" max="100" step="1" value="' . $initFreq . '" oninput="this.nextElementSibling.value=this.value+\'%\'">';
+        $h .= '<input type="range" class="pcp-effect-fslider" aria-label="How often you have seen this effect" min="0" max="100" step="1" value="' . $initFreq . '" oninput="this.nextElementSibling.value=this.value+\'%\'">';
         $h .= '<output class="pcp-effect-fslider-out">' . $initFreq . '%</output>';
         $h .= '</span>';
         $h .= '<button type="button" class="pcp-effect-fbtn pcp-effect-fbtn-dk" data-frequency="-1">Don\'t know</button>';
@@ -130,7 +130,7 @@ class EffectTag {
         elseif ( $uProVal !== '' ) { $initVal = (int)$uProVal; }
         $h .= '<span class="pcp-effect-vslider-wrap">';
         $h .= '<span class="pcp-effect-vslider-anchor pcp-effect-vslider-anchor-neg">−100</span>';
-        $h .= '<input type="range" class="pcp-effect-vslider" min="-100" max="100" step="1" value="' . $initVal . '" oninput="this.nextElementSibling.value=(this.value>=0?\'+\':\'\')+this.value">';
+        $h .= '<input type="range" class="pcp-effect-vslider" aria-label="How was this effect, worst to best" min="-100" max="100" step="1" value="' . $initVal . '" oninput="this.nextElementSibling.value=(this.value>=0?\'+\':\'\')+this.value">';
         $h .= '<output class="pcp-effect-vslider-out">' . ( $initVal >= 0 ? '+' : '' ) . $initVal . '</output>';
         $h .= '<span class="pcp-effect-vslider-anchor pcp-effect-vslider-anchor-pos">+100</span>';
         $h .= '</span>';

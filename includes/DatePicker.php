@@ -100,10 +100,16 @@ class DatePicker {
                     $point = $j['options'][0]['point'];
                 }
                 if ( $point ) {
-                    if ( isset( $point['effective_iso'] ) ) {
-                        $iso = (string)$point['effective_iso'];
-                    } elseif ( isset( $point['parsed']['iso'] ) ) {
+                    // Prefer parsed.iso (always clean YYYY-MM-DD) over effective_iso
+                    // (may carry a Thh:mm:ss suffix when time-of-day is set).
+                    if ( isset( $point['parsed']['iso'] ) ) {
                         $iso = (string)$point['parsed']['iso'];
+                    } elseif ( isset( $point['effective_iso'] ) ) {
+                        $iso = (string)$point['effective_iso'];
+                    }
+                    // Strip any Thh:mm:ss suffix so the strict YYYY-MM-DD match below works.
+                    if ( $iso !== null && preg_match( '/^(\d{4}-\d{2}-\d{2})/', $iso, $_m ) ) {
+                        $iso = $_m[1];
                     }
                     // Only treat as full birthday if precision is 'day'
                     $prec = $point['parsed']['precision'] ?? null;
@@ -247,7 +253,7 @@ class DatePicker {
         $tz = null;
         if ( $tzIn !== null && $tzIn !== '' ) {
             // Accept either IANA-ish format or plain ASCII identifier; reject anything weird.
-            if ( preg_match( '/^[A-Za-z][A-Za-z0-9_\/\+\-]{0,63}$/', $tzIn ) ) {
+            if ( preg_match( '/^[A-Za-z\+\-][A-Za-z0-9_\/\+\-:]{0,63}$/', $tzIn ) ) {
                 $tz = $tzIn;
             }
         }
@@ -272,6 +278,77 @@ class DatePicker {
      * Build a human-readable display string for a sanitized struct.
      * Used in read-only contexts (event cards, profile pages, lists).
      */
+    /**
+     * Card-style display: a specific calendar date if the precision warrants
+     * it (day -> "Mon D YYYY", month -> "Mon YYYY", year -> "YYYY",
+     * decade -> "YYYYs"), otherwise the user's original phrase (age-*).
+     */
+    public static function formatStructForCard( ?array $struct ): string {
+        if ( !$struct ) return '';
+        $kind = (string)( $struct['kind'] ?? '' );
+        if ( $kind === 'point' ) {
+            return self::formatPointForCard( $struct['point'] ?? null );
+        }
+        if ( $kind === 'range' ) {
+            $f = self::formatPointForCard( $struct['from']    ?? ( $struct['start'] ?? null ) );
+            $t = self::formatPointForCard( $struct['through'] ?? ( $struct['end']   ?? null ) );
+            if ( $f !== '' && $t !== '' ) return $f . ' – ' . $t;
+            if ( $f !== '' ) return 'from ' . $f;
+            if ( $t !== '' ) return 'until ' . $t;
+            return '';
+        }
+        return self::formatForDisplay( $struct );
+    }
+
+    private static function formatPointForCard( ?array $f ): string {
+        if ( !$f ) return '';
+        $iso  = $f['parsed']['iso']  ?? null;
+        $prec = (string)( $f['parsed']['precision'] ?? '' );
+        $raw  = (string)( $f['raw_text'] ?? '' );
+        if ( !$iso ) return self::appendTimeTz( $raw, $f );
+        // Age-* precision: resolve to the actual calendar date from the user's
+        // birthday + N. Day-format ("Mon D YYYY") since age phrases anchor on
+        // a specific day-of-year.
+        if ( strpos( $prec, 'age' ) === 0 ) {
+            $ts = strtotime( $iso . ' 00:00:00 UTC' );
+            return self::appendTimeTz( $ts ? date( 'M j Y', $ts ) : $iso, $f );
+        }
+        if ( $prec === 'day' ) {
+            $ts = strtotime( $iso . ' 00:00:00 UTC' );
+            return self::appendTimeTz( $ts ? date( 'M j Y', $ts ) : $iso, $f );
+        }
+        if ( $prec === 'month' ) {
+            $ts = strtotime( $iso . '-01 00:00:00 UTC' );
+            if ( $ts === false ) $ts = strtotime( $iso . ' 00:00:00 UTC' );
+            return self::appendTimeTz( $ts ? date( 'M Y', $ts ) : substr( $iso, 0, 7 ), $f );
+        }
+        if ( $prec === 'year' ) {
+            return self::appendTimeTz( substr( $iso, 0, 4 ), $f );
+        }
+        if ( $prec === 'decade' ) {
+            return self::appendTimeTz( substr( $iso, 0, 3 ) . '0s', $f );
+        }
+        return self::appendTimeTz( $raw !== '' ? $raw : $iso, $f );
+    }
+
+    /**
+     * Append a HH:MM (and optional timezone label) onto a card-style date
+     * string when the point field carries a time. Drops trailing :00 seconds
+     * for compactness.
+     */
+    private static function appendTimeTz( string $base, array $f ): string {
+        $t = $f['time']['parsed'] ?? null;
+        if ( !is_string( $t ) || !preg_match( '/^(\d{2}):(\d{2})(?::(\d{2}))?$/', $t, $m ) ) {
+            return $base;
+        }
+        $disp = $m[1] . ':' . $m[2];
+        if ( !empty( $m[3] ) && (int)$m[3] !== 0 ) $disp .= ':' . $m[3];
+        $out = ( $base !== '' ? $base . ' ' : '' ) . $disp;
+        $tz = isset( $f['timezone'] ) ? trim( (string)$f['timezone'] ) : '';
+        if ( $tz !== '' ) $out .= ' ' . $tz;
+        return $out;
+    }
+
     public static function formatForDisplay( ?array $struct ): string {
         if ( !$struct ) return '';
         $kind = (string)( $struct['kind'] ?? '' );

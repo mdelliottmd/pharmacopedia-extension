@@ -5,7 +5,7 @@ use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
 
 /**
- * Special:MyLifeStory — owner-edit timeline.
+ * Special:MyLifeStory – owner-edit timeline.
  *   $par = ''         → chronological list of events + Add button
  *   $par = 'add'      → add-event form
  *   $par = 'edit/<id>'→ edit-event form
@@ -24,28 +24,33 @@ class SpecialMyLifeStory extends SpecialPage {
         $this->setHeaders();
         $out = $this->getOutput();
         $out->setPageTitle( 'My life story' );
-        $urlEvt = htmlspecialchars( $this->getPageTitle( 'add' )->getLocalURL() );
-        $urlEpi = htmlspecialchars( $this->getPageTitle( 'add-episode' )->getLocalURL() );
-        $out->addHTML(
-            '<div class="pcp-life-add-row">'
-            . '<a class="pcp-life-btn pcp-life-btn-event" href="' . $urlEvt . '">'
-                . '<span class="pcp-life-btn-icon">📅</span>'
-                . '<span class="pcp-life-btn-main">Event</span>'
-                . '<span class="pcp-life-btn-sub">a single moment</span>'
-            . '</a>'
-            . '<a class="pcp-life-btn pcp-life-btn-episode" href="' . $urlEpi . '">'
-                . '<span class="pcp-life-btn-icon">🌀</span>'
-                . '<span class="pcp-life-btn-main">Episode</span>'
-                . '<span class="pcp-life-btn-sub">a span of time</span>'
-            . '</a>'
-            . '</div>'
-        );
-        $out->addHTML( '<div class="pcp-obs-quickadd">' .
-            '<h3>Quick add: log an observation</h3>' .
-            '<textarea class="pcp-obs-input" rows="2" placeholder="e.g. anxiety from bupropion in jan 2020 — or — no insomnia while on melatonin in summer 2023"></textarea>' .
-            '<div class="pcp-obs-preview"></div>' .
-            '<button type="button" class="pcp-btn pcp-obs-submit">Add to timeline</button>' .
-        '</div>' );
+        // Page-root quick-add + add-event/add-episode chips: only on the bare
+        // /MyLifeStory page, not on subpages (edit-observation, edit-episode,
+        // add, add-episode, edit/N) NOR on the ?edit_event=N query-param edit
+        // route, where the inline edit form is the focus.
+        $_isEditView = ( trim( (string)$par ) !== '' )
+            || ( (int)$this->getRequest()->getVal( 'edit_event', 0 ) > 0 );
+        if ( !$_isEditView ) {
+            $urlEvt = htmlspecialchars( $this->getPageTitle( 'add' )->getLocalURL() );
+            $urlEpi = htmlspecialchars( $this->getPageTitle( 'add-episode' )->getLocalURL() );
+            $out->addHTML( '<div class="pcp-obs-quickadd">' .
+                '<h3>Quick add: log an entry</h3>' .
+                '<div class="pcp-life-quickadd-typepicker" role="radiogroup" aria-label="Entry type">' .
+                    '<button type="button" data-type="observation" class="active" role="radio" aria-checked="true">Observation</button>' .
+                    '<button type="button" data-type="event" role="radio" aria-checked="false">Event</button>' .
+                    '<button type="button" data-type="episode" role="radio" aria-checked="false">Episode</button>' .
+                    '<button type="button" data-type="story" role="radio" aria-checked="false">Story</button>' .
+                '</div>' .
+                '<input type="hidden" name="entry_type" class="pcp-life-quickadd-typepicker-value" value="observation">' .
+                '<textarea class="pcp-obs-input" rows="2" placeholder="e.g. anxiety from bupropion in jan 2020; or no insomnia while on melatonin in summer 2023"></textarea>' .
+                '<div class="pcp-obs-preview"></div>' .
+                '<button type="button" class="pcp-btn pcp-obs-submit">Add to timeline</button>' .
+                '<div class="pcp-life-add-chips">' .
+                    '<a class="pcp-life-add-chip" href="' . $urlEvt . '">+ Add event <span class="pcp-life-add-chip-sub">single moment</span></a>' .
+                    '<a class="pcp-life-add-chip" href="' . $urlEpi . '">+ Add episode <span class="pcp-life-add-chip-sub">span of time</span></a>' .
+                '</div>' .
+            '</div>' );
+        }
         $out->setSubtitle( '<a href="#" class="pcp-share-trigger" data-ns="life_events" data-label="Life story">🔗 Share</a>' );
         $out->addModuleStyles( [ 'ext.pharmacopedia.styles', 'ext.pharmacopedia.datepicker.styles', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation' ] );
         $out->addModules( [ 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation', 'ext.pharmacopedia.lifetimeline', 'ext.pharmacopedia.lifegraph' ] );
@@ -107,6 +112,33 @@ class SpecialMyLifeStory extends SpecialPage {
                 $out->redirect( $this->getPageTitle()->getLocalURL( [ 'deleted' => 1 ] ) );
                 return;
             }
+            if ( $action === 'convert_type' ) {
+                $eid = (int)$request->getVal( 'event_id', 0 );
+                $newType = (int)$request->getVal( 'new_type', -1 );
+                $event = $store->getEvent( $eid );
+                if ( $event && (int)$event->le_profile_id === $profileId
+                     && in_array( $newType, [ 0, 1, 3, 4 ], true ) ) {
+                    $dbw = \MediaWiki\MediaWikiServices::getInstance()
+                        ->getConnectionProvider()->getPrimaryDatabase();
+                    $dbw->newUpdateQueryBuilder()
+                        ->update( 'pcp_life_events' )
+                        ->set( [ 'le_type' => $newType, 'le_updated' => $dbw->timestamp() ] )
+                        ->where( [ 'le_id' => $eid ] )
+                        ->caller( __METHOD__ )
+                        ->execute();
+                    switch ( $newType ) {
+                        case 4:
+                            $out->redirect( $this->getPageTitle( 'edit-episode/' . $eid )->getLocalURL() ); break;
+                        case 3:
+                            $out->redirect( $this->getPageTitle( 'edit-observation/' . $eid )->getLocalURL() ); break;
+                        default:
+                            $out->redirect( $this->getPageTitle()->getLocalURL( [ 'edit_event' => $eid ] ) );
+                    }
+                    return;
+                }
+                $out->redirect( $this->getPageTitle()->getFullURL() );
+                return;
+            }
             if ( $action === 'set_visibility' ) {
                 $eid = (int)$request->getVal( 'event_id', 0 );
                 $vis = max( 0, min( 3, (int)$request->getVal( 'visibility', 0 ) ) );
@@ -149,6 +181,30 @@ class SpecialMyLifeStory extends SpecialPage {
         // ----- Banner -----
         if ( $request->getVal( 'saved' ) ) {
             $out->addHTML( $this->banner( 'Saved.', 'Event saved.' ) );
+            $savedId = (int)$request->getVal( 'saved' );
+            if ( $savedId > 0 ) {
+                $savedEvent = $store->getEvent( $savedId );
+                $tmap = [ 0 => 'stories', 1 => 'events', 3 => 'observations', 4 => 'episodes' ];
+                $savedGroup = $savedEvent ? ( $tmap[ (int)$savedEvent->le_type ] ?? 'events' ) : 'events';
+                $out->addHTML(
+                    '<script>document.addEventListener("DOMContentLoaded",function(){' .
+                    'document.querySelectorAll(".pcp-life-view-toggle").forEach(function(b){b.classList.remove("active");});' .
+                    'var lb=document.querySelector(\'.pcp-life-view-toggle[data-view="list"]\');' .
+                    'if(lb)lb.classList.add("active");' .
+                    'document.querySelectorAll(".pcp-life-view").forEach(function(v){v.classList.remove("active");});' .
+                    'var lp=document.querySelector(\'.pcp-life-view[data-view="list"]\');' .
+                    'if(lp)lp.classList.add("active");' .
+                    'var fcb=document.querySelector(\'.pcp-life-timeline-group-toggle[value="' . $savedGroup . '"]\');' .
+                    'if(fcb && !fcb.checked){fcb.checked=true;fcb.dispatchEvent(new Event("change",{bubbles:true}));}' .
+                    'setTimeout(function(){' .
+                    'var el=document.querySelector(\'.pcp-life-view[data-view="list"] .pcp-life-card[data-event-id="' . $savedId . '"]\');' .
+                    'if(el){el.scrollIntoView({behavior:"smooth",block:"center"});' .
+                    'el.classList.add("pcp-life-card-flash");' .
+                    'setTimeout(function(){el.classList.remove("pcp-life-card-flash");},1800);}' .
+                    '},120);' .
+                    '});</script>'
+                );
+            }
         }
         if ( $request->getVal( 'deleted' ) ) {
             $out->addHTML( $this->banner( 'Deleted.', 'Event removed.' ) );
@@ -239,7 +295,7 @@ class SpecialMyLifeStory extends SpecialPage {
             $scale = $scales[ $ns ] ?? null;
             $title = $titles[ $ns ] ?? ( $ns . ' trajectory' );
 
-            // For 'custom', each trait may have its own min/max scale — normalize each to 0-1
+            // For 'custom', each trait may have its own min/max scale – normalize each to 0-1
             if ( $ns === 'custom' ) {
                 $normalized = [];
                 foreach ( $traits as $key => $pts ) {
@@ -310,10 +366,12 @@ class SpecialMyLifeStory extends SpecialPage {
                     $rawV = (float)$p['value'];
                     $normY = max( 0, min( 100, ( ( $rawV - $min ) / ( $max - $min ) ) * 100 ) );
                     $items[] = [
-                        'x'     => (string)$p['date'],
-                        'y'     => $normY,
-                        'group' => $gid,
-                        'label' => $rawV . ' (range ' . $min . '..' . $max . ')',
+                        'x'       => (string)$p['date'],
+                        'y'       => $normY,
+                        'group'   => $gid,
+                        'label'   => $rawV . ' (range ' . $min . '..' . $max . ')',
+                        'valence' => isset( $p['valence'] ) ? $p['valence'] : null,
+                        'tvs'     => isset( $p['traitvstate'] ) ? $p['traitvstate'] : null,
                     ];
                 }
             }
@@ -334,7 +392,7 @@ class SpecialMyLifeStory extends SpecialPage {
             'yRange' => [ 'min' => $yMin - $yRange * 0.08, 'max' => $yMax + $yRange * 0.08 ],
         ];
         $out->addHTML( '<script>window.PCP_LIFE_GRAPH_DATA = ' . json_encode( $payload, JSON_UNESCAPED_SLASHES ) . ';</script>' );
-        // The mount + legend are emitted INSIDE the visual pane wrapper —
+        // The mount + legend are emitted INSIDE the visual pane wrapper –
         // placed BEFORE the timeline mount in renderTimelineMount.
     }
 
@@ -374,11 +432,15 @@ class SpecialMyLifeStory extends SpecialPage {
         $payload = [ 'events' => $items ];
         $json = json_encode( $payload, JSON_UNESCAPED_SLASHES );
         $out->addHTML( '<script>window.PCP_LIFE_TIMELINE_DATA = ' . $json . ';</script>' );
+        // 'keyframes' filter dropped post-collapse: trait-bearing rows now
+        // live in 'observations' (le_type=3). Any orphan legacy type=2 rows
+        // remain visible (no filter -> currentVisible[gid] is undefined ->
+        // !== false -> show).
         $groups = [
             'episodes'     => [ 'label' => 'Episodes',     'on' => true  ],
             'events'       => [ 'label' => 'Events',       'on' => true  ],
-            'observations' => [ 'label' => 'Observations', 'on' => true  ],
-            'keyframes'    => [ 'label' => 'Keyframes',    'on' => false ],
+            'stories'      => [ 'label' => 'Stories',      'on' => true  ],
+            'observations' => [ 'label' => 'Observations', 'on' => false ],
             'derived'      => [ 'label' => 'Derived',      'on' => false ],
         ];
         $togglesHtml = '';
@@ -391,7 +453,7 @@ class SpecialMyLifeStory extends SpecialPage {
         }
         $out->addHTML(
             '<div class="pcp-life-view-tabs">'
-                . '<button type="button" class="pcp-life-view-toggle active" data-view="visual">Visual timeline</button>'
+                . '<button type="button" class="pcp-life-view-toggle" data-view="visual">Visual timeline</button>'
                 . '<button type="button" class="pcp-life-view-toggle" data-view="list">Card list</button>'
             . '</div>'
             . '<div class="pcp-life-timeline-controls">'
@@ -405,7 +467,7 @@ class SpecialMyLifeStory extends SpecialPage {
             . '</div>'
         );
         $out->addHTML(
-            '<div class="pcp-life-view active" data-view="visual">'
+            '<div class="pcp-life-view" data-view="visual">'
                 . '<div class="pcp-life-graph-legend"></div>'
                 . '<div class="pcp-life-overlay-wrap">'
                     . '<div id="pcp-life-timeline-mount"></div>'
@@ -423,7 +485,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
     private function timelineItemForStored( $e, $linkPage ): array {
         $type = (int)$e->le_type;
-        $group = [ 0=>'events', 1=>'events', 2=>'keyframes', 3=>'observations', 4=>'episodes' ][ $type ] ?? 'events';
+        $group = [ 0=>'stories', 1=>'events', 3=>'observations', 4=>'episodes' ][ $type ] ?? 'events';
         $start = null; $end = null;
         if ( $e->le_date_struct ) {
             $s = json_decode( (string)$e->le_date_struct, true );
@@ -524,7 +586,7 @@ class SpecialMyLifeStory extends SpecialPage {
         if ( !empty( $event->_is_derived ?? false ) ) {
             return $this->renderDerivedCard( $event, $h );
         }
-        $typeLabel = [ 0=>'story', 1=>'image', 2=>'keyframe', 3=>'observation', 4=>'episode' ][ (int)$event->le_type ] ?? 'story';
+        $typeLabel = [ 0=>'story', 1=>'event', 2=>'keyframe', 3=>'observation', 4=>'episode' ][ (int)$event->le_type ] ?? 'story';
         $visIcon   = [ 0=>'🔒', 1=>'👁', 2=>'🆔', 3=>'🎭' ][ (int)$event->le_visibility ] ?? '🔒';
         $dateText  = $this->formatDate( $event );
 
@@ -562,6 +624,12 @@ class SpecialMyLifeStory extends SpecialPage {
                 $editUrl = htmlspecialchars( $this->getPageTitle( 'edit-episode/' . (int)$event->le_id )->getLocalURL() );
             } elseif ( (int)$event->le_type === LifeStoryStore::TYPE_OBSERVATION ) {
                 $editUrl = htmlspecialchars( $this->getPageTitle( 'edit-observation/' . (int)$event->le_id )->getLocalURL() );
+            } elseif ( (int)$event->le_type === LifeStoryStore::TYPE_STORY
+                       && !empty( $event->le_page_id ) ) {
+                $storyTitle = \MediaWiki\Title\Title::newFromID( (int)$event->le_page_id );
+                $editUrl = $storyTitle
+                    ? htmlspecialchars( $storyTitle->getLocalURL( [ 'action' => 'edit' ] ) )
+                    : htmlspecialchars( $this->getPageTitle()->getLocalURL( [ 'edit_event' => (int)$event->le_id ] ) );
             } else {
                 $editUrl = htmlspecialchars( $this->getPageTitle()->getLocalURL(
                     [ 'edit_event' => (int)$event->le_id ] ) );
@@ -572,6 +640,15 @@ class SpecialMyLifeStory extends SpecialPage {
         $out .= '<h3 class="pcp-life-title">' . $h( $event->le_title ) . '</h3>';
         if ( $event->le_body !== null && $event->le_body !== '' ) {
             $out .= '<div class="pcp-life-body">' . nl2br( $h( (string)$event->le_body ) ) . '</div>';
+        }
+        if ( (int)$event->le_type === LifeStoryStore::TYPE_STORY && !empty( $event->le_page_id ) ) {
+            $storyTitle = \MediaWiki\Title\Title::newFromID( (int)$event->le_page_id );
+            if ( $storyTitle ) {
+                $out .= '<div class="pcp-life-story-link">'
+                    . '<a href="' . htmlspecialchars( $storyTitle->getLocalURL() ) . '">'
+                    . 'View full story →</a>'
+                    . '</div>';
+            }
         }
 
         if ( (int)$event->le_type === LifeStoryStore::TYPE_EPISODE ) {
@@ -610,7 +687,8 @@ class SpecialMyLifeStory extends SpecialPage {
         }
 
         // Keyframe traits
-        if ( (int)$event->le_type === LifeStoryStore::TYPE_KEYFRAME ) {
+        // Show trait readout on keyframe-type (legacy) AND observation-type cards.
+        if ( in_array( (int)$event->le_type, [ LifeStoryStore::TYPE_KEYFRAME, LifeStoryStore::TYPE_OBSERVATION ], true ) ) {
             $traits = $store->getTraitsForEvent( (int)$event->le_id );
             if ( $traits ) {
                 $out .= '<table class="pcp-pa-table pcp-life-traits"><tbody>';
@@ -740,6 +818,7 @@ class SpecialMyLifeStory extends SpecialPage {
         $action = $h( $this->getPageTitle()->getLocalURL() );
         $out->addModules( [ 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.observation' ] );
 
+        $this->renderTypeSwitcher( $out, $event );
         $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-obs-edit-form">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
         $out->addHTML( '<input type="hidden" name="pcp_action" value="save_observation">' );
@@ -748,7 +827,7 @@ class SpecialMyLifeStory extends SpecialPage {
         // Raw text (with live re-parse preview).
         $out->addHTML( '<div class="pcp-form-row"><label>Observation (free text)</label>' );
         $out->addHTML( '<div class="pcp-obs-quickadd">' );
-        $out->addHTML( '<textarea name="text" rows="3" class="pcp-obs-input" required>' . $h( $rawText ) . '</textarea>' );
+        $out->addHTML( '<textarea name="text" rows="3" class="pcp-obs-input" placeholder="(optional)">' . $h( $rawText ) . '</textarea>' );
         $out->addHTML( '<div class="pcp-obs-preview"></div>' );
         $out->addHTML( '</div></div>' );
 
@@ -762,7 +841,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // Override date (optional, point picker).
         $out->addHTML( '<div class="pcp-form-row"><label>Date override (optional, point in time)</label>' );
-        $out->addHTML( \MediaWiki\Extension\Pharmacopedia\DatePicker::renderWidget( 'date_struct_override', $struct, [ 'lock_mode' => 'point' ] ) );
+        $out->addHTML( \MediaWiki\Extension\Pharmacopedia\DatePicker::renderWidget( 'date_struct_override', $struct ) );
         $out->addHTML( '<p class="pcp-form-help">Leave blank to use the date parsed from the text above.</p>' );
         $out->addHTML( '</div>' );
 
@@ -780,6 +859,9 @@ class SpecialMyLifeStory extends SpecialPage {
             }
             $out->addHTML( '</div></div>' );
         }
+
+        // ----- States and Traits (tile-based UI; replaces legacy spreadsheet) -----
+        $this->renderStatesAndTraits( $out, $event, new LifeStoryStore(), $profileId );
 
         // Submit + cancel.
         $out->addHTML( '<div class="pcp-life-form-actions">' );
@@ -807,8 +889,8 @@ class SpecialMyLifeStory extends SpecialPage {
     private function saveObservation( $store, int $profileId, $request ): int {
         $eventId = (int)$request->getVal( 'event_id', 0 );
         $text    = trim( (string)$request->getVal( 'text', '' ) );
-        if ( $text === '' || $eventId <= 0 ) {
-            throw new \RuntimeException( 'Observation text and event_id required' );
+        if ( $eventId <= 0 ) {
+            throw new \RuntimeException( 'event_id required' );
         }
         $parser = new \MediaWiki\Extension\Pharmacopedia\ObservationParser();
         $parsed = $parser->parse( $text, $profileId );
@@ -820,7 +902,7 @@ class SpecialMyLifeStory extends SpecialPage {
         $dateOverJson = (string)$request->getVal( 'date_struct_override', '' );
         if ( $dateOverJson !== '' ) {
             $j = json_decode( $dateOverJson, true );
-            if ( is_array( $j ) && ( $j['kind'] ?? '' ) === 'point' ) {
+            if ( is_array( $j ) && in_array( $j['kind'] ?? '', [ 'point', 'range', 'possibility' ], true ) ) {
                 $parsed['date_struct'] = $j;
             }
         }
@@ -828,15 +910,25 @@ class SpecialMyLifeStory extends SpecialPage {
         // Update the row in place (rather than insert+delete).
         $dbw = \MediaWiki\MediaWikiServices::getInstance()
             ->getConnectionProvider()->getPrimaryDatabase();
-        $iso = $parsed['date_struct']['point']['parsed']['iso'] ?? null;
-        $disp = $parsed['date_struct']['point']['raw_text'] ?? '';
+        // Derive ISO + display from the struct via helpers that handle both point AND range.
+        $iso = null;
+        $struct = $parsed['date_struct'] ?? null;
+        if ( is_array( $struct ) ) {
+            $kind = (string)( $struct['kind'] ?? '' );
+            if ( $kind === 'point' ) {
+                $iso = $struct['point']['parsed']['iso'] ?? null;
+            } elseif ( $kind === 'range' ) {
+                $iso = $struct['from']['parsed']['iso'] ?? null;
+            }
+        }
+        $disp = \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $struct );
         $dbw->newUpdateQueryBuilder()
             ->update( 'pcp_life_events' )
             ->set( [
                 'le_raw_text'     => $text,
                 'le_title'        => $this->observationTitle( $parsed ),
                 'le_polarity'     => $parsed['polarity'] !== null ? (int)$parsed['polarity'] : null,
-                'le_date_struct'  => $parsed['date_struct'] ? json_encode( $parsed['date_struct'] ) : null,
+                'le_date_struct'  => $struct ? json_encode( $struct ) : null,
                 'le_date_iso'     => $iso,
                 'le_date_display' => (string)$disp,
                 'le_updated'      => $dbw->timestamp(),
@@ -847,6 +939,34 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // Replace refs from the new parse.
         $store->setEventRefs( $eventId, $parsed['refs'] );
+
+        // Replace trait values from the kf[] form rows (normalized via KeyframeValueNormalizer).
+        $kf = $request->getArray( 'kf' ) ?: [];
+        $traits = [];
+        foreach ( $kf as $row ) {
+            if ( !is_array( $row ) ) continue;
+            $ns  = trim( (string)( $row['namespace'] ?? '' ) );
+            $key = trim( (string)( $row['key'] ?? '' ) );
+            $val = trim( (string)( $row['value'] ?? '' ) );
+            if ( $ns === '' || $key === '' || $val === '' ) continue;
+            $_r = \MediaWiki\Extension\Pharmacopedia\KeyframeValueNormalizer::normalize( $val );
+            if ( $_r['value'] === null ) continue;
+            $traits[] = [
+                'namespace' => $ns,
+                'key'       => $key,
+                'label'     => trim( (string)( $row['label'] ?? '' ) ) ?: null,
+                'value'     => $_r['value'],
+                'min'       => is_numeric( $row['min'] ?? '' ) ? (float)$row['min'] : null,
+                'max'       => is_numeric( $row['max'] ?? '' ) ? (float)$row['max'] : null,
+                'estimated' => !empty( $row['estimated'] ),
+                'valence'   => isset( $row['valence'] ) && $row['valence'] !== '' ? (float)$row['valence'] : null,
+                'valence_estimated' => !empty( $row['valence_estimated'] ),
+                'traitvstate' => isset( $row['traitvstate'] ) && $row['traitvstate'] !== '' ? (float)$row['traitvstate'] : null,
+                'traitvstate_estimated' => !empty( $row['traitvstate_estimated'] ),
+            ];
+        }
+        $store->setTraits( $eventId, $traits );
+
         return $eventId;
     }
 
@@ -901,6 +1021,7 @@ class SpecialMyLifeStory extends SpecialPage {
         ];
         $subtypesJson = json_encode( $subtypesByType, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
 
+        if ( $event ) { $this->renderTypeSwitcher( $out, $event ); }
         $out->addHTML( '<form method="post" enctype="multipart/form-data" action="' . $action . '" class="pcp-episode-form">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
         $out->addHTML( '<input type="hidden" name="pcp_action" value="save_episode">' );
@@ -911,7 +1032,7 @@ class SpecialMyLifeStory extends SpecialPage {
         // Type
         $out->addHTML( '<div class="pcp-form-row"><label>Type</label>' );
         $out->addHTML( '<select name="episode_type" class="pcp-ep-type">' );
-        $out->addHTML( '<option value="">— pick —</option>' );
+        $out->addHTML( '<option value="">(pick one)</option>' );
         foreach ( $types as $t ) {
             $sel = $epType === $t ? ' selected' : '';
             $out->addHTML( '<option value="' . $h( $t ) . '"' . $sel . '>' . $h( $t ) . '</option>' );
@@ -962,6 +1083,9 @@ class SpecialMyLifeStory extends SpecialPage {
         }
         $out->addHTML( '</select></div>' );
 
+        // ----- States and Traits (any card type can carry these) -----
+        $this->renderStatesAndTraits( $out, $event, new LifeStoryStore(), $profileId );
+
         $out->addHTML( '<div class="pcp-form-row">' );
         $out->addHTML( '<button type="submit" class="pcp-btn">' . ( $isEdit ? 'Save' : 'Create episode' ) . '</button> ' );
         $out->addHTML( '<a class="pcp-btn" href="' . $h( $this->getPageTitle()->getLocalURL() ) . '">Cancel</a>' );
@@ -1010,8 +1134,180 @@ class SpecialMyLifeStory extends SpecialPage {
         } else {
             $eventId = $store->addEpisode( $profileId, $fields );
         }
+        // Persist trait values from the States and Traits tiles.
+        $kf = $request->getArray( 'kf' ) ?: [];
+        $traits = [];
+        foreach ( $kf as $row ) {
+            if ( !is_array( $row ) ) continue;
+            $ns  = trim( (string)( $row['namespace'] ?? '' ) ) ?: 'custom';
+            $key = trim( (string)( $row['key'] ?? '' ) );
+            $val = trim( (string)( $row['value'] ?? '' ) );
+            if ( $key === '' || $val === '' ) continue;
+            $_r = \MediaWiki\Extension\Pharmacopedia\KeyframeValueNormalizer::normalize( $val );
+            if ( $_r['value'] === null ) continue;
+            $traits[] = [
+                'namespace' => $ns,
+                'key'       => $key,
+                'label'     => trim( (string)( $row['label'] ?? '' ) ) ?: null,
+                'value'     => $_r['value'],
+                'min'       => is_numeric( $row['min'] ?? '' ) ? (float)$row['min'] : null,
+                'max'       => is_numeric( $row['max'] ?? '' ) ? (float)$row['max'] : null,
+                'estimated' => !empty( $row['estimated'] ),
+                'valence'   => isset( $row['valence'] ) && $row['valence'] !== '' ? (float)$row['valence'] : null,
+                'valence_estimated' => !empty( $row['valence_estimated'] ),
+                'traitvstate' => isset( $row['traitvstate'] ) && $row['traitvstate'] !== '' ? (float)$row['traitvstate'] : null,
+                'traitvstate_estimated' => !empty( $row['traitvstate_estimated'] ),
+            ];
+        }
+        $store->setTraits( $eventId, $traits );
+
         $this->maybeAcceptImageUpload( $store, $eventId, $profileId, $request );
         return $eventId;
+    }
+
+    /**
+     * Render the "States and Traits" tile-based fieldset. Replaces the old
+     * spreadsheet-style "Trait values" / "Keyframe traits" fieldset on every
+     * edit form. Posts the same kf[i][...] form fields the save handlers
+     * already consume; the UI is a presentation layer on top.
+     */
+    private function renderStatesAndTraits( $out, ?\stdClass $event, $store, int $profileId ): void {
+        $h = function ( $s ) { return htmlspecialchars( (string)$s ); };
+        $traits = $event ? $store->getTraitsForEvent( (int)$event->le_id ) : [];
+        $suggestions = $this->getTraitSuggestions( $profileId );
+
+        $out->addHTML( '<fieldset class="pcp-prof-section pcp-states-traits"><legend>Attributes (traits/states)</legend>' );
+        $out->addHTML( '<p class="pcp-prof-help"><small>Measurements at this point in time. Values accept numbers (40), grades (B+), fractions (4/10), percents (40%), and stars (3/5 stars) — all normalized to a 0-100 scale.</small></p>' );
+
+        $nextIdx = count( $traits );
+        $out->addHTML( '<div class="pcp-st-tiles" data-next-idx="' . $nextIdx . '">' );
+        foreach ( $traits as $i => $t ) {
+            $name  = (string)( $t->lt_label ?: $t->lt_key );
+            $rawVal = rtrim( rtrim( (string)$t->lt_value_num, '0' ), '.' );
+            $est = (int)$t->lt_estimated;
+            $valence = isset( $t->lt_valence ) && $t->lt_valence !== null ? (float)$t->lt_valence : null;
+            $valenceEst = !empty( $t->lt_valence_estimated );
+            $tvs = isset( $t->lt_traitvstate ) && $t->lt_traitvstate !== null ? (float)$t->lt_traitvstate : null;
+            $tvsEst = !empty( $t->lt_traitvstate_estimated );
+            $valEstTilde = $est ? '~' : '';
+            $valenceTilde = $valenceEst ? '~' : '';
+            $tvsTilde = $tvsEst ? '~' : '';
+            $valenceDisp = '';
+            $valenceSign = 'zero';
+            if ( $valence !== null ) {
+                $valenceDisp = rtrim( rtrim( sprintf( '%+.2f', $valence ), '0' ), '.' );
+                if ( $valence == 0.0 ) $valenceDisp = '0';
+                $valenceSign = $valence > 0 ? 'pos' : ( $valence < 0 ? 'neg' : 'zero' );
+            }
+            $tvsDisp = '';
+            $tvsSign = 'zero';
+            if ( $tvs !== null ) {
+                $tvsDisp = rtrim( rtrim( sprintf( '%+.2f', $tvs ), '0' ), '.' );
+                if ( $tvs == 0.0 ) $tvsDisp = '0';
+                $tvsSign = $tvs > 0 ? 'pos' : ( $tvs < 0 ? 'neg' : 'zero' );
+            }
+            $out->addHTML(
+                '<div class="pcp-st-tile" data-idx="' . $i . '">'
+                . '<span class="pcp-st-tile-display">'
+                . '<span class="pcp-st-tile-name">' . $h( $name ) . '</span>'
+                . '<span class="pcp-st-tile-eq"> = </span>'
+                . '<span class="pcp-st-tile-value">' . $valEstTilde . $h( $rawVal ) . '</span>'
+                . ( $valenceDisp !== '' ? ' <span class="pcp-st-tile-valence" data-sign="' . $valenceSign . '">valence ' . $valenceTilde . $h( $valenceDisp ) . '</span>' : '' )
+                . ( $tvsDisp !== '' ? ' <span class="pcp-st-tile-tvs" data-sign="' . $tvsSign . '">tvs ' . $tvsTilde . $h( $tvsDisp ) . '</span>' : '' )
+                . '</span>'
+                . '<button type="button" class="pcp-st-tile-edit" title="Edit">✎</button>'
+                . '<button type="button" class="pcp-st-tile-delete" title="Delete">×</button>'
+                . '<input type="hidden" name="kf[' . $i . '][namespace]" value="' . $h( $t->lt_namespace ?: 'custom' ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][key]" value="' . $h( (string)$t->lt_key ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][label]" value="' . $h( $name ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][value]" value="' . $h( $rawVal ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][valence]" value="' . ( $valence !== null ? $h( (string)$valence ) : '' ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][estimated]" value="' . ( $est ? '1' : '' ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][valence_estimated]" value="' . ( $valenceEst ? '1' : '' ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][traitvstate]" value="' . ( $tvs !== null ? $h( (string)$tvs ) : '' ) . '">'
+                . '<input type="hidden" name="kf[' . $i . '][traitvstate_estimated]" value="' . ( $tvsEst ? '1' : '' ) . '">'
+                . '</div>'
+            );
+        }
+        $out->addHTML( '</div>' );
+
+        $out->addHTML( '<button type="button" class="pcp-st-add-btn">+ Add state or trait</button>' );
+
+        // Datalist for autocomplete (shared across all tiles on the page).
+        $out->addHTML( '<datalist id="pcp-st-suggestions">' );
+        foreach ( $suggestions as $s ) {
+            $out->addHTML( '<option value="' . $h( $s ) . '">' );
+        }
+        $out->addHTML( '</datalist>' );
+
+        $out->addHTML( '</fieldset>' );
+    }
+
+    /**
+     * Trait-name autocomplete source: built-in starter list of common states +
+     * traits, merged with this user's distinct lt_label / lt_key history.
+     */
+    private function getTraitSuggestions( int $profileId ): array {
+        $builtin = [
+            'agreeableness', 'alertness', 'anxiety', 'calm', 'conscientiousness',
+            'depression', 'dread', 'energy', 'extraversion', 'focus', 'hunger',
+            'irritability', 'joy', 'libido', 'loneliness', 'mood', 'motivation',
+            'neuroticism', 'openness', 'optimism', 'pain', 'perfectionism',
+            'resilience', 'restlessness', 'sadness', 'self-esteem', 'shyness',
+            'sleep quality', 'stress',
+        ];
+        $dbr = \MediaWiki\MediaWikiServices::getInstance()
+            ->getConnectionProvider()->getReplicaDatabase();
+        $res = $dbr->newSelectQueryBuilder()
+            ->select( [ 'lt.lt_label', 'lt.lt_key' ] )
+            ->distinct()
+            ->from( 'pcp_life_traits', 'lt' )
+            ->join( 'pcp_life_events', 'e', 'e.le_id = lt.lt_event_id' )
+            ->where( [ 'e.le_profile_id' => $profileId ] )
+            ->caller( __METHOD__ )
+            ->fetchResultSet();
+        $userNames = [];
+        foreach ( $res as $row ) {
+            $name = $row->lt_label ? (string)$row->lt_label : (string)$row->lt_key;
+            if ( $name !== '' ) $userNames[] = $name;
+        }
+        $merged = array_unique( array_merge( $builtin, $userNames ) );
+        sort( $merged, SORT_FLAG_CASE | SORT_STRING );
+        return $merged;
+    }
+
+        /**
+     * Render the "Card type" widget that appears above every edit form. Lets
+     * the user convert any card to Story / Keyframe / Observation / Episode.
+     * Image is not a category (handled implicitly: any card can have images).
+     */
+    private function renderTypeSwitcher( $out, \stdClass $event ): void {
+        $h = function ( $s ) { return htmlspecialchars( (string)$s ); };
+        $token  = $h( $this->getUser()->getEditToken() );
+        $action = $h( $this->getPageTitle()->getLocalURL() );
+        $current = (int)$event->le_type;
+        // Slot 1 is now TYPE_EVENT (was legacy TYPE_IMAGE; rows migrated long ago).
+        // Slot 2 is legacy TYPE_KEYFRAME (post-collapse rows migrated to type=3).
+        if ( $current === 2 ) $current = 3;
+        // 4-type vocabulary, post-collapse: Observation / Event / Episode / Story.
+        // Order matters; this is the user-facing top-to-bottom in the dropdown.
+        $types = [
+            3 => 'Observation',
+            1 => 'Event',
+            4 => 'Episode',
+            0 => 'Story',
+        ];
+        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-card-type-switch">' );
+        $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
+        $out->addHTML( '<input type="hidden" name="pcp_action" value="convert_type">' );
+        $out->addHTML( '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">' );
+        $out->addHTML( '<label class="pcp-card-type-switch-label">Card type: <select name="new_type">' );
+        foreach ( $types as $tk => $tl ) {
+            $sel = $tk === $current ? ' selected' : '';
+            $out->addHTML( '<option value="' . $tk . '"' . $sel . '>' . $h( $tl ) . '</option>' );
+        }
+        $out->addHTML( '</select></label> <button type="submit" class="pcp-btn pcp-btn-sm">Convert</button>' );
+        $out->addHTML( '</form>' );
     }
 
     private function renderEventForm( $out, $user, int $profileId, ?\stdClass $event ) {
@@ -1026,6 +1322,7 @@ class SpecialMyLifeStory extends SpecialPage {
         $tags  = $isEdit ? (string)( $event->le_tags ?? '' ) : '';
         $vis   = $isEdit ? (int)$event->le_visibility : 0;
 
+        if ( $isEdit ) { $this->renderTypeSwitcher( $out, $event ); }
         $out->addHTML( '<form method="post" action="' . $h( $action ) . '" enctype="multipart/form-data" class="pcp-life-form">' );
         $out->addHTML( '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">' );
         $out->addHTML( '<input type="hidden" name="wpEditToken" value="' . $token . '">' );
@@ -1043,14 +1340,8 @@ class SpecialMyLifeStory extends SpecialPage {
         $out->addHTML( \MediaWiki\Extension\Pharmacopedia\DatePicker::renderWidget( 'event_date', $initialStruct ) );
         $out->addHTML( '</div>' );
 
-        // ----- Type / Title -----
-        $out->addHTML( '<div class="pcp-life-form-row"><label>Type <select name="event_type">' );
-        foreach ( [ 0=>'Story', 1=>'Image-primary', 2=>'Keyframe (personality snapshot)' ] as $tk => $tl ) {
-            $sel = $type === $tk ? ' selected' : '';
-            $out->addHTML( '<option value="' . $tk . '"' . $sel . '>' . $h( $tl ) . '</option>' );
-        }
-        $out->addHTML( '</select></label></div>' );
-
+        // (Type select removed; the Card-type Convert widget above handles all
+        // cross-type changes. Story / Keyframe both render via this same form.)
         $out->addHTML( '<div class="pcp-life-form-row"><label>Title <input type="text" name="title_text" required maxlength="200" value="' . $h( $title ) . '"></label></div>' );
         $out->addHTML( '<div class="pcp-life-form-row"><label>Body / story<br><textarea name="body" rows="6" maxlength="20000">' . $h( $body ) . '</textarea></label></div>' );
 
@@ -1097,37 +1388,8 @@ class SpecialMyLifeStory extends SpecialPage {
         }
         $out->addHTML( '</fieldset>' );
 
-        // ----- Keyframe traits -----
-        $out->addHTML( '<fieldset class="pcp-prof-section pcp-life-kf-fs"><legend>Keyframe traits (only used when type = keyframe)</legend>' );
-        $out->addHTML( '<p class="pcp-prof-help"><small>Each row is one trait. Use built-in namespaces (ocean / pid5bf / catq / raadsr) for the named assessments, or "custom" with a label and min/max for your own scales. Mark as estimated if this is a retrospective guess.</small></p>' );
-        $existing = $isEdit ? ( new LifeStoryStore() )->getTraitsForEvent( (int)$event->le_id ) : [];
-        $maxRows = max( 6, count( $existing ) + 2 );
-        $out->addHTML( '<table class="pcp-life-kf-table"><thead><tr>'
-            . '<th>namespace</th><th>key</th><th>label</th><th>value</th><th>min</th><th>max</th><th>estimated</th>'
-            . '</tr></thead><tbody>' );
-        for ( $i = 0; $i < $maxRows; $i++ ) {
-            $t = $existing[ $i ] ?? null;
-            $ns    = $t ? $h( $t->lt_namespace ) : '';
-            $key   = $t ? $h( $t->lt_key ) : '';
-            $label = $t ? $h( $t->lt_label ?? '' ) : '';
-            $val   = $t ? $h( rtrim( rtrim( (string)$t->lt_value_num, '0' ), '.' ) ) : '';
-            $min   = $t && $t->lt_min !== null ? $h( rtrim( rtrim( (string)$t->lt_min, '0' ), '.' ) ) : '';
-            $max   = $t && $t->lt_max !== null ? $h( rtrim( rtrim( (string)$t->lt_max, '0' ), '.' ) ) : '';
-            $est   = $t && (int)$t->lt_estimated ? ' checked' : '';
-            $out->addHTML(
-                '<tr>'
-                . '<td><input type="text" name="kf[' . $i . '][namespace]" value="' . $ns . '" placeholder="custom" maxlength="16"></td>'
-                . '<td><input type="text" name="kf[' . $i . '][key]" value="' . $key . '" placeholder="anxiety" maxlength="64"></td>'
-                . '<td><input type="text" name="kf[' . $i . '][label]" value="' . $label . '" maxlength="128"></td>'
-                . '<td><input type="number" name="kf[' . $i . '][value]" value="' . $val . '" step="any"></td>'
-                . '<td><input type="number" name="kf[' . $i . '][min]" value="' . $min . '" step="any"></td>'
-                . '<td><input type="number" name="kf[' . $i . '][max]" value="' . $max . '" step="any"></td>'
-                . '<td><input type="checkbox" name="kf[' . $i . '][estimated]" value="1"' . $est . '></td>'
-                . '</tr>'
-            );
-        }
-        $out->addHTML( '</tbody></table>' );
-        $out->addHTML( '</fieldset>' );
+        // ----- States and Traits (tile-based UI; replaces legacy spreadsheet) -----
+        $this->renderStatesAndTraits( $out, $event, new LifeStoryStore(), $profileId );
 
         // ----- Submit -----
         $out->addHTML( '<div class="pcp-life-form-actions">' );
@@ -1165,24 +1427,31 @@ class SpecialMyLifeStory extends SpecialPage {
         $precision   = self::precisionFromStruct( $struct );
         $structJson  = $struct ? json_encode( $struct, JSON_UNESCAPED_UNICODE ) : null;
 
+        // Fetch existing first so type is preserved across edits (no inline select anymore).
+        $eventId = (int)$request->getVal( 'event_id', 0 );
+        $existing = null;
+        if ( $eventId > 0 ) {
+            $existing = $store->getEvent( $eventId );
+            if ( !$existing || (int)$existing->le_profile_id !== $profileId ) {
+                throw new \RuntimeException( 'Event not found or not yours.' );
+            }
+        }
+
         $fields = [
             'date_iso'       => $dateIso,
             'date_precision' => $precision,
             'date_display'   => $dispText !== '' ? $dispText : null,
             'date_struct'    => $structJson,
-            'type'           => (int)$request->getVal( 'event_type', 0 ),
+            // New /add cards default to TYPE_EVENT (matches the "+ Add event" chip).
+            // Stories are reached by converting an Event via the Card-type widget.
+            'type'           => $existing ? (int)$existing->le_type : \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_EVENT,
             'title'          => trim( (string)$request->getVal( 'title_text', '' ) ),
             'body'           => trim( (string)$request->getVal( 'body', '' ) ) ?: null,
             'visibility'     => (int)$request->getVal( 'visibility', 0 ),
             'tags'           => trim( (string)$request->getVal( 'tags', '' ) ) ?: null,
         ];
 
-        $eventId = (int)$request->getVal( 'event_id', 0 );
-        if ( $eventId > 0 ) {
-            $existing = $store->getEvent( $eventId );
-            if ( !$existing || (int)$existing->le_profile_id !== $profileId ) {
-                throw new \RuntimeException( 'Event not found or not yours.' );
-            }
+        if ( $existing ) {
             $store->updateEvent( $eventId, $fields );
         } else {
             $eventId = $store->addEvent( $profileId, $fields );
@@ -1197,15 +1466,20 @@ class SpecialMyLifeStory extends SpecialPage {
             $key = trim( (string)( $row['key'] ?? '' ) );
             $val = trim( (string)( $row['value'] ?? '' ) );
             if ( $ns === '' || $key === '' || $val === '' ) continue;
-            if ( !is_numeric( $val ) ) continue;
+            $_r = \MediaWiki\Extension\Pharmacopedia\KeyframeValueNormalizer::normalize( $val );
+            if ( $_r['value'] === null ) continue;
             $traits[] = [
                 'namespace' => $ns,
                 'key'       => $key,
                 'label'     => trim( (string)( $row['label'] ?? '' ) ) ?: null,
-                'value'     => (float)$val,
+                'value'     => $_r['value'],
                 'min'       => is_numeric( $row['min'] ?? '' ) ? (float)$row['min'] : null,
                 'max'       => is_numeric( $row['max'] ?? '' ) ? (float)$row['max'] : null,
                 'estimated' => !empty( $row['estimated'] ),
+                'valence'   => isset( $row['valence'] ) && $row['valence'] !== '' ? (float)$row['valence'] : null,
+                'valence_estimated' => !empty( $row['valence_estimated'] ),
+                'traitvstate' => isset( $row['traitvstate'] ) && $row['traitvstate'] !== '' ? (float)$row['traitvstate'] : null,
+                'traitvstate_estimated' => !empty( $row['traitvstate_estimated'] ),
             ];
         }
         $store->setTraits( $eventId, $traits );

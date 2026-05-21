@@ -27,7 +27,7 @@
     border-color: #b599e0;
     box-shadow: 0 0 0 2px rgba(181, 153, 224, 0.3);
 }
-.pcp-obs-input::placeholder { color: #888; font-style: italic; }
+.pcp-obs-input::placeholder { color: #888; font-style: normal; }
 
 .pcp-obs-preview { margin: 0.7em 0; min-height: 1.5em; }
 .pcp-obs-pv {
@@ -61,7 +61,7 @@
 }
 .pcp-obs-pv-ref.matched   { background: #5d3b8e; color: #fff; }
 .pcp-obs-pv-ref.unmatched { background: #444; color: #ccc; border: 1px dashed #888; }
-.pcp-obs-pv-ref-role { font-style: italic; opacity: 0.85; }
+.pcp-obs-pv-ref-role { font-style: normal; opacity: 0.85; }
 .pcp-obs-pv-ref-type {
     font-size: 0.78em;
     opacity: 0.7;
@@ -69,7 +69,7 @@
 .pcp-obs-pv-date {
     color: #b599e0;
     margin-left: auto;
-    font-style: italic;
+    font-style: normal;
 }
 .pcp-obs-pv-conf {
     margin-left: 0.5em;
@@ -86,6 +86,15 @@
     margin-top: 0.4em;
     font-size: 0.85em;
     color: #f3d4d4;
+}
+
+/* Informational notes (presumed titles, new custom trait, etc.) — softer,
+ * uses the neutral-grey body voice rather than the warning red. */
+.pcp-obs-pv-notes {
+    width: 100%;
+    margin-top: 0.4em;
+    font-size: 0.85em;
+    color: #c0c0c8;
 }
 
 .pcp-obs-submit {
@@ -249,6 +258,446 @@
 .pcp-life-btn:active { transform: translateY(0); }
 .pcp-life-btn-icon { font-size: 1.6em; line-height: 1; margin-bottom: 0.25em; }
 .pcp-life-btn-main { font-size: 1.1em; font-weight: 700; color: #fff; }
-.pcp-life-btn-sub  { font-size: 0.82em; color: #b599e0; margin-top: 0.15em; font-style: italic; }
+.pcp-life-btn-sub  { font-size: 0.82em; color: #b599e0; margin-top: 0.15em; font-style: normal; }
 .pcp-life-btn-episode { border-color: #c4b5fd; }
 .pcp-life-btn-episode:hover { background: linear-gradient(135deg, #2a1f47, #1a1a1a); border-color: #ddd3fa; }
+
+
+/* ===== Outcome plan (what the API will actually create) ===== */
+.pcp-obs-pv-plan {
+    margin-top: 0.6em;
+    padding: 0.55em 0.7em;
+    background: rgba( 93, 59, 142, 0.10 );
+    border-left: 3px solid #5d3b8e;
+    border-radius: 4px;
+    font-size: 0.92em;
+    color: #ddd;
+}
+.pcp-obs-pv-plan-head {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #b29ad8;
+    margin-bottom: 0.3em;
+}
+.pcp-obs-pv-plan-row {
+    line-height: 1.5;
+    padding: 0.12em 0;
+}
+.pcp-obs-pv-plan-row + .pcp-obs-pv-plan-row {
+    border-top: 1px dotted rgba( 255, 255, 255, 0.06 );
+    margin-top: 0.2em;
+    padding-top: 0.25em;
+}
+.pcp-obs-pv-plan-kind {
+    display: inline-block;
+    padding: 0.05em 0.5em;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 0.88em;
+    margin-right: 0.35em;
+}
+.pcp-obs-pv-plan-kind.kf  { background: #6f4ab0; color: #fff; }
+.pcp-obs-pv-plan-kind.ep  { background: #1e5128; color: #d4f0d6; }
+.pcp-obs-pv-plan-kind.obs { background: #444; color: #ddd; }
+.pcp-obs-pv-plan-title    { color: #fff; }
+.pcp-obs-pv-plan-date     { color: #b29ad8; }
+.pcp-obs-pv-plan-attr     { color: #aaa; font-style: normal; }
+.pcp-obs-pv-plan-pol.neg  { color: #f3a8a8; font-weight: 600; font-size: 0.85em; }
+.pcp-obs-pv-plan-tag.new  {
+    display: inline-block;
+    margin-left: 0.4em;
+    padding: 0 0.35em;
+    background: #b9923a;
+    color: #fff;
+    border-radius: 2px;
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+
+/* ===== Compact add-event / add-episode chips (below Quick Add) ===== */
+.pcp-life-add-chips {
+    display: flex;
+    gap: 0.6em;
+    margin: 0.55em 0 0;
+    flex-wrap: wrap;
+}
+.pcp-life-add-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45em;
+    padding: 0.32em 0.75em;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 999px;
+    font-size: 0.88em;
+    line-height: 1.2;
+    text-decoration: none !important;
+    transition: background 0.08s, border-color 0.08s, transform 0.08s;
+}
+.pcp-life-add-chip:hover {
+    background: #2a2a2a;
+    border-color: #b599e0;
+    transform: translateY(-1px);
+    color: #fff;
+    text-decoration: none !important;
+}
+.pcp-life-add-chip-sub {
+    color: #b599e0;
+    font-size: 0.85em;
+    font-style: normal;
+}
+
+
+/* ===== Flash highlight when scrolling to a newly-saved card (?saved=N) ===== */
+.pcp-life-card-flash {
+    animation: pcpLifeCardFlash 1.6s ease-out;
+}
+@keyframes pcpLifeCardFlash {
+    0%   { box-shadow: 0 0 0 0 rgba( 181, 153, 224, 0.0 ); background-color: rgba( 93, 59, 142, 0.0 ); }
+    15%  { box-shadow: 0 0 0 6px rgba( 181, 153, 224, 0.55 ); background-color: rgba( 93, 59, 142, 0.18 ); }
+    100% { box-shadow: 0 0 0 0 rgba( 181, 153, 224, 0.0 ); background-color: rgba( 93, 59, 142, 0.0 ); }
+}
+
+
+/* ===== Card-type Convert widget (above every edit form) ===== */
+.pcp-card-type-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.4em 0.65em;
+    margin: 0 0 1em;
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+.pcp-card-type-switch-label {
+    color: #b599e0;
+    margin: 0;
+}
+.pcp-card-type-switch select {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    margin-left: 0.4em;
+}
+.pcp-btn-sm {
+    padding: 0.25em 0.7em;
+    font-size: 0.88em;
+}
+
+
+/* ===== States and Traits tile UI ===== */
+.pcp-states-traits .pcp-prof-help { margin: 0 0 0.6em; }
+.pcp-st-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+    margin: 0.6em 0;
+}
+.pcp-st-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.4em 0.7em;
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+}
+.pcp-st-tile-display { flex: 1; }
+.pcp-st-tile-name { color: #fff; font-weight: 500; }
+.pcp-st-tile-eq { color: #b599e0; }
+.pcp-st-tile-value { color: #fff; font-weight: 600; }
+.pcp-st-tile-est {
+    color: #b599e0;
+    font-size: 0.82em;
+    font-style: normal;
+    margin-left: 0.4em;
+}
+.pcp-st-tile-edit, .pcp-st-tile-delete {
+    background: none;
+    border: 1px solid transparent;
+    color: #b599e0;
+    cursor: pointer;
+    padding: 0.1em 0.45em;
+    border-radius: 3px;
+    font-size: 1em;
+    line-height: 1;
+}
+.pcp-st-tile-edit:hover, .pcp-st-tile-delete:hover {
+    background: #2a2a2a;
+    border-color: #5d3b8e;
+}
+.pcp-st-tile-delete:hover { color: #f3a8a8; }
+.pcp-st-add-btn {
+    display: inline-block;
+    margin-top: 0.4em;
+    background: none;
+    color: #b599e0;
+    border: 1px dashed #5d3b8e;
+    padding: 0.4em 0.8em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.92em;
+}
+.pcp-st-add-btn:hover {
+    background: #2a1f47;
+    border-style: solid;
+    color: #fff;
+}
+.pcp-st-add-form {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    margin: 0.4em 0;
+    padding: 0.55em 0.7em;
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    flex-wrap: wrap;
+}
+.pcp-st-add-form input[type="text"] {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    padding: 0.32em 0.55em;
+    border-radius: 3px;
+    min-width: 0;
+}
+.pcp-st-add-name { flex: 2; min-width: 12em; }
+.pcp-st-add-value { flex: 1; min-width: 8em; }
+.pcp-st-add-est { color: #b599e0; font-size: 0.85em; display: inline-flex; align-items: center; gap: 0.25em; }
+.pcp-st-save, .pcp-st-cancel {
+    background: #5d3b8e;
+    color: #fff;
+    border: none;
+    padding: 0.35em 0.85em;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.pcp-st-save:hover { background: #6f4ab0; }
+.pcp-st-cancel { background: #444; }
+.pcp-st-cancel:hover { background: #555; }
+
+
+/* ===== States and Traits: sliders + valence chip ===== */
+.pcp-st-add-form .pcp-st-add-row1 {
+    display: flex; align-items: center; gap: 0.5em; flex: 1 1 100%;
+}
+.pcp-st-slider-row {
+    display: flex; align-items: center; gap: 0.55em; flex: 1 1 100%; margin-top: 0.2em;
+}
+.pcp-st-slider-label {
+    color: #b599e0; font-size: 0.85em; width: 4.5em; text-align: right;
+}
+.pcp-st-slider-value, .pcp-st-slider-valence, .pcp-st-slider-tvs {
+    flex: 1; accent-color: #5d3b8e;
+}
+.pcp-st-slider-value-out, .pcp-st-slider-valence-out, .pcp-st-slider-tvs-out {
+    color: #fff; font-variant-numeric: tabular-nums; min-width: 3em; text-align: right;
+}
+.pcp-st-add-actions { display: flex; gap: 0.4em; flex: 1 1 100%; margin-top: 0.2em; }
+.pcp-st-tile-valence {
+    margin-left: 0.4em; font-size: 0.82em; padding: 0.05em 0.4em; border-radius: 2px; font-variant-numeric: tabular-nums;
+}
+.pcp-st-tile-valence[data-sign="pos"] { background: rgba( 134, 239, 172, 0.18 ); color: #86efac; }
+.pcp-st-tile-valence[data-sign="neg"] { background: rgba( 252, 165, 165, 0.18 ); color: #fca5a5; }
+
+
+/* ===== Click-to-edit numeric readouts on the slider rows ===== */
+.pcp-st-slider-value-out, .pcp-st-slider-valence-out {
+    cursor: text;
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    transition: border-color 0.1s, background 0.1s;
+}
+.pcp-st-slider-value-out:hover, .pcp-st-slider-valence-out:hover {
+    background: rgba( 93, 59, 142, 0.2 );
+    border-color: rgba( 181, 153, 224, 0.4 );
+}
+.pcp-st-slider-inline-edit {
+    width: 4.2em;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    padding: 0.05em 0.3em;
+    border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-size: inherit;
+}
+.pcp-st-slider-inline-edit::-webkit-inner-spin-button,
+.pcp-st-slider-inline-edit::-webkit-outer-spin-button {
+    margin-left: 0.2em;
+}
+
+
+.pcp-st-row-est {
+    color: #b599e0;
+    font-size: 0.82em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    margin-left: 0.4em;
+}
+
+
+.pcp-st-row-na {
+    color: #b599e0;
+    font-size: 0.82em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    margin-left: 0.4em;
+}
+.pcp-st-slider-row.is-na .pcp-st-slider-valence { opacity: 0.4; }
+.pcp-st-slider-row.is-na .pcp-st-slider-valence-out { color: #777; font-style: normal; }
+.pcp-st-slider-row.is-na .pcp-st-row-est { opacity: 0.5; }
+.pcp-st-tile-valence[data-sign="zero"] {
+    background: rgba( 181, 153, 224, 0.18 );
+    color: #b599e0;
+}
+
+
+/* Value row has no real n/a control; this hidden placeholder keeps the
+   value+valence slider tracks the same width. */
+.pcp-st-row-na-spacer { visibility: hidden; }
+
+
+.pcp-st-add-name-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.3em 0.7em;
+    background: #5d3b8e;
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.92em;
+}
+.pcp-st-token-icon { opacity: 0.85; }
+.pcp-st-token-edit {
+    background: rgba( 255, 255, 255, 0.15 );
+    border: none;
+    color: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0.05em 0.3em;
+    font-size: 0.9em;
+}
+.pcp-st-token-edit:hover { background: rgba( 255, 255, 255, 0.3 ); }
+.pcp-st-tile-tvs {
+    margin-left: 0.4em;
+    font-size: 0.82em;
+    padding: 0.05em 0.4em;
+    border-radius: 2px;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-st-tile-tvs[data-sign="pos"] { background: rgba( 59, 130, 246, 0.18 ); color: #93c5fd; }
+.pcp-st-tile-tvs[data-sign="neg"] { background: rgba( 249, 115, 22, 0.18 ); color: #fdba74; }
+.pcp-st-tile-tvs[data-sign="zero"] { background: rgba( 181, 153, 224, 0.18 ); color: #b599e0; }
+
+
+.pcp-st-tvs-collapsed { margin-top: 0.2em; }
+.pcp-st-tvs-collapsed.is-hidden { display: none; }
+.pcp-st-row-tvs.is-hidden { display: none; }
+.pcp-st-tvs-expand {
+    background: none;
+    border: 1px dashed #5d3b8e;
+    color: #b599e0;
+    padding: 0.25em 0.7em;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-style: normal;
+}
+.pcp-st-tvs-expand:hover {
+    background: rgba( 93, 59, 142, 0.2 );
+    border-style: solid;
+    color: #fff;
+}
+
+/* tvs chip color override */
+
+.pcp-st-tile-tvs[data-sign="pos"] { background: rgba( 13, 148, 136, 0.22 ); color: #5eead4; }
+.pcp-st-tile-tvs[data-sign="neg"] { background: rgba( 225, 29, 72, 0.22 ); color: #fda4af; }
+.pcp-st-tile-tvs[data-sign="zero"] { background: rgba( 181, 153, 224, 0.18 ); color: #b599e0; }
+
+
+/* ===== Quick Add segmented type picker (Observation / Event / Episode / Story) ===== */
+.pcp-life-quickadd-typepicker {
+    display: inline-flex;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #1a1a1a;
+    margin: 0 0 0.6em;
+}
+.pcp-life-quickadd-typepicker button {
+    background: transparent;
+    color: #b599e0;
+    border: 0;
+    padding: 0.45em 1.1em;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: background 0.12s, color 0.12s;
+}
+.pcp-life-quickadd-typepicker button + button { border-left: 1px solid #5d3b8e; }
+.pcp-life-quickadd-typepicker button.active {
+    background: #5d3b8e;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px #b599e0;
+}
+.pcp-life-quickadd-typepicker button:hover:not(.active) {
+    background: rgba( 196, 181, 253, 0.08 );
+    color: #fff;
+}
+
+
+.pcp-obs-pv-plan-kind.ev { background: #6f4ab0; color: #fff; }
+.pcp-obs-pv-plan-kind.st { background: #444; color: #ddd; border: 1px solid #5d3b8e; }
+
+
+/* ===== Story title prompt modal ===== */
+.pcp-story-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba( 0, 0, 0, 0.6 );
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+}
+.pcp-story-modal-panel {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    padding: 1.2em 1.4em;
+    width: min( 90vw, 520px );
+    box-shadow: 0 8px 32px rgba( 0, 0, 0, 0.5 );
+}
+.pcp-story-modal-title { margin: 0 0 0.4em; color: #fff; font-size: 1.15em; }
+.pcp-story-modal-desc {
+    color: #b599e0; font-size: 0.9em; margin: 0 0 0.8em; line-height: 1.45;
+}
+.pcp-story-modal-desc code {
+    background: #2a2a2a; color: #fff;
+    padding: 0.05em 0.35em; border-radius: 3px; font-size: 0.92em;
+}
+.pcp-story-modal-input {
+    width: 100%;
+    background: #2a2a2a; color: #fff;
+    border: 1px solid #5d3b8e; border-radius: 4px;
+    padding: 0.55em 0.7em;
+    font-size: 1em;
+    margin-bottom: 0.8em;
+}
+.pcp-story-modal-input:focus { outline: none; border-color: #b599e0; }
+.pcp-story-modal-actions {
+    display: flex; gap: 0.5em; justify-content: flex-end;
+}

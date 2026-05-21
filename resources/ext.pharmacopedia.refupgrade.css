@@ -9,7 +9,7 @@
 }
 .pcp-reflinks-empty {
     color: #888;
-    font-style: italic;
+    font-style: normal;
     text-align: center;
     padding: 1.5em;
     border: 1px dashed #5d3b8e;

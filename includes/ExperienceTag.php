@@ -270,7 +270,7 @@ class ExperienceTag {
         $h .= '<div class="pcp-xp-q pcp-xp-q-clinical">How effective is it, in your experience?</div>';
         $h .= '<div class="pcp-xp-btnrow pcp-xp-efficacy-row">';
         $h .= '<span class="pcp-xp-rate-wrap">';
-        $h .= '<input type="range" class="pcp-xp-efficacy-slider" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
+        $h .= '<input type="range" class="pcp-xp-efficacy-slider" aria-label="How effective has it been" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
         $h .= '<output>50</output>';
         $h .= '</span>';
         $h .= '</div></div>';
@@ -281,7 +281,7 @@ class ExperienceTag {
         $h .= '<div class="pcp-xp-q pcp-xp-q-clinical">How heavy is the side-effect burden in your patients?</div>';
         $h .= '<div class="pcp-xp-btnrow pcp-xp-burden-row">';
         $h .= '<span class="pcp-xp-rate-wrap">';
-        $h .= '<input type="range" class="pcp-xp-burden-slider" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
+        $h .= '<input type="range" class="pcp-xp-burden-slider" aria-label="How heavy the side-effect burden was" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
         $h .= '<output>50</output>';
         $h .= '</span>';
         $h .= '</div></div>';
@@ -306,7 +306,7 @@ class ExperienceTag {
             $h .= '</label>';
             $h .= '<span class="pcp-xp-sr-sev" hidden>';
             $h .= ' severity ';
-            $h .= '<input type="range" class="pcp-xp-sr-slider" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
+            $h .= '<input type="range" class="pcp-xp-sr-slider" aria-label="Severity of this reason for stopping" min="0" max="100" step="1" value="50" oninput="this.nextElementSibling.value=this.value">';
             $h .= '<output>50</output>';
             $h .= '</span>';
             $h .= '</div>';
@@ -332,7 +332,7 @@ class ExperienceTag {
         // Anecdote
         $h .= '<div class="pcp-xp-field">';
         $h .= '<div class="pcp-xp-q">Anything else worth sharing?</div>';
-        $h .= '<textarea class="pcp-xp-anecdote" rows="3" maxlength="8000" placeholder="Optional. Posted as an anecdote on this page once your submission is approved."></textarea>';
+        $h .= '<textarea class="pcp-xp-anecdote" aria-label="Anything else worth sharing" rows="3" maxlength="8000" placeholder="Optional. Posted as an anecdote on this page once your submission is approved."></textarea>';
         $h .= '</div>';
 
         // Actions

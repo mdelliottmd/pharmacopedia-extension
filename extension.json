@@ -1,6 +1,6 @@
 {
     "name": "Pharmacopedia",
-    "version": "0.9.6.9",
+    "version": "0.9.7.0",
     "author": [
         "MDElliottMD"
     ],
@@ -24,7 +24,8 @@
         "ParserFirstCallInit": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onParserFirstCallInit",
         "LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onLoadExtensionSchemaUpdates",
         "BeforeCreateEchoEvent": "MediaWiki\\Extension\\Pharmacopedia\\FeatureRequestNotifier::onBeforeCreateEchoEvent",
-        "getUserPermissionsErrors": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onGetUserPermissionsErrors"
+        "getUserPermissionsErrors": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onGetUserPermissionsErrors",
+        "BeforePageDisplay": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onBeforePageDisplay"
     },
     "APIModules": {
         "pharmacopediavote": "MediaWiki\\Extension\\Pharmacopedia\\Api\\VoteApi",
@@ -48,9 +49,12 @@
         "pharmacopediacohorts": "MediaWiki\\Extension\\Pharmacopedia\\Api\\CohortsApi",
         "pharmacopediaobservation": "MediaWiki\\Extension\\Pharmacopedia\\Api\\ObservationApi",
         "pharmacopediarefupgrade": "MediaWiki\\Extension\\Pharmacopedia\\Api\\RefUpgradeApi",
-        "pharmacopediaformaltest": "MediaWiki\\Extension\\Pharmacopedia\\Api\\FormalTestApi"
+        "pharmacopediaformaltest": "MediaWiki\\Extension\\Pharmacopedia\\Api\\FormalTestApi",
+        "pcp-interaction-flag": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionFlagApi"
     },
     "SpecialPages": {
+        "Perspective": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPerspective",
+        "MyPerspectives": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyPerspectives",
         "PharmacopediaActivity": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPharmacopediaActivity",
         "VerifyProvider": "MediaWiki\\Extension\\Pharmacopedia\\SpecialVerifyProvider",
         "ProviderApplications": "MediaWiki\\Extension\\Pharmacopedia\\SpecialProviderApplications",
@@ -110,6 +114,12 @@
                 "mediawiki.api",
                 "mediawiki.notification"
             ]
+        },
+        "ext.pharmacopedia.perspective": {
+            "scripts": [
+                "resources/ext.pharmacopedia.perspective.js"
+            ],
+            "dependencies": []
         },
         "ext.pharmacopedia.datepicker": {
             "scripts": [
@@ -233,6 +243,13 @@
             "dependencies": [
                 "mediawiki.api",
                 "jquery"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.skin.plants": {
+            "styles": [
+                "skins/plants/skin.plants.css"
             ],
             "localBasePath": "resources",
             "remoteExtPath": "Pharmacopedia/resources"

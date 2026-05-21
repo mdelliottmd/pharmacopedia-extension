@@ -39,8 +39,17 @@
 }
 .pcp-life-timeline-fit:hover { background: #2a2a2a; color: #fff; }
 
-.pcp-life-view { display: none; }
-.pcp-life-view.active { display: block; }
+/* pcp-life-view-transition: smooth expand/collapse for view panes */
+.pcp-life-view {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+}
+.pcp-life-view.active {
+    max-height: 8000px;
+    opacity: 1;
+}
 
 #pcp-life-timeline-mount {
     background: #1a1a1a;
@@ -234,19 +243,18 @@
 .pcp-life-timeline-zoomout:hover { background: #3a3a3a; color: #fff; }
 
 /* shrink-applied-2026 (revised +10%): items ~23% smaller than vis default */
-.vis-item { font-size: 0.78em !important; border-radius: 5px !important; }
-.vis-item .vis-item-content { padding: 0.13em 0.48em !important; line-height: 1.15 !important; }
-.vis-item.vis-range { min-height: 18px !important; border-radius: 6px !important; border-width: 1px !important; }
-.vis-item.vis-box { padding: 0.05em 0.25em !important; }
+.vis-item { font-size: 1.17em !important; border-radius: 6px !important; }
+.vis-item .vis-item-content { padding: 0.2em 0.72em !important; line-height: 1.2 !important; }
+.vis-item.vis-range { min-height: 27px !important; border-radius: 8px !important; border-width: 1px !important; }
+.vis-item.vis-box { padding: 0.08em 0.38em !important; }
 .vis-labelset .vis-label {
-    font-size: 0.86em !important;
-    padding: 0.3em 0.5em !important;
-    line-height: 1.15 !important;
+    font-size: 1.29em !important;
+    padding: 0.45em 0.7em !important;
+    line-height: 1.2 !important;
 }
 .vis-time-axis .vis-text {
-    font-size: 0.86em !important;
+    font-size: 1.29em !important;
 }
-.vis-foreground .vis-group { min-height: 32px !important; }
 
 /* Integrated graph + timeline */
 #pcp-life-graph-mount {
@@ -298,7 +306,7 @@
 }
 .pcp-life-graph-empty {
     color: #888;
-    font-style: italic;
+    font-style: normal;
     text-align: center;
     padding: 0.6em;
     margin: 0;
@@ -421,3 +429,398 @@
     margin-right: 0.3em;
 }
 .pcp-life-timeline-zoom-icon svg { display: block; }
+
+
+/* pcp-trait-hover-applied: make trait-trajectory lines + points interactive
+   on hover while keeping timeline clicks pass-through everywhere else. */
+.pcp-life-graph-overlay svg .vis-line,
+.pcp-life-graph-overlay svg .vis-point,
+.pcp-life-graph-overlay svg path,
+.pcp-life-graph-overlay svg circle {
+    pointer-events: auto;
+}
+.pcp-life-graph-overlay svg path:hover,
+.pcp-life-graph-overlay svg .vis-line:hover {
+    stroke-width: 5px !important;
+    filter: drop-shadow(0 0 5px currentColor);
+    cursor: crosshair;
+}
+.pcp-life-graph-overlay svg circle:hover,
+.pcp-life-graph-overlay svg .vis-point:hover {
+    r: 9 !important;
+    filter: drop-shadow(0 0 6px currentColor);
+    cursor: crosshair;
+}
+/* Tooltip palette override (vis default is light yellow) */
+.vis-tooltip {
+    background: #1a1a1a !important;
+    color: #fff !important;
+    border: 1px solid #c4b5fd !important;
+    border-radius: 6px !important;
+    padding: 0.5em 0.7em !important;
+    font-size: 0.9em !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    max-width: 280px;
+}
+.vis-tooltip strong { color: #c4b5fd; }
+.vis-tooltip small { color: #888; }
+
+
+/* pcp-trait-hover-styles: hand-rolled trait-graph hover affordance.
+   pointer-events:none on the overlay so timeline clicks pass through;
+   re-enabled ONLY on lines + dots so they can receive hover/title events. */
+.pcp-life-graph-overlay .pcp-trait-line,
+.pcp-life-graph-overlay .pcp-trait-dot,
+#pcp-life-graph-mount .pcp-trait-line,
+#pcp-life-graph-mount .pcp-trait-dot {
+    pointer-events: auto;
+    cursor: crosshair;
+    transition: stroke-width 0.12s ease, r 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
+}
+/* When a series is active (hovered anywhere in it): line thickens + glows;
+   dots enlarge + glow; other series fade slightly so the active one pops. */
+.pcp-trait-line.is-active {
+    stroke-width: 4 !important;
+    filter: drop-shadow(0 0 6px currentColor);
+}
+.pcp-trait-dot.is-active {
+    r: 6 !important;
+    filter: drop-shadow(0 0 5px currentColor);
+}
+/* Subtle fade of non-active siblings while ANY series is hovered.
+   Implemented via :has() so it stays pure CSS — covered by all modern browsers. */
+.pcp-trait-svg:has(.is-active) .pcp-trait-line:not(.is-active),
+.pcp-trait-svg:has(.is-active) .pcp-trait-dot:not(.is-active) {
+    opacity: 0.25;
+}
+
+/* Kill the grey background on the (now-empty) swimlane label column */
+#pcp-life-timeline-mount .vis-labelset .vis-label,
+#pcp-life-timeline-mount .vis-labelset { background: transparent !important; border-color: transparent !important; }
+
+/* Kill the lingering grey panel borders at the timeline corners */
+#pcp-life-timeline-mount .vis-panel,
+#pcp-life-timeline-mount .vis-panel.vis-top,
+#pcp-life-timeline-mount .vis-panel.vis-left,
+#pcp-life-timeline-mount .vis-panel.vis-right,
+#pcp-life-timeline-mount .vis-panel.vis-bottom,
+#pcp-life-timeline-mount .vis-panel.vis-center,
+#pcp-life-timeline-mount .vis-foreground .vis-group { border-color: transparent !important; }
+
+
+/* Y-axis anchor lines: when the trait graph's Y-axis extends past [0, 100]
+   to fit out-of-range keyframe values, the 0 and 100 gridlines get this
+   class so they read as "normal range" reference lines. */
+.pcp-life-graph-overlay svg .pcp-trait-grid.pcp-trait-grid-anchor,
+.pcp-life-graph .pcp-trait-grid.pcp-trait-grid-anchor {
+    stroke: #6b46c1;
+    stroke-opacity: 0.55;
+    stroke-dasharray: 0;
+    stroke-width: 1.3px;
+}
+.pcp-life-graph-overlay svg .pcp-trait-axis-label.pcp-trait-grid-anchor,
+.pcp-life-graph .pcp-trait-axis-label.pcp-trait-grid-anchor {
+    fill: #c4b5fd;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   pcp-bundlea-applied: swimlane stripes + filter swatches +
+   trait-series preview chips. 2026-05-18.
+   ============================================================ */
+
+/* Filter-checkbox color swatches injected by lifetimeline.js.
+   12x12 rounded chip after the checkbox, before the label text. */
+.pcp-life-swatch {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    margin: 0 4px 0 2px;
+    vertical-align: middle;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+}
+.pcp-life-swatch-episodes     { background: #6b46c1; }   /* purple solid (range bars) */
+.pcp-life-swatch-events       { background: #4b4b4b; border-color: #c4b5fd; }  /* neutral card w/ purple edge */
+.pcp-life-swatch-observations { background: #2d8659; }   /* teal-green */
+.pcp-life-swatch-derived      { background: #1a1a1a; border-color: #555; border-style: dashed; }
+
+/* Trait-series preview chips inline next to the disclosure summary. */
+.pcp-life-graph-legend-details > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5em;
+    overflow: hidden;
+}
+.pcp-life-graph-legend-details > summary::-webkit-details-marker { display: none; }
+.pcp-life-graph-legend-details > summary::before {
+    content: '\25B6';
+    color: #888;
+    font-size: 0.7em;
+    margin-right: 0.2em;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+.pcp-life-graph-legend-details[open] > summary::before {
+    transform: rotate(90deg);
+}
+.pcp-life-graph-legend-label {
+    font-weight: 600;
+    flex-shrink: 0;
+    color: #b599e0;
+}
+.pcp-life-graph-legend-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.pcp-life-graph-legend-preview-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    font-size: 0.82em;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 14ch;
+}
+.pcp-life-graph-legend-preview-swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.pcp-life-graph-legend-preview-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pcp-life-graph-legend-preview-more {
+    font-size: 0.82em;
+    color: #b599e0;
+    font-weight: 600;
+    margin-left: 0.2em;
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   pcp-bundlec-applied: page-scoped width override for
+   Special:MyLifeStory. Force full viewport regardless of skin
+   Standard/Wide preference.
+   2026-05-18.
+   ============================================================ */
+
+/* Vector 2022: override the content-width CSS variable on this page only. */
+body.page-Special_MyLifeStory {
+    --width-content: 100% !important;
+    --width-layout: 100% !important;
+}
+
+/* Direct overrides for Vector 2022 container chain. */
+body.page-Special_MyLifeStory .mw-page-container,
+body.page-Special_MyLifeStory .mw-page-container-inner,
+body.page-Special_MyLifeStory .mw-body,
+body.page-Special_MyLifeStory #content,
+body.page-Special_MyLifeStory #mw-content-text {
+    max-width: none !important;
+    width: auto !important;
+}
+
+/* Small lateral gutter so content doesn't kiss the viewport edges. */
+body.page-Special_MyLifeStory #mw-content-text {
+    padding-left: 1em;
+    padding-right: 1em;
+    box-sizing: border-box;
+}
+
+/* Monobook / Vector-legacy / Timeless fallback: drop max-width on the
+   main column. (Harmless if the skin doesn't have these selectors.) */
+body.page-Special_MyLifeStory .mw-body-content,
+body.page-Special_MyLifeStory #bodyContent {
+    max-width: none !important;
+}
+
+
+/* ============================================================
+   pcp-vis-left-width-pinned: with swimlanes removed (no groups),
+   vis-timeline's left panel collapses to 0. Force it to 52px so the
+   time axis content area starts at the same X as lifegraph's plot
+   area (also pinned to ML=52). This fixes Y-axis label clipping +
+   year-axis misalignment in a single move.
+   2026-05-18.
+   ============================================================ */
+.pcp-life-graph-overlay #pcp-life-timeline-mount .vis-panel.vis-left {
+    width: 40px !important;
+    min-width: 40px !important;
+}
+
+
+/* ============================================================
+   pcp-yearlabel-ticksonly: tick-stub shortening only.
+   Labels stay at native vis-timeline Y position (no top override,
+   no height constraint). Centering still handled by JS in lifetimeline.js.
+   2026-05-18.
+   ============================================================ */
+.pcp-life-overlay-wrap .vis-time-axis .vis-grid.vis-vertical.vis-major {
+    top: 0 !important;
+    height: 6px !important;
+    border-left-color: #b599e0 !important;
+    border-left-width: 1px !important;
+}
+.pcp-life-overlay-wrap .vis-time-axis .vis-grid.vis-vertical.vis-minor {
+    top: 0 !important;
+    height: 4px !important;
+    border-left-color: rgba(196, 181, 253, 0.4) !important;
+}
+.pcp-life-overlay-wrap .vis-time-axis .vis-text.vis-major {
+    color: #fff !important;
+    font-weight: 700 !important;
+}
+
+
+/* Hide vis-timeline's own year labels - we render our own. */
+.pcp-life-overlay-wrap #pcp-life-timeline-mount .vis-time-axis .vis-text:not(.vis-measure) {
+    visibility: hidden !important;
+}
+
+/* Our overlay container: absolutely positioned over the time-axis area
+   at the bottom of the timeline mount, full width. */
+
+.pcp-year-labels-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    height: 18px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.pcp-year-labels-overlay .pcp-year-label {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    color: #c4b5fd;
+    font-size: 0.92em;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+/* Separate full-height container for the 20%-opacity year-boundary lines.
+   Stops 24px above the bottom so it doesn't run through the label text. */
+.pcp-year-grids-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 24px;
+    pointer-events: none;
+    z-index: 4;
+}
+.pcp-year-grids-overlay .pcp-year-grid {
+    position: absolute;
+    top: 0;
+    bottom: -22.5px;
+    width: 1px;
+    background: rgba(196, 181, 253, 0.2);
+    transform: translateX(-0.5px);
+}
+
+
+/* Hide vis-timeline's own year labels (we still inject ours alongside). */
+.pcp-life-overlay-wrap #pcp-life-timeline-mount .vis-time-axis .vis-text:not(.vis-measure) {
+    visibility: hidden !important;
+}
+
+/* Year label injected into .vis-time-axis. Inherits font-size context from
+   vis-timeline so it matches the original visual size. */
+.pcp-life-overlay-wrap .vis-time-axis .pcp-year-label {
+    position: absolute;
+    top: 3px;
+    transform: translateX(-50%);
+    color: #c4b5fd;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Vertical year-grid line injected into .vis-foreground.
+   Spans the full plot height. 20% opacity light purple. */
+.pcp-life-overlay-wrap .vis-foreground .pcp-year-grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(196, 181, 253, 0.2);
+    transform: translateX(-0.5px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+
+/* ============================================================
+   pcp-overlay-dynamic-css: standalone overlays, but their
+   top/height get set dynamically per render in JS based on
+   vis-timeline panel rects. CSS only handles inner layout.
+   2026-05-18.
+   ============================================================ */
+
+/* Hide vis-timeline's own year labels (they're hidden everywhere we render). */
+.pcp-life-overlay-wrap #pcp-life-timeline-mount .vis-time-axis .vis-text:not(.vis-measure) {
+    visibility: hidden !important;
+}
+
+/* Label overlay: positioned by JS at the bottom panel's Y. Children are
+   absolutely positioned by JS at their X. */
+.pcp-year-labels-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.pcp-year-labels-overlay .pcp-year-label {
+    position: absolute;
+    top: 21.5px;
+    transform: translateX(-50%);
+    color: #c4b5fd;
+    font-size: 1.84em;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+/* Grids overlay: positioned by JS at the center panel's Y/height. */
+.pcp-year-grids-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+.pcp-year-grids-overlay .pcp-year-grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(196, 181, 253, 0.2);
+    transform: translateX(-0.5px);
+}

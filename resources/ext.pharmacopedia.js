@@ -2116,7 +2116,7 @@
 
     
 /* ===== Special:MyProfile visibility toggle ===== */
-$( '.pcp-vis-toggle' ).on( 'click', function () {
+$( document ).on( 'click', '.pcp-vis-toggle', function () {
     var $btn = $( this );
     var v = parseInt( $btn.attr( 'data-vis' ), 10 ) || 0;
     v = ( v + 1 ) % 4;
@@ -2428,24 +2428,29 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
         } );
         /* ===== End units toggle ===== */
 
-        /* ===== Generic chip-picker widget =====
-         * Markup:
-         *   <div class="pcp-chip-picker"
-         *        data-source="countries|languages|genders|pronouns|..."
-         *        data-multi="0|1"
-         *        data-allow-custom="0|1"
-         *        data-allow-primary="0|1"
-         *        data-browser-fill="country|language|0">
-         *     <div class="pcp-chip-list"></div>
-         *     <input type="text" class="pcp-chip-input" placeholder="Type to add...">
-         *     <div class="pcp-chip-suggest"></div>
-         *     <input type="hidden" class="pcp-chip-value" name="..." value='[...]'>
-         *   </div>
+        /* ===== Generic chip-picker widget v2 (designer-claude 2026-05-20) =====
+         * 4 visual states (default / custom / primary / browser-fill).
+         * Browse-on-focus opens the picklist. Explicit "+ Add ... as
+         * custom" suggestion row when allowCustom + no exact match.
+         * Browser-fill chips promote to default on any interaction.
+         * Already-selected suggestions render disabled with ✓.
          *
-         * Stored hidden value: JSON array.
-         *   - For dataset-backed pickers: [{code, label, primary?, custom?}, ...]
-         *   - Single-value pickers store a 1-element array.
-         *   - Empty selection stores empty string '' (so save handler deletes the field).
+         * Markup contract (server-emitted shell unchanged from v1):
+         *   <span class="pcp-chip-picker"
+         *         data-source="..." data-multi="..." data-allow-custom="..."
+         *         data-allow-primary="..." data-browser-fill="...">
+         *     <span class="pcp-chip-list"></span>
+         *     <input class="pcp-chip-input">
+         *     <span class="pcp-chip-suggest"></span>
+         *     <input type="hidden" class="pcp-chip-value" value="[...]">
+         *   </span>
+         *
+         * Hidden-value JSON shape (per item):
+         *   { code, label, primary?, custom?, suggested? }
+         * The `suggested` flag is purely transient (browser-fill render
+         * state). It is persisted across page loads so a re-load still
+         * marks the chip as unconfirmed; it is stripped on user
+         * interaction (click body, mark primary, retype).
          */
         function pcpChipLookup( datasetKey, code ) {
             var DS = ( window.PCP_DATASETS || {} )[ datasetKey ] || [];
@@ -2454,61 +2459,91 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
             }
             return null;
         }
+        function pcpChipDataset( $picker ) {
+            var key = $picker.attr( 'data-source' );
+            if ( !key ) return [];
+            return ( window.PCP_DATASETS || {} )[ key ] || [];
+        }
+        function pcpChipReadArr( $picker ) {
+            var raw = $picker.find( '.pcp-chip-value' ).val();
+            if ( !raw || raw === '' ) return [];
+            try { return JSON.parse( raw ) || []; } catch ( e ) { return []; }
+        }
         function pcpChipSearch( datasetKey, query ) {
             var DS = ( window.PCP_DATASETS || {} )[ datasetKey ] || [];
             var q = String( query || '' ).toLowerCase().trim();
-            if ( q === '' ) return DS.slice( 0, 20 );
+            if ( q === '' ) return DS.slice( 0 );
             var hits = [];
             for ( var i = 0; i < DS.length; i++ ) {
                 var d = DS[ i ];
-                var hay = ( d.code + ' ' + d.label + ' ' + ( d.native || '' ) + ' ' + ( d.alts || [] ).join( ' ' ) ).toLowerCase();
+                var hay = ( d.code + ' ' + d.label + ' ' +
+                            ( d.native || '' ) + ' ' +
+                            ( d.alts || [] ).join( ' ' ) ).toLowerCase();
                 if ( hay.indexOf( q ) !== -1 ) hits.push( d );
-                if ( hits.length >= 20 ) break;
+                if ( hits.length >= 40 ) break;
             }
             return hits;
         }
+
+        function pcpChipRenderChip( item, idx, allowPrim, dataset ) {
+            var label = item.label || item.code || '';
+            if ( !label && dataset ) {
+                var lk = pcpChipLookup( dataset, item.code );
+                if ( lk ) label = lk.label;
+            }
+            var nativeBit = '';
+            if ( dataset && item.code ) {
+                var lk2 = pcpChipLookup( dataset, item.code );
+                if ( lk2 && lk2.native && lk2.native !== lk2.label ) {
+                    nativeBit = ' · ' + lk2.native;
+                }
+            }
+            var classes = [ 'pcp-chip' ];
+            if ( item.custom )    classes.push( 'pcp-chip-custom' );
+            if ( item.primary )   classes.push( 'pcp-chip-primary' );
+            if ( item.suggested ) classes.push( 'pcp-chip-browserfill' );
+
+            var html = '<span class="' + classes.join( ' ' ) +
+                       '" data-idx="' + idx + '">';
+
+            // Marker glyph (left of label): ✦ for primary, ◌ for browserfill
+            if ( item.primary ) {
+                html += '<span class="pcp-chip-marker" aria-hidden="true">✦</span>';
+                if ( allowPrim ) {
+                    html += '<button type="button" class="pcp-chip-prim" ' +
+                            'aria-label="Unmark primary" data-idx="' + idx + '"></button>';
+                }
+            } else if ( item.suggested ) {
+                html += '<span class="pcp-chip-marker" aria-hidden="true">◌</span>';
+            } else if ( allowPrim ) {
+                // No marker rendered, but expose a click target for marking primary
+                html += '<button type="button" class="pcp-chip-prim" ' +
+                        'aria-label="Mark primary" data-idx="' + idx + '"></button>';
+            }
+
+            html += '<span class="pcp-chip-label">' +
+                    $( '<div>' ).text( label ).html() +
+                    '<small>' + $( '<div>' ).text( nativeBit ).html() + '</small>' +
+                    '</span>';
+            html += '<button type="button" class="pcp-chip-remove" ' +
+                    'data-idx="' + idx + '" aria-label="Remove">×</button>';
+            html += '</span>';
+            return html;
+        }
+
         function pcpChipRenderList( $picker ) {
             var $list = $picker.find( '.pcp-chip-list' );
-            var $hidden = $picker.find( '.pcp-chip-value' );
-            var multi = $picker.attr( 'data-multi' ) === '1';
             var allowPrim = $picker.attr( 'data-allow-primary' ) === '1';
             var dataset = $picker.attr( 'data-source' );
-            var raw = $hidden.val();
-            var arr = [];
-            if ( raw && raw !== '' ) {
-                try { arr = JSON.parse( raw ) || []; } catch ( e ) { arr = []; }
-            }
+            var arr = pcpChipReadArr( $picker );
+
             $list.empty();
             arr.forEach( function ( item, idx ) {
-                var label = item.label || item.code || '';
-                if ( !label && dataset ) {
-                    var lk = pcpChipLookup( dataset, item.code );
-                    if ( lk ) label = lk.label;
-                }
-                var nativeBit = '';
-                if ( dataset && item.code ) {
-                    var lk2 = pcpChipLookup( dataset, item.code );
-                    if ( lk2 && lk2.native && lk2.native !== lk2.label ) nativeBit = ' · ' + lk2.native;
-                }
-                var customCls = item.custom ? ' pcp-chip-custom' : '';
-                var primCls   = item.primary ? ' pcp-chip-primary' : '';
-                var primMark  = '';
-                if ( allowPrim ) {
-                    primMark = '<button type="button" class="pcp-chip-prim" title="' +
-                        ( item.primary ? 'Primary' : 'Mark as primary' ) + '" data-idx="' + idx + '">' +
-                        ( item.primary ? '★' : '☆' ) + '</button>';
-                }
-                var $chip = $(
-                    '<span class="pcp-chip' + customCls + primCls + '" data-idx="' + idx + '">' +
-                    primMark +
-                    '<span class="pcp-chip-label">' + $( '<div>' ).text( label ).html() +
-                    '<small>' + $( '<div>' ).text( nativeBit ).html() + '</small></span>' +
-                    '<button type="button" class="pcp-chip-remove" data-idx="' + idx + '" title="Remove">×</button>' +
-                    '</span>'
-                );
-                $list.append( $chip );
+                $list.append( pcpChipRenderChip( item, idx, allowPrim, dataset ) );
             } );
-            // If single-value and we have one, hide the input
+
+            // Hide input when single-value picker has its value
+            var multi = $picker.attr( 'data-multi' ) === '1';
             var $input = $picker.find( '.pcp-chip-input' );
             if ( !multi && arr.length >= 1 ) {
                 $input.hide();
@@ -2516,6 +2551,7 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
                 $input.show();
             }
         }
+
         function pcpChipWriteHidden( $picker, arr ) {
             var $hidden = $picker.find( '.pcp-chip-value' );
             if ( !arr || arr.length === 0 ) {
@@ -2525,18 +2561,15 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
             }
             $hidden.trigger( 'change' );
         }
+
         function pcpChipAdd( $picker, item ) {
-            var $hidden = $picker.find( '.pcp-chip-value' );
             var multi = $picker.attr( 'data-multi' ) === '1';
-            var arr = [];
-            try { arr = JSON.parse( $hidden.val() || '[]' ); } catch ( e ) { arr = []; }
-            // Dedup by code (or by label for custom)
+            var arr = pcpChipReadArr( $picker );
             var key = item.code || item.label;
             for ( var i = 0; i < arr.length; i++ ) {
                 if ( ( arr[ i ].code || arr[ i ].label ) === key ) return false;
             }
             if ( !multi ) arr = [];
-            // If no primary yet and allow-primary, mark first as primary
             if ( $picker.attr( 'data-allow-primary' ) === '1' && arr.length === 0 ) {
                 item.primary = true;
             }
@@ -2545,49 +2578,137 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
             pcpChipRenderList( $picker );
             return true;
         }
+
         function pcpChipRemoveAt( $picker, idx ) {
-            var $hidden = $picker.find( '.pcp-chip-value' );
-            var arr = [];
-            try { arr = JSON.parse( $hidden.val() || '[]' ); } catch ( e ) { arr = []; }
+            var arr = pcpChipReadArr( $picker );
             if ( idx < 0 || idx >= arr.length ) return;
             var wasPrimary = arr[ idx ].primary;
             arr.splice( idx, 1 );
-            if ( wasPrimary && arr.length > 0 && $picker.attr( 'data-allow-primary' ) === '1' ) {
+            if ( wasPrimary && arr.length > 0 &&
+                 $picker.attr( 'data-allow-primary' ) === '1' ) {
                 arr[ 0 ].primary = true;
+                if ( arr[ 0 ].suggested ) delete arr[ 0 ].suggested;
             }
             pcpChipWriteHidden( $picker, arr );
             pcpChipRenderList( $picker );
         }
+
         function pcpChipTogglePrimary( $picker, idx ) {
-            var $hidden = $picker.find( '.pcp-chip-value' );
-            var arr = [];
-            try { arr = JSON.parse( $hidden.val() || '[]' ); } catch ( e ) { arr = []; }
+            var arr = pcpChipReadArr( $picker );
             if ( idx < 0 || idx >= arr.length ) return;
             for ( var i = 0; i < arr.length; i++ ) arr[ i ].primary = false;
             arr[ idx ].primary = true;
+            if ( arr[ idx ].suggested ) delete arr[ idx ].suggested;
             pcpChipWriteHidden( $picker, arr );
             pcpChipRenderList( $picker );
         }
+
+        function pcpChipPromoteFromBrowserFill( $picker, idx ) {
+            var arr = pcpChipReadArr( $picker );
+            if ( idx < 0 || idx >= arr.length ) return;
+            if ( !arr[ idx ].suggested ) return;
+            delete arr[ idx ].suggested;
+            pcpChipWriteHidden( $picker, arr );
+            pcpChipRenderList( $picker );
+        }
+
+        /* Render the suggestion panel. Modes:
+         *   - No typed query: show full list (small) or top-15 + show-all (large)
+         *   - Typed query: filter; if no exact match and allowCustom,
+         *     append separator + "+ Add 'X' as custom" row
+         *   - Already-chipped entries: rendered .pcp-chip-sug-selected
+         */
         function pcpChipShowSuggest( $picker, query ) {
             var dataset = $picker.attr( 'data-source' );
+            var allowCustom = $picker.attr( 'data-allow-custom' ) === '1';
             var $sug = $picker.find( '.pcp-chip-suggest' );
             $sug.empty();
-            if ( !dataset || dataset === '' ) { $sug.hide(); return; }
-            var hits = pcpChipSearch( dataset, query );
-            if ( !hits.length ) { $sug.hide(); return; }
-            hits.forEach( function ( h ) {
-                var nativeBit = ( h.native && h.native !== h.label ) ? ' · ' + h.native : '';
-                var $row = $( '<div class="pcp-chip-sug-row" data-code="' + h.code + '">' +
-                    $( '<div>' ).text( h.label + nativeBit ).html() + '</div>' );
-                $sug.append( $row );
+
+            if ( !dataset || dataset === '' ) {
+                $sug.removeClass( 'pcp-chip-suggest-open' );
+                return;
+            }
+
+            var q = String( query || '' ).trim();
+            var DS = pcpChipDataset( $picker );
+            var expanded = $picker.attr( 'data-suggest-expanded' ) === '1';
+            var existing = pcpChipReadArr( $picker );
+            var existingCodes = {};
+            existing.forEach( function ( it ) {
+                if ( it.code ) existingCodes[ it.code ] = true;
             } );
-            $sug.show();
+
+            var hits;
+            var truncated = false;
+            if ( q === '' ) {
+                // No query: full or top-15
+                if ( !expanded && DS.length > 30 ) {
+                    hits = DS.slice( 0, 15 );
+                    truncated = true;
+                } else {
+                    hits = DS.slice( 0 );
+                }
+            } else {
+                hits = pcpChipSearch( dataset, q );
+            }
+
+            var exact = false;
+            var qLow = q.toLowerCase();
+            for ( var k = 0; k < hits.length; k++ ) {
+                var hL = String( hits[ k ].label || '' ).toLowerCase();
+                if ( hL === qLow || String( hits[ k ].code || '' ).toLowerCase() === qLow ) {
+                    exact = true;
+                    break;
+                }
+            }
+
+            var $section = $( '<div class="pcp-chip-sug-section"></div>' );
+            if ( hits.length === 0 && q === '' ) {
+                $section.append( '<div class="pcp-chip-sug-row pcp-chip-sug-empty" style="color:var(--pcp-chip-lichen);font-style:italic;">No options</div>' );
+            }
+            hits.forEach( function ( h ) {
+                var nativeBit = '';
+                if ( h.native && h.native !== h.label ) nativeBit = ' · ' + h.native;
+                var selectedCls = existingCodes[ h.code ] ? ' pcp-chip-sug-selected' : '';
+                var $row = $(
+                    '<div class="pcp-chip-sug-row' + selectedCls +
+                    '" data-code="' + h.code + '">' +
+                    $( '<div>' ).text( h.label ).html() +
+                    ( nativeBit
+                        ? '<small>' + $( '<div>' ).text( nativeBit ).html() + '</small>'
+                        : '' ) +
+                    '</div>'
+                );
+                $section.append( $row );
+            } );
+            $sug.append( $section );
+
+            // Show-all footer for large lists when not expanded
+            if ( truncated ) {
+                var $more = $( '<div class="pcp-chip-sug-row pcp-chip-sug-showall">' +
+                    'Show all ' + DS.length + ' options</div>' );
+                $sug.append( $more );
+            }
+
+            // Explicit "+ Add 'X' as custom" row
+            if ( q !== '' && !exact && allowCustom ) {
+                $sug.append( '<div class="pcp-chip-sug-separator"></div>' );
+                var safeQ = $( '<div>' ).text( q ).html();
+                $sug.append(
+                    '<div class="pcp-chip-sug-row pcp-chip-sug-addcustom" ' +
+                    'data-custom="' + safeQ + '">' +
+                    '+ Add &ldquo;' + safeQ + '&rdquo; as custom</div>'
+                );
+            }
+
+            $sug.addClass( 'pcp-chip-suggest-open' );
         }
+
         function pcpChipBrowserFillIfEmpty( $picker ) {
             var bf = $picker.attr( 'data-browser-fill' );
             if ( !bf || bf === '0' || bf === '' ) return;
             var $hidden = $picker.find( '.pcp-chip-value' );
-            if ( $hidden.val() && $hidden.val() !== '' ) return;  // already has a value
+            if ( $hidden.val() && $hidden.val() !== '' ) return;
             try {
                 if ( bf === 'country' ) {
                     var loc = navigator.language || ( navigator.languages || [] )[ 0 ] || '';
@@ -2596,7 +2717,9 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
                         var cc = parts[ 1 ].toUpperCase();
                         var hit = pcpChipLookup( 'countries', cc );
                         if ( hit ) {
-                            pcpChipAdd( $picker, { code: hit.code, label: hit.label, suggested: true } );
+                            pcpChipAdd( $picker, {
+                                code: hit.code, label: hit.label, suggested: true
+                            } );
                         }
                     }
                 } else if ( bf === 'language' ) {
@@ -2606,18 +2729,22 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
                         var lc = String( langs[ i ] ).split( '-' )[ 0 ].toLowerCase();
                         var hit2 = pcpChipLookup( 'languages', lc );
                         if ( hit2 ) {
-                            pcpChipAdd( $picker, { code: hit2.code, label: hit2.label, suggested: true } );
+                            pcpChipAdd( $picker, {
+                                code: hit2.code, label: hit2.label, suggested: true
+                            } );
                             added++;
-                            if ( added >= 2 ) break;   // primary + secondary suggestion max
+                            if ( added >= 2 ) break;
                         }
                     }
                 } else if ( bf === 'timezone' ) {
                     var tz = '';
-                    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch ( e ) { tz = ''; }
+                    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; }
+                    catch ( e ) { tz = ''; }
                     if ( tz ) $hidden.val( tz );
                 }
             } catch ( e ) {}
         }
+
         function pcpChipInit( picker ) {
             var $picker = $( picker );
             pcpChipRenderList( $picker );
@@ -2627,59 +2754,134 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
 
         $( '.pcp-chip-picker' ).each( function () { pcpChipInit( this ); } );
 
+        // Show suggestions on input change
         $( document ).on( 'input', '.pcp-chip-input', function () {
             var $picker = $( this ).closest( '.pcp-chip-picker' );
+            // Typing collapses any prior expanded state
+            $picker.removeAttr( 'data-suggest-expanded' );
             pcpChipShowSuggest( $picker, $( this ).val() );
         } );
+
+        // Browse-on-focus: open panel before any keystroke
         $( document ).on( 'focus', '.pcp-chip-input', function () {
             var $picker = $( this ).closest( '.pcp-chip-picker' );
             pcpChipShowSuggest( $picker, $( this ).val() );
         } );
+
+        // Close on blur (200ms grace for click)
         $( document ).on( 'blur', '.pcp-chip-input', function () {
             var $picker = $( this ).closest( '.pcp-chip-picker' );
-            setTimeout( function () { $picker.find( '.pcp-chip-suggest' ).hide(); }, 200 );
+            setTimeout( function () {
+                $picker.find( '.pcp-chip-suggest' ).removeClass( 'pcp-chip-suggest-open' );
+                $picker.removeAttr( 'data-suggest-expanded' );
+            }, 200 );
         } );
-        $( document ).on( 'click', '.pcp-chip-sug-row', function () {
+
+        // Click on "Show all N options" footer expands the panel
+        $( document ).on( 'click', '.pcp-chip-sug-showall', function ( e ) {
+            e.preventDefault();
+            var $picker = $( this ).closest( '.pcp-chip-picker' );
+            $picker.attr( 'data-suggest-expanded', '1' );
+            pcpChipShowSuggest( $picker, $picker.find( '.pcp-chip-input' ).val() );
+            // Keep focus on input so blur handler doesn't fire
+            $picker.find( '.pcp-chip-input' ).focus();
+        } );
+
+        // Click on "+ Add X as custom" row
+        $( document ).on( 'click', '.pcp-chip-sug-addcustom', function () {
+            var $picker = $( this ).closest( '.pcp-chip-picker' );
+            var q = String( $( this ).attr( 'data-custom' ) || '' ).trim();
+            if ( !q ) return;
+            // Decode any HTML entities back to plain text for the chip
+            var plain = $( '<div>' ).html( q ).text();
+            pcpChipAdd( $picker, { code: plain, label: plain, custom: true } );
+            $picker.find( '.pcp-chip-input' ).val( '' );
+            $picker.find( '.pcp-chip-suggest' )
+                .empty().removeClass( 'pcp-chip-suggest-open' );
+        } );
+
+        // Click on a regular suggestion row (data-code present, not addcustom/showall/selected)
+        $( document ).on( 'click', '.pcp-chip-sug-row', function ( e ) {
+            // Skip non-data-code rows; their own handlers will fire
+            if ( $( this ).is( '.pcp-chip-sug-addcustom, .pcp-chip-sug-showall' ) ) return;
+            if ( $( this ).hasClass( 'pcp-chip-sug-selected' ) ) return;  // no-op
             var $picker = $( this ).closest( '.pcp-chip-picker' );
             var code = $( this ).attr( 'data-code' );
+            if ( !code ) return;
             var dataset = $picker.attr( 'data-source' );
             var hit = pcpChipLookup( dataset, code );
             if ( !hit ) return;
             pcpChipAdd( $picker, { code: hit.code, label: hit.label } );
             $picker.find( '.pcp-chip-input' ).val( '' );
-            $picker.find( '.pcp-chip-suggest' ).hide();
+            $picker.find( '.pcp-chip-suggest' )
+                .empty().removeClass( 'pcp-chip-suggest-open' );
         } );
+
+        // Enter in input: prefer active keyboard-nav row, fall back to first
+        // suggestion, fall back to add-custom row
         $( document ).on( 'keydown', '.pcp-chip-input', function ( e ) {
             var $picker = $( this ).closest( '.pcp-chip-picker' );
-            if ( e.which === 13 ) {       // Enter
-                e.preventDefault();
+            if ( e.which !== 13 ) return;  // only Enter handled here
+            e.preventDefault();
+            var $sug = $picker.find( '.pcp-chip-suggest' );
+            var $active = $sug.find( '.pcp-chip-sug-row.pcp-chip-sug-active' ).first();
+            if ( $active.length ) {
+                $active.trigger( 'click' );
+                return;
+            }
+            var $firstSelectable = $sug.find(
+                '.pcp-chip-sug-row:not(.pcp-chip-sug-selected):not(.pcp-chip-sug-showall):not(.pcp-chip-sug-addcustom)'
+            ).first();
+            if ( $firstSelectable.length ) {
+                $firstSelectable.trigger( 'click' );
+                return;
+            }
+            var $addCustom = $sug.find( '.pcp-chip-sug-addcustom' ).first();
+            if ( $addCustom.length ) {
+                $addCustom.trigger( 'click' );
+                return;
+            }
+            // Last-resort: pure custom add from typed string
+            if ( $picker.attr( 'data-allow-custom' ) === '1' ) {
                 var q = String( $( this ).val() || '' ).trim();
-                if ( !q ) return;
-                var dataset = $picker.attr( 'data-source' );
-                var $sug = $picker.find( '.pcp-chip-suggest' );
-                var $first = $sug.find( '.pcp-chip-sug-row' ).first();
-                if ( $first.length ) {
-                    var code = $first.attr( 'data-code' );
-                    var hit = pcpChipLookup( dataset, code );
-                    if ( hit ) pcpChipAdd( $picker, { code: hit.code, label: hit.label } );
-                } else if ( $picker.attr( 'data-allow-custom' ) === '1' ) {
+                if ( q ) {
                     pcpChipAdd( $picker, { code: q, label: q, custom: true } );
+                    $( this ).val( '' );
+                    $sug.empty().removeClass( 'pcp-chip-suggest-open' );
                 }
-                $( this ).val( '' );
-                $sug.hide();
             }
         } );
+
+        // Click on × removes
         $( document ).on( 'click', '.pcp-chip-remove', function ( e ) {
             e.preventDefault();
             var $picker = $( this ).closest( '.pcp-chip-picker' );
             pcpChipRemoveAt( $picker, parseInt( $( this ).attr( 'data-idx' ), 10 ) );
         } );
+
+        // Click on primary toggle (also promotes from browser-fill)
         $( document ).on( 'click', '.pcp-chip-prim', function ( e ) {
             e.preventDefault();
             var $picker = $( this ).closest( '.pcp-chip-picker' );
             pcpChipTogglePrimary( $picker, parseInt( $( this ).attr( 'data-idx' ), 10 ) );
         } );
+
+        // Click on chip BODY (not on its buttons) promotes browser-fill chip
+        $( document ).on( 'click', '.pcp-chip.pcp-chip-browserfill', function ( e ) {
+            // If the click was on a button inside the chip, the more-specific
+            // handlers above already fired; skip here.
+            if ( $( e.target ).closest( '.pcp-chip-remove, .pcp-chip-prim' ).length ) {
+                return;
+            }
+            var $picker = $( this ).closest( '.pcp-chip-picker' );
+            pcpChipPromoteFromBrowserFill(
+                $picker,
+                parseInt( $( this ).attr( 'data-idx' ), 10 )
+            );
+        } );
+
         /* ===== End chip-picker ===== */
+
 
         /* ===== Structured widgets: smoking, alcohol, political, chronotype ===== */
         function pcpSyncSmoking( widget ) {
@@ -3003,31 +3205,30 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
         /* ===== End share chip ===== */
 
 
-        /* ===== Collapsible profile sections ===== */
+        /* ===== Collapsible profile sections =====
+         * Always starts CLOSED on every page load (per Mark, 2026-05-20).
+         * Click-to-toggle still works within the current page view;
+         * the previous localStorage-restore behavior was removed so
+         * users get a fresh-collapsed state on each reload. */
         ( function () {
-            var STORAGE_KEY = 'pcp-prof-section-collapsed-v1';
-            var state = {};
-            try { state = JSON.parse( localStorage.getItem( STORAGE_KEY ) || '{}' ); } catch ( e ) { state = {}; }
-            // Default state: collapsed (added server-side via .is-collapsed class).
-            // Honour an 'expanded' override per legend stored in localStorage.
+            // Force collapsed state on load regardless of any leftover
+            // server-side or stored state.
             $( '.pcp-prof-section' ).each( function () {
                 var $sec = $( this );
                 var $leg = $sec.find( '> legend' ).first();
                 if ( !$leg.length ) return;
-                var key = $leg.text().trim();
-                if ( state[ key ] === 'expanded' ) {
-                    $sec.removeClass( 'is-collapsed' );
-                }
-                $leg.attr( 'aria-expanded', $sec.hasClass( 'is-collapsed' ) ? 'false' : 'true' );
+                $sec.addClass( 'is-collapsed' );
+                $leg.attr( 'aria-expanded', 'false' );
             } );
+            // Clear any prior localStorage state from the v1 scheme so it
+            // doesn't accumulate forever in users' browsers.
+            try { localStorage.removeItem( 'pcp-prof-section-collapsed-v1' ); } catch ( e ) {}
+
             $( document ).on( 'click', '.pcp-prof-section > legend', function () {
                 var $sec = $( this ).closest( '.pcp-prof-section' );
-                var key = $( this ).text().trim();
                 $sec.toggleClass( 'is-collapsed' );
-                var collapsed = $sec.hasClass( 'is-collapsed' );
-                $( this ).attr( 'aria-expanded', collapsed ? 'false' : 'true' );
-                state[ key ] = collapsed ? 'collapsed' : 'expanded';
-                try { localStorage.setItem( STORAGE_KEY, JSON.stringify( state ) ); } catch ( e ) {}
+                $( this ).attr( 'aria-expanded',
+                    $sec.hasClass( 'is-collapsed' ) ? 'false' : 'true' );
             } );
         
     // ===== Choice / multi voting (added with type=single|multi) =====
@@ -3074,6 +3275,48 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
             }
             $pick.append( $row );
         } );
+        if ( $wrap.attr( 'data-open-ended' ) === '1' ) {
+            var maxOpts = parseInt( $wrap.attr( 'data-max-options' ) || '10', 10 );
+            var curOpts = ( payload.options || [] ).length;
+            if ( curOpts < maxOpts ) {
+                var $addRow = $( '<div class="pcp-vote-choice-add-option">' ).append(
+                    $( '<input type="text" class="pcp-vote-choice-add-input" maxlength="120" placeholder="+ Add an option" autocomplete="off">' ),
+                    $( '<button type="button" class="pcp-btn pcp-btn-sm pcp-vote-choice-add-btn">Add</button>' ),
+                    $( '<span class="pcp-vote-choice-add-meta">' ).text( curOpts + ' / ' + maxOpts + ' options' )
+                );
+                $pick.append( $addRow );
+                var doAdd = function () {
+                    var $in = $wrap.find( '.pcp-vote-choice-add-input' );
+                    var label = $.trim( $in.val() );
+                    if ( !label ) return;
+                    $in.prop( 'disabled', true );
+                    api.postWithToken( 'csrf', {
+                        action: 'pharmacopediavote',
+                        element_id: $wrap.data( 'element-id' ),
+                        add_option: label
+                    } ).done( function ( r ) {
+                        var d = r && r.pharmacopediavote || {};
+                        var newOpts = d.options || payload.options;
+                        var newH    = d.options_h || $wrap.attr( 'data-options-h' );
+                        // Update local payload + element
+                        payload.options = newOpts;
+                        payload.tally   = d.tally || payload.tally || {};
+                        $wrap.attr( 'data-payload', JSON.stringify( payload ) );
+                        $wrap.attr( 'data-options-h', newH );
+                        $in.val( '' );
+                        renderPicker( $wrap );
+                    } ).fail( function ( e, data ) {
+                        var msg = data && data.error ? data.error.info : ( 'Add failed: ' + e );
+                        mw.notify( msg, { type: 'warn' } );
+                        $in.prop( 'disabled', false ).focus();
+                    } );
+                };
+                $addRow.find( '.pcp-vote-choice-add-btn' ).on( 'click', doAdd );
+                $addRow.find( '.pcp-vote-choice-add-input' ).on( 'keydown', function ( e ) {
+                    if ( e.key === 'Enter' ) { e.preventDefault(); doAdd(); }
+                } );
+            }
+        }
         var $submit = $( '<button type="button" class="pcp-btn pcp-vote-choice-submit">Save vote</button>' );
         var $clear  = $( '<button type="button" class="pcp-btn pcp-vote-choice-clear">Clear</button>' );
         $pick.append( $( '<div class="pcp-vote-choice-actions">' ).append( $submit, ' ', $clear ) );
@@ -3258,3 +3501,167 @@ $( '.pcp-vis-toggle' ).on( 'click', function () {
     } );
 }() );
 /* ===== End share-profile button ===== */
+
+
+/* ===== Granular PGx interaction voting: vote-panel wiring =====
+   Binds every .pcp-pgx-vote panel emitted by InteractionTag::
+   renderPgxVotePanel(). Five curation dimensions POST to
+   action=pcp-interaction-flag; the experience block POSTs to the
+   existing action=pharmacopediainteractionreport. Queued 2026-05-19. */
+$( function () {
+    var $panels = $( '.pcp-pgx-vote' );
+    if ( !$panels.length ) { return; }
+    var pgxApi = new mw.Api();
+    var pgxLoggedIn = !!mw.config.get( 'wgUserName' );
+
+    function pgxNeedLogin() {
+        mw.notify( mw.msg( 'pharmacopedia-login-required' ), { type: 'warn' } );
+    }
+
+    function pgxStatus( $panel, msg ) {
+        var $s = $panel.find( '.pcp-pgx-vote-status' );
+        if ( !msg ) { $s.attr( 'hidden', 'hidden' ).text( '' ); return; }
+        $s.text( msg ).removeAttr( 'hidden' );
+    }
+
+    function pgxFail( $panel, code, data ) {
+        pgxStatus( $panel, '' );
+        var msg = ( data && data.error && data.error.info ) ||
+                  ( 'Save failed: ' + ( code || 'unknown' ) );
+        mw.notify( msg, { type: 'error' } );
+    }
+
+    // Fill the per-dimension tally spans from a getFlagAggregates() map.
+    function pgxApplyAggs( $panel, aggs ) {
+        if ( !aggs ) { return; }
+        $panel.find( '.pcp-pgx-vote-dim' ).each( function () {
+            var $dim = $( this );
+            var type = $dim.attr( 'data-flag-type' );
+            if ( !type ) { return; }
+            var $agg = $dim.find( '.pcp-pgx-vote-agg' );
+            var e = aggs[ type ];
+            if ( !e || !e.n ) { $agg.attr( 'hidden', 'hidden' ).text( '' ); return; }
+            var txt = ( e.mean !== null && e.mean !== undefined )
+                ? ( e.n + ' rated, mean ' + Number( e.mean ).toFixed( 1 ) )
+                : ( e.n + ' flagged' );
+            $agg.text( txt ).removeAttr( 'hidden' );
+        } );
+    }
+
+    // Submit or clear one flag dimension.
+    function pgxFlag( $panel, type, value, clear ) {
+        var payload = {
+            action: 'pcp-interaction-flag',
+            elementid: parseInt( $panel.attr( 'data-element-id' ), 10 ),
+            type: type,
+            formatversion: 2,
+            format: 'json'
+        };
+        if ( clear ) { payload.clear = 1; } else { payload.value = value; }
+        pgxStatus( $panel, 'Saving...' );
+        pgxApi.postWithToken( 'csrf', payload ).done( function ( resp ) {
+            var d = resp && resp[ 'pcp-interaction-flag' ];
+            if ( !d || !d.ok ) { pgxStatus( $panel, '' ); mw.notify( 'Save failed.', { type: 'error' } ); return; }
+            pgxApplyAggs( $panel, d.aggregates );
+            pgxStatus( $panel, 'Saved.' );
+        } ).fail( function ( code, data ) { pgxFail( $panel, code, data ); } );
+    }
+
+    $panels.each( function () {
+        var $panel = $( this );
+        if ( $panel.data( 'pcp-pgx-bound' ) ) { return; }
+        $panel.data( 'pcp-pgx-bound', 1 );
+
+        // a11y: name the controls that markup alone leaves bare.
+        $panel.find( '.pcp-pgx-vote-scale, .pcp-pgx-vote-opts' ).each( function () {
+            var $g = $( this );
+            var q = $g.closest( '.pcp-pgx-vote-dim' ).find( '.pcp-pgx-vote-q' ).first().text();
+            $g.attr( { role: 'group', 'aria-label': q } );
+        } );
+        $panel.find( '.pcp-pgx-vote-vslider' ).attr( 'aria-label', 'Outcome, -100 worst to +100 best' );
+        $panel.find( '.pcp-pgx-vote-btn, .pcp-pgx-vote-expbtn' ).each( function () {
+            var $b = $( this );
+            if ( !$b.attr( 'aria-label' ) ) { $b.attr( 'aria-label', $b.text() + ' of 5' ); }
+        } );
+        $panel.find( '.pcp-pgx-vote-flag' ).attr( 'aria-pressed', 'false' );
+
+        // Scale + option dimensions: single-select; re-click clears.
+        $panel.find( '.pcp-pgx-vote-btn, .pcp-pgx-vote-opt' ).on( 'click', function ( e ) {
+            e.preventDefault();
+            if ( !pgxLoggedIn ) { pgxNeedLogin(); return; }
+            var $b = $( this );
+            var $dim = $b.closest( '.pcp-pgx-vote-dim' );
+            var type = $dim.attr( 'data-flag-type' );
+            var value = parseInt( $b.attr( 'data-flag-value' ), 10 );
+            var wasActive = $b.hasClass( 'pcp-active' );
+            $dim.find( '.pcp-pgx-vote-btn, .pcp-pgx-vote-opt' ).removeClass( 'pcp-active' );
+            if ( wasActive ) {
+                pgxFlag( $panel, type, value, true );
+            } else {
+                $b.addClass( 'pcp-active' );
+                pgxFlag( $panel, type, value, false );
+            }
+        } );
+
+        // Single-flag dimensions: toggle.
+        $panel.find( '.pcp-pgx-vote-flag' ).on( 'click', function ( e ) {
+            e.preventDefault();
+            if ( !pgxLoggedIn ) { pgxNeedLogin(); return; }
+            var $b = $( this );
+            var $dim = $b.closest( '.pcp-pgx-vote-dim' );
+            var nowActive = !$b.hasClass( 'pcp-active' );
+            $b.toggleClass( 'pcp-active', nowActive )
+              .attr( 'aria-pressed', nowActive ? 'true' : 'false' );
+            pgxFlag( $panel, $dim.attr( 'data-flag-type' ), 1, !nowActive );
+        } );
+
+        // Personal experience: reuses pcp_interaction_reports.
+        var expState = { exp: null, val: 0 };
+        var $valRow = $panel.find( '.pcp-pgx-vote-valrow' );
+
+        function expSubmit() {
+            pgxStatus( $panel, 'Saving...' );
+            pgxApi.postWithToken( 'csrf', {
+                action: 'pharmacopediainteractionreport',
+                element_id: parseInt( $panel.attr( 'data-element-id' ), 10 ),
+                perspective: 1,
+                experience: expState.exp === null ? '' : expState.exp,
+                valence: expState.val,
+                format: 'json'
+            } ).done( function ( resp ) {
+                var d = resp && resp.pharmacopediainteractionreport;
+                if ( !d || !d.ok ) { pgxStatus( $panel, '' ); mw.notify( 'Save failed.', { type: 'error' } ); return; }
+                pgxStatus( $panel, 'Saved.' );
+            } ).fail( function ( code, data ) { pgxFail( $panel, code, data ); } );
+        }
+
+        $panel.find( '.pcp-pgx-vote-expbtn' ).on( 'click', function ( e ) {
+            e.preventDefault();
+            if ( !pgxLoggedIn ) { pgxNeedLogin(); return; }
+            var $b = $( this );
+            var v = parseInt( $b.attr( 'data-experience' ), 10 );
+            if ( expState.exp === v ) {
+                expState.exp = null;
+                $b.removeClass( 'pcp-active' );
+                $valRow.addClass( 'pcp-disabled' );
+            } else {
+                expState.exp = v;
+                $panel.find( '.pcp-pgx-vote-expbtn' ).removeClass( 'pcp-active' );
+                $b.addClass( 'pcp-active' );
+                $valRow.removeClass( 'pcp-disabled' );
+            }
+            expSubmit();
+        } );
+
+        $panel.find( '.pcp-pgx-vote-vslider' ).on( 'change', function () {
+            if ( !pgxLoggedIn ) { pgxNeedLogin(); return; }
+            if ( expState.exp === null ) {
+                mw.notify( 'Pick an experience level first.', { type: 'info' } );
+                return;
+            }
+            var v = parseInt( $( this ).val(), 10 );
+            expState.val = isNaN( v ) ? 0 : v;
+            expSubmit();
+        } );
+    } );
+} );

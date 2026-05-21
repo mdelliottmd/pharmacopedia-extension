@@ -59,12 +59,131 @@ class ObservationApi extends ApiBase {
 
                 $ls = new LifeStoryStore();
 
+                // Hard-override entry type from Quick Add picker. Empty / 'auto' = parser routing.
+                $entryType = (string)( $params['entry_type'] ?? '' );
+
+                // event / story: skip the parser's keyframe-vs-episode-vs-observation tree
+                // entirely. Create one event row with the chosen le_type.
+                if ( $entryType === 'event' || $entryType === 'story' ) {
+                    $leType = $entryType === 'event'
+                        ? \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_EVENT
+                        : \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_STORY;
+                    $_struct = $parsed['date_struct'];
+                    $_iso = null;
+                    if ( is_array( $_struct ) ) {
+                        $_k = (string)( $_struct['kind'] ?? '' );
+                        if ( $_k === 'point' ) {
+                            $_iso = $_struct['point']['parsed']['iso'] ?? null;
+                        } elseif ( $_k === 'range' ) {
+                            $_iso = $_struct['from']['parsed']['iso'] ?? null;
+                        }
+                    }
+                    $_disp = \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $_struct );
+
+                    $pageId = null;
+                    $pageUrl = null;
+                    if ( $entryType === 'story' ) {
+                        $rawTitle = trim( (string)( $params['story_title'] ?? '' ) );
+                        if ( $rawTitle === '' ) {
+                            $rawTitle = trim( preg_replace( '/\s+/', ' ', (string)$text ) );
+                            if ( $rawTitle === '' ) {
+                                $rawTitle = 'Story ' . ( $_iso ?: date( 'Y-m-d' ) );
+                            } elseif ( mb_strlen( $rawTitle ) > 60 ) {
+                                $rawTitle = mb_substr( $rawTitle, 0, 60 );
+                            }
+                        }
+                        $rawTitle = preg_replace( '/[\[\]#{}<>\|]/', '', $rawTitle );
+                        $rawTitle = trim( preg_replace( '/\s+/', ' ', $rawTitle ) );
+                        if ( $rawTitle === '' ) $rawTitle = 'Story ' . date( 'Y-m-d' );
+
+                        $titleStr = $rawTitle;
+                        $titleObj = \MediaWiki\Title\Title::newFromText( $titleStr, NS_STORY );
+                        $n = 2;
+                        while ( $titleObj && $titleObj->exists() && $n <= 50 ) {
+                            $titleStr = $rawTitle . ' (' . $n . ')';
+                            $titleObj = \MediaWiki\Title\Title::newFromText( $titleStr, NS_STORY );
+                            $n++;
+                        }
+                        if ( !$titleObj ) {
+                            $this->dieWithError( [ 'apierror-invalidtitle', wfEscapeWikiText( $rawTitle ) ], 'invalidtitle' );
+                        }
+
+                        $services = \MediaWiki\MediaWikiServices::getInstance();
+                        $wikiPage = $services->getWikiPageFactory()->newFromTitle( $titleObj );
+                        $updater  = $wikiPage->newPageUpdater( $user );
+                        $content  = \MediaWiki\Content\ContentHandler::makeContent( (string)$text, $titleObj );
+                        $updater->setContent( \MediaWiki\Revision\SlotRecord::MAIN, $content );
+                        $summary = \CommentStoreComment::newUnsavedComment( 'Created from Quick Add' );
+                        $rev = $updater->saveRevision( $summary );
+                        if ( !$rev ) {
+                            $this->dieWithError( 'apierror-pagecannotsave', 'pagecannotsave' );
+                        }
+                        $pageId  = (int)$wikiPage->getId();
+                        $pageUrl = $titleObj->getLocalURL();
+
+                        $profStore = new \MediaWiki\Extension\Pharmacopedia\UserProfileStore();
+                        $ownerProfile = $profStore->getOrCreateForUser( $user->getId() );
+                        if ( $ownerProfile ) {
+                            $dbw = $services->getConnectionProvider()->getPrimaryDatabase();
+                            $now = $dbw->timestamp();
+                            $dbw->newInsertQueryBuilder()
+                                ->insertInto( 'pcp_visibility_rules' )
+                                ->row( [
+                                    'vr_profile_id' => (int)$ownerProfile->prof_id,
+                                    'vr_namespace'  => 'story',
+                                    'vr_key'        => (string)$pageId,
+                                    'vr_rule_type'  => 'private',
+                                    'vr_attribution'=> 1,
+                                    'vr_created'    => $now,
+                                    'vr_updated'    => $now,
+                                ] )
+                                ->caller( __METHOD__ )
+                                ->execute();
+                        }
+                    }
+
+                    $eventId = $ls->addEvent( $profileId, [
+                        'date_iso'       => $_iso,
+                        'date_precision' => 5,
+                        'date_display'   => $_disp !== '' ? $_disp : null,
+                        'date_struct'    => $_struct ? json_encode( $_struct, JSON_UNESCAPED_UNICODE ) : null,
+                        'type'           => $leType,
+                        'page_id'        => $pageId,
+                        'title'          => $this->titleFromParse( $parsed ),
+                        'body'           => $text,
+                        'visibility'     => 0,
+                        'tags'           => 'quickadd',
+                    ] );
+                    if ( !empty( $parsed['refs'] ) ) {
+                        $ls->setEventRefs( $eventId, $parsed['refs'] );
+                    }
+                    $this->getResult()->addValue( null, 'event_id', $eventId );
+                    if ( $pageId !== null ) {
+                        $this->getResult()->addValue( null, 'page_id',  $pageId );
+                        $this->getResult()->addValue( null, 'page_url', $pageUrl );
+                    }
+                    $this->getResult()->addValue( null, 'parsed', $parsed );
+                    $this->getResult()->addValue( null, 'success', true );
+                    break;
+                }
+
+                // observation / episode overrides: keep going to the parser tree below,
+                // but force the relevant flag and skip the keyframe path.
+                $skipKeyframePath = false;
+                if ( $entryType === 'episode' ) {
+                    $parsed['is_episode'] = true;
+                    $skipKeyframePath = true;
+                } elseif ( $entryType === 'observation' ) {
+                    $parsed['is_episode'] = false;
+                    $skipKeyframePath = true;
+                }
+
                 // Special case: subject is a custom trait + date range + numeric value.
                 // Emit TWO keyframes (one at each endpoint of the range) with the
                 // trait+value attached, instead of a single observation/episode.
                 $traitRef = null;
                 foreach ( $parsed['refs'] as $rr ) {
-                    if ( ( $rr['role'] ?? '' ) === 'subject' && ( $rr['type'] ?? '' ) === 'trait' ) {
+                    if ( ( $rr['role'] ?? '' ) === 'subject' && in_array( $rr['type'] ?? '', [ 'trait', 'trait_new' ], true ) ) {
                         $traitRef = $rr;
                         break;
                     }
@@ -73,7 +192,7 @@ class ObservationApi extends ApiBase {
                 $isTraitValue = $traitRef && $parsed['numeric_value'] !== null
                     && ( $kind === 'range' || $kind === 'point' );
 
-                if ( $isTraitValue ) {
+                if ( $isTraitValue && empty( $skipKeyframePath ) ) {
                     $val = (float)$parsed['numeric_value'];
                     $label = (string)$traitRef['label'];
                     $key   = strtolower( preg_replace( '/[^a-z0-9_]+/i', '_', $label ) );
@@ -116,9 +235,9 @@ class ObservationApi extends ApiBase {
                         $eid = $ls->addEvent( $profileId, [
                             'date_iso'       => $ep['iso'],
                             'date_precision' => 5, // DP_YEAR; setEventTraits will keep value
-                            'date_display'   => $ep['raw'],
+                            'date_display'   => \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $kfStruct ),
                             'date_struct'    => json_encode( $kfStruct, JSON_UNESCAPED_UNICODE ),
-                            'type'           => \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_KEYFRAME,
+                            'type'           => \MediaWiki\Extension\Pharmacopedia\LifeStoryStore::TYPE_OBSERVATION,
                             'title'          => $label . ' = ' . $val,
                             'body'           => $text,
                             'visibility'     => 0,
@@ -203,6 +322,8 @@ class ObservationApi extends ApiBase {
             'text' => [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_REQUIRED => true ],
             'date_struct_override' => [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_DEFAULT => '' ],
             'polarity_override'    => [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_DEFAULT => '' ],
+            'entry_type'           => [ ParamValidator::PARAM_TYPE => [ '', 'auto', 'observation', 'event', 'episode', 'story' ], ParamValidator::PARAM_DEFAULT => '' ],
+            'story_title'          => [ ParamValidator::PARAM_TYPE => 'string', ParamValidator::PARAM_DEFAULT => '' ],
         ];
     }
 

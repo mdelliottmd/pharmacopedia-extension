@@ -35,6 +35,9 @@ use MediaWiki\Extension\Pharmacopedia\Assessments\OceanNorms;
  */
 class SpecialMyAssessment extends SpecialPage {
 
+    use AmaasReportTrait;
+    use AsrsReportTrait;
+
     /** @var bool Whether the viewer owns the report being shown. */
     private $isOwner = true;
     private $viewerIsOwner = true;  // legacy alias
@@ -224,6 +227,14 @@ class SpecialMyAssessment extends SpecialPage {
             $this->renderOceanReport( $user );
             return;
         }
+        if ( $key === 'amaas' ) {
+            $this->renderAmaasReport( $user );
+            return;
+        }
+        if ( $key === 'asrs' ) {
+            $this->renderAsrsReport( $user );
+            return;
+        }
         $out->setPageTitle( 'Assessment report: ' . $key );
         $out->addHTML( Html::element( 'div', [ 'class' => 'errorbox' ],
             'No rich report yet for assessment "' . $key . '".' ) );
@@ -238,10 +249,10 @@ class SpecialMyAssessment extends SpecialPage {
         $profileId = (int)$profile->prof_id;
 
         // ---- Load scores + raw responses + meta + demographics ----
-        $scores = []; $takenAt = null;
+        $scores = []; $takenAt = null; $vis = 0;
         foreach ( $store->getFields( $profileId, 'cati', $this->visMin() ) as $f ) {
             $fk = (string)$f->pf_key;
-            if ( $fk === '_vis' )     { continue; }
+            if ( $fk === '_vis' )     { $vis = (int)( $f->pf_value_num ?? 0 ); continue; }
             if ( $fk === 'taken_at' ) { $takenAt = (string)$f->pf_value_text; continue; }
             $scores[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
         }
@@ -265,7 +276,7 @@ class SpecialMyAssessment extends SpecialPage {
 
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No CATI scores on file. Take the test on [[Special:MyProfile]] under '''Personality &amp; autism assessments''' to see your report here."
+                "No CATI scores on file. Take the test on [[Special:MyProfile]] under '''Personality and autism assessments''' to see your report here."
             );
             return;
         }
@@ -278,160 +289,176 @@ class SpecialMyAssessment extends SpecialPage {
             'all'    => 'all adults (gender not specified)',
         ][ $genderKey ];
         $genderForLookup = $genderKey === 'all' ? 'all' : $genderKey;
-        $naGroup  = 'na_'  . $genderForLookup;
-        $autGroup = 'aut_' . $genderForLookup;
 
-        // ---- Title + meta ----
-        $h  = '<div class="pcp-cati-report">';
-        $h .= '<p style="opacity:0.75;">';
+        $isOwner = $this->isOwner ?? true;
+        $canRaw = $this->canViewRaw( $store, $profile, 'cati', $isOwner );
+
+        // ---- Header card (OCEAN-card aesthetic) ----
+        $visIcon = $this->catiVisIcon( $vis );
+        $retakeUrl = SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL();
+
+        $h  = '<div class="pcp-cati-modern">';
+        $h .= '<div class="pcp-cati-modern-head">';
+        $h .= '<div class="pcp-cati-modern-head-text">';
+        $h .= '<span class="pcp-cati-modern-name">CATI</span>';
+        $h .= '<span class="pcp-cati-modern-full">Comprehensive Autistic Trait Inventory</span>';
+        $h .= '</div>';
+        $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
+        $h .= '</div>';
+        $h .= '<div class="pcp-cati-modern-meta">';
         $h .= 'Compared to <strong>' . htmlspecialchars( $genderLabel ) . '</strong>';
         if ( $takenAt ) {
-            $h .= ' · Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
+            $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
         }
-        $h .= ' · <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#cati-take">Retake</a>';
-        $h .= '</p>';
+        $h .= ' &middot; <a href="' . htmlspecialchars( $retakeUrl ) . '#cati-take">Retake</a>';
+        $h .= '</div>';
 
-        // ---- SECTION 1: Score summary table ----
-        $h .= '<h2>CATI Results</h2>';
-        $h .= $this->renderScoreTable( $scores, $genderForLookup );
+        // ---- SECTION 1: bar visualization for scores ----
+        $h .= $this->renderCatiScoreBars( $scores, $genderForLookup );
 
-        // ---- SECTION 2: Total-score cutoff comparison + plain-language ----
-        $h .= '<h2>What your Total score means</h2>';
-        $h .= $this->renderCutoffSection( (float)$scores['total'], $genderKey, $genderLabel );
+        // ---- SECTION 2: cutoff comparison as pill chips ----
+        $h .= $this->renderCatiCutoffChips( (float)$scores['total'], $genderKey, $genderLabel );
 
-        // ---- SECTION 3: Per-subscale narrative ----
-        $h .= '<h2>Subscale interpretation</h2>';
-        $h .= $this->renderSubscaleNarratives( $scores, $rawByN, $naGroup, $autGroup, $genderLabel );
+        // ---- SECTION 3: collapsible subscale narratives ----
+        $h .= $this->renderCatiSubscaleNarratives( $scores, $genderForLookup, $genderLabel );
 
-        // ---- SECTION 4 + 5 gated by raw-responses visibility ----
-        $canRaw = $this->canViewRaw( $store, $profile, 'cati', $this->isOwner ?? true );
-        $h .= '<h2>Top-scoring items per subscale</h2>';
+        // ---- SECTION 4: top items per subscale (gated) ----
+        $h .= '<h3 class="pcp-cati-modern-h">Top-scoring items per subscale</h3>';
         if ( $canRaw ) {
-            $h .= '<p style="opacity:0.75; margin-top:-0.3em;">For each subscale, the four items where your response "leaned most autistic". On reverse-keyed items, a low rating produces a high score in the autistic direction, and both your answer and the resulting score are shown.</p>';
+            $h .= '<p class="pcp-cati-modern-help">For each subscale, the four items where your response leaned most autistic. On reverse-keyed items (marked &#x21BB;), a low rating produces a high score in the autistic direction.</p>';
             $h .= $this->renderTopItemsPerSubscale( $rawByN );
         } else {
             $h .= $this->renderRawPrivate();
         }
 
-        // ---- SECTION 5: Full response table (also gated) ----
-        $h .= '<h2>All 42 responses</h2>';
+        // ---- SECTION 5: collapsible 42-item response table (gated) ----
         if ( $canRaw ) {
+            $h .= '<details class="pcp-cati-modern-responses"><summary><strong>Show all 42 responses</strong></summary>';
             $h .= $this->renderResponseTable( $rawByN );
+            $h .= '</details>';
         } else {
+            $h .= '<h3 class="pcp-cati-modern-h">All 42 responses</h3>';
             $h .= $this->renderRawPrivate();
         }
 
-        // ---- SECTION 6: Methodology + citations ----
-        $h .= '<h2>About the CATI</h2>';
+        // ---- SECTION 6: methodology + citations (dark-card aesthetic) ----
         $h .= $this->renderMethodologyBlurb();
 
-        $h .= '</div>';
+        $h .= '</div>'; // /pcp-cati-modern
         $out->addHTML( $h );
     }
 
-    // --- Section renderers ---
+    /** Small icon for the report header reflecting the cati assessment vis level. */
+    private function catiVisIcon( int $v ): string {
+        $icons = [ 0 => '&#x1F512;', 1 => '&#x1F441;', 2 => '&#x1F194;', 3 => '&#x1F3AD;' ];
+        return $icons[ $v ] ?? '&#x1F512;';
+    }
+    private function catiVisLabel( int $v ): string {
+        $labels = [ 0 => 'private', 1 => 'public, default attribution', 2 => 'public, username', 3 => 'public, anonymous' ];
+        return $labels[ $v ] ?? 'private';
+    }
 
-    private function renderScoreTable( array $scores, string $genderForLookup ): string {
+    /** Bar visualization for the 6 subscales + Total. */
+    private function renderCatiScoreBars( array $scores, string $genderForLookup ): string {
         $rows = [
-            [ 'total', 'Total',                       42, 210 ],
-            [ 'subscale_SOC', 'Social Interactions',          7,  35 ],
-            [ 'subscale_COM', 'Communication',                7,  35 ],
-            [ 'subscale_CAM', 'Social Camouflage',            7,  35 ],
-            [ 'subscale_FLX', 'Cognitive (In)Flexibility',    7,  35 ],
-            [ 'subscale_REG', 'Self-regulatory Behaviours',   7,  35 ],
-            [ 'subscale_SEN', 'Sensory Sensitivity',          7,  35 ],
-        ];
-        $subToNorm = [
-            'total' => 'total',
-            'subscale_SOC' => 'soc', 'subscale_COM' => 'com', 'subscale_CAM' => 'cam',
-            'subscale_FLX' => 'flx', 'subscale_REG' => 'reg', 'subscale_SEN' => 'sen',
+            [ 'total',         'Total',                       42, 210, 'total' ],
+            [ 'subscale_SOC',  'Social Interactions',          7,  35, 'soc'   ],
+            [ 'subscale_COM',  'Communication',                7,  35, 'com'   ],
+            [ 'subscale_CAM',  'Social Camouflage',            7,  35, 'cam'   ],
+            [ 'subscale_FLX',  'Cognitive (In)Flexibility',    7,  35, 'flx'   ],
+            [ 'subscale_REG',  'Self-regulatory Behaviours',   7,  35, 'reg'   ],
+            [ 'subscale_SEN',  'Sensory Sensitivity',          7,  35, 'sen'   ],
         ];
         $naGroup  = 'na_'  . $genderForLookup;
         $autGroup = 'aut_' . $genderForLookup;
 
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-scores">';
-        $h .= '<thead><tr>'
-           . '<th>Scale (possible range)</th>'
-           . '<th>Score</th>'
-           . '<th>Percentile vs<br>non-autistic</th>'
-           . '<th>Percentile vs<br>autistic</th>'
-           . '<th>Descriptor</th>'
-           . '</tr></thead><tbody>';
-
-        foreach ( $rows as [ $key, $label, $lo, $hi ] ) {
+        $h  = '<div class="pcp-cati-modern-bars">';
+        foreach ( $rows as [ $key, $label, $lo, $hi, $normKey ] ) {
             $score = isset( $scores[ $key ] ) ? (float)$scores[ $key ] : null;
             if ( $score === null ) {
-                $h .= '<tr><th style="text-align:left;">' . htmlspecialchars( $label ) . ' (' . $lo . '–' . $hi . ')</th>';
-                $h .= '<td colspan="4" style="opacity:0.5;">incomplete</td></tr>';
+                $h .= '<div class="pcp-cati-modern-row pcp-cati-modern-row-incomplete">'
+                    . '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>'
+                    . '<span class="pcp-cati-modern-row-incomplete-msg">incomplete</span>'
+                    . '</div>';
                 continue;
             }
-            $norm = $subToNorm[ $key ];
-            $pctNa  = CatiNorms::percentileOf( $naGroup,  $norm, $score );
-            $pctAut = CatiNorms::percentileOf( $autGroup, $norm, $score );
+            // Bar fill: (score - lo) / (hi - lo) * 100.
+            $pct = max( 0.0, min( 100.0, ( ( $score - $lo ) / ( $hi - $lo ) ) * 100.0 ) );
+            $pctNa  = CatiNorms::percentileOf( $naGroup,  $normKey, $score );
+            $pctAut = CatiNorms::percentileOf( $autGroup, $normKey, $score );
 
-            // Descriptor logic (NovoPsych-style):
-            //   "Pronounced":            pctNa >= 95 OR pctAut >= 75
-            //   "Consistent with Autism": pctNa >= 75
-            //   "":                       otherwise (below threshold)
-            $desc = '';
-            $descCls = '';
+            // Descriptor: NovoPsych-style.
+            $desc = ''; $descCls = '';
             if ( $pctNa !== null ) {
                 if ( $pctNa >= 95 || ( $pctAut !== null && $pctAut >= 75 ) ) {
-                    $desc = 'Pronounced'; $descCls = 'pcp-cati-pronounced';
+                    $desc = 'Pronounced'; $descCls = 'pcp-cati-modern-chip-pronounced';
                 } elseif ( $pctNa >= 75 ) {
-                    $desc = 'Consistent with Autism'; $descCls = 'pcp-cati-consistent';
-                } else {
-                    $desc = '-'; $descCls = '';
+                    $desc = 'Consistent with autism'; $descCls = 'pcp-cati-modern-chip-consistent';
                 }
             }
 
-            $h .= '<tr>';
-            $h .= '<th style="text-align:left;">' . htmlspecialchars( $label ) . ' (' . $lo . '–' . $hi . ')</th>';
-            $h .= '<td style="text-align:center; font-weight:bold;">' . number_format( $score, $score == (int)$score ? 0 : 1 ) . '</td>';
-            $h .= '<td style="text-align:center;">' . ( $pctNa  !== null ? $pctNa  . 'th' : '-' ) . '</td>';
-            $h .= '<td style="text-align:center;">' . ( $pctAut !== null ? $pctAut . 'th' : '-' ) . '</td>';
-            $h .= '<td style="text-align:center;" class="' . $descCls . '">' . htmlspecialchars( $desc ) . '</td>';
-            $h .= '</tr>';
+            $scoreStr = number_format( $score, $score == (int)$score ? 0 : 1 );
+
+            $h .= '<div class="pcp-cati-modern-row">';
+            $h .= '<div class="pcp-cati-modern-row-main">';
+            $h .= '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>';
+            $h .= '<span class="pcp-up-ocean-bar"><span class="pcp-up-ocean-fill" style="width:' . number_format( $pct, 2 ) . '%"></span></span>';
+            $h .= '<span class="pcp-cati-modern-row-val">' . htmlspecialchars( $scoreStr ) . ' <span class="pcp-cati-modern-row-of">/ ' . $hi . '</span></span>';
+            $h .= '</div>';
+            $h .= '<div class="pcp-cati-modern-row-meta">';
+            if ( $pctNa !== null ) {
+                $h .= '<span class="pcp-cati-modern-pctchip pcp-cati-modern-pctchip-na" title="Percentile compared to non-autistic ' . htmlspecialchars( strtolower( str_replace( 'gender-diverse adults', 'GD adults', '' ) ) ) . '">NA: ' . htmlspecialchars( $this->ordinal( $pctNa ) ) . '</span>';
+            }
+            if ( $pctAut !== null ) {
+                $h .= '<span class="pcp-cati-modern-pctchip pcp-cati-modern-pctchip-aut" title="Percentile compared to autistic">Aut: ' . htmlspecialchars( $this->ordinal( $pctAut ) ) . '</span>';
+            }
+            if ( $desc !== '' ) {
+                $h .= '<span class="pcp-cati-modern-chip ' . $descCls . '">' . htmlspecialchars( $desc ) . '</span>';
+            }
+            $h .= '</div>';
+            $h .= '</div>';
         }
-        $h .= '</tbody></table>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption">Raw scores. Total range 42 to 210; each subscale 7 to 35. Percentiles are gender-matched.</p>';
         return $h;
     }
 
-    private function renderCutoffSection( float $total, string $genderKey, string $genderLabel ): string {
-        // Two cutoffs available:
-        //   English 2021: 134 (sens 82.71%, spec 79.00%); single overall threshold
-        //   English 2025: 148 all / 139 cis-M / 141 cis-F / 156 GD; gender-specific
+    /** Helper: ordinal suffix on integer ("73rd", "1st"). */
+    private function ordinal( $n ): string {
+        $n = (int)$n;
+        $s = [ 'th','st','nd','rd','th','th','th','th','th','th' ];
+        $v = $n % 100;
+        $suffix = ( $v >= 11 && $v <= 13 ) ? 'th' : $s[ $n % 10 ];
+        return $n . $suffix;
+    }
+
+    /** Pill chips: above/below for the 2 cutoffs. */
+    private function renderCatiCutoffChips( float $total, string $genderKey, string $genderLabel ): string {
         $cutoffs2025 = [ 'male' => 139, 'female' => 141, 'gd' => 156, 'all' => 148 ];
         $cutoff2025  = $cutoffs2025[ $genderKey ];
         $cutoff2021  = 134;
+        $delta2025 = $total - $cutoff2025;
+        $delta2021 = $total - $cutoff2021;
+        $sign2025 = $delta2025 >= 0 ? '+' : '';
+        $sign2021 = $delta2021 >= 0 ? '+' : '';
+        $cls2025  = $delta2025 >= 0 ? 'pcp-up-above' : 'pcp-up-below';
+        $cls2021  = $delta2021 >= 0 ? 'pcp-up-above' : 'pcp-up-below';
+        $word2025 = $delta2025 >= 0 ? 'above' : 'below';
+        $word2021 = $delta2021 >= 0 ? 'above' : 'below';
 
-        $aboveOverall   = $total >= $cutoff2025;
-        $aboveOriginal  = $total >= $cutoff2021;
-
-        $h = '<div class="pcp-cati-cutoff-box">';
-        $h .= '<p>Your Total score: <strong>' . number_format( $total, $total == (int)$total ? 0 : 1 ) . ' / 210</strong>.</p>';
-        $h .= '<ul>';
-        $h .= '<li>Compared to the <strong>English 2025 gender-specific cutoff</strong> for ' . htmlspecialchars( $genderLabel ) .
-              ' (≥ ' . $cutoff2025 . '): ' . ( $aboveOverall ? '<strong style="color:#7c3aed;">above</strong>' : 'below' ) . '.</li>';
-        $h .= '<li>Compared to the <strong>English 2021 overall cutoff</strong> (≥ ' . $cutoff2021 . ', sensitivity 82.7% / specificity 79.0%): ' .
-              ( $aboveOriginal ? '<strong style="color:#7c3aed;">above</strong>' : 'below' ) . '.</li>';
-        $h .= '</ul>';
-        $h .= '<p><em>The CATI is not a diagnostic instrument.</em> A score above either cutoff indicates that your responses pattern more similarly to that of autistic adults than non-autistic adults in published samples; ' .
-              'a score below does not rule out autism.</p>';
-        $h .= '<details><summary>What "sensitivity" and "specificity" mean (plain language)</summary>';
-        $h .= '<p><strong>Sensitivity 82.7%</strong> means: if you took 100 autistic people and ran the CATI on each, about 83 would score above the cutoff of 134 (and ~17 would score below; these are false negatives).</p>';
-        $h .= '<p><strong>Specificity 79.0%</strong> means: if you took 100 non-autistic people and ran the CATI on each, about 79 would score below 134 (and ~21 would score above; these are false positives).</p>';
-        $h .= '<p>The newer 2025 gender-specific cutoffs were derived to maximize discrimination within each gender group. They differ because the score distributions differ. For example, non-autistic cis females tend to score lower than non-autistic cis males, so a lower cutoff (141 vs the overall 148) better captures the autistic-vs-non-autistic boundary for cis females.</p>';
-        $h .= '<p>Adapted from NeurodivUrgent (neurodivurgent.health/results).</p>';
-        $h .= '</details>';
+        $h  = '<div class="pcp-cati-modern-cutoffs">';
+        $h .= '<span class="pcp-cati-modern-cutoffs-label">Total cutoffs:</span>';
+        $h .= '<span class="' . $cls2025 . '" title="English 2025 gender-specific cutoff for ' . htmlspecialchars( $genderLabel ) . ' (&ge; ' . $cutoff2025 . ')">'
+            . htmlspecialchars( $sign2025 . (string)$delta2025 ) . ' ' . $word2025 . ' (2025, ' . $cutoff2025 . ')</span>';
+        $h .= '<span class="' . $cls2021 . '" title="English 2021 original overall cutoff (&ge; ' . $cutoff2021 . '; sensitivity 82.7%, specificity 79.0%)">'
+            . htmlspecialchars( $sign2021 . (string)$delta2021 ) . ' ' . $word2021 . ' (2021, ' . $cutoff2021 . ')</span>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption pcp-cati-modern-caption-note"><em>The CATI is not a diagnostic instrument. Above either cutoff means your responses pattern more similarly to autistic than non-autistic adults in published samples; below does not rule out autism.</em></p>';
         return $h;
     }
 
-    private function renderSubscaleNarratives( array $scores, array $rawByN, string $naGroup, string $autGroup, string $genderLabel ): string {
-        // Brief, factual narrative per subscale, no clinical advice.
+    /** Subscale narratives with collapsible blurb under each row. */
+    private function renderCatiSubscaleNarratives( array $scores, string $genderForLookup, string $genderLabel ): string {
         $blurbs = [
             'SOC' => [ 'Social Interactions',         'Desire for, and self-appraisal of, social interactions. High scores indicate a preference to avoid social contact and/or finding it stressful.' ],
             'COM' => [ 'Communication',                'Use and understanding of non-verbal communicative behaviours (facial expressions, body language, figures of speech).' ],
@@ -441,33 +468,48 @@ class SpecialMyAssessment extends SpecialPage {
             'SEN' => [ 'Sensory Sensitivity',          'Heightened sensitivity to sensory stimuli: light, sound, touch, taste, smell.' ],
         ];
         $subToNorm = [ 'SOC'=>'soc','COM'=>'com','CAM'=>'cam','FLX'=>'flx','REG'=>'reg','SEN'=>'sen' ];
+        $naGroup  = 'na_'  . $genderForLookup;
+        $autGroup = 'aut_' . $genderForLookup;
 
-        $h = '<dl class="pcp-cati-subscale-list">';
+        $h = '<h3 class="pcp-cati-modern-h">Subscale interpretation</h3>';
+        $h .= '<div class="pcp-cati-modern-narratives">';
         foreach ( $blurbs as $code => [ $name, $blurb ] ) {
             $key = 'subscale_' . $code;
             if ( !isset( $scores[ $key ] ) || $scores[ $key ] === null ) continue;
             $s = (float)$scores[ $key ];
             $pctNa  = CatiNorms::percentileOf( $naGroup,  $subToNorm[ $code ], $s );
             $pctAut = CatiNorms::percentileOf( $autGroup, $subToNorm[ $code ], $s );
-            $h .= '<dt><strong>' . htmlspecialchars( $name ) . '</strong>, ' . number_format( $s, $s == (int)$s ? 0 : 1 ) . ' / 35';
+            $scoreStr = number_format( $s, $s == (int)$s ? 0 : 1 );
+            $h .= '<details class="pcp-cati-modern-narrative"><summary>';
+            $h .= '<strong>' . htmlspecialchars( $name ) . '</strong> ';
+            $h .= '<span class="pcp-cati-modern-narrative-meta">' . htmlspecialchars( $scoreStr ) . ' / 35';
             if ( $pctNa !== null && $pctAut !== null ) {
-                $h .= ' &middot; ' . $pctNa . 'th percentile vs non-autistic ' . htmlspecialchars( $genderLabel ) .
-                      ', ' . $pctAut . 'th vs autistic ' . htmlspecialchars( $genderLabel );
+                $h .= ' &middot; ' . $this->ordinal( $pctNa ) . ' percentile NA, ' . $this->ordinal( $pctAut ) . ' Aut';
             }
-            $h .= '</dt><dd>' . htmlspecialchars( $blurb ) . '</dd>';
+            $h .= '</span></summary>';
+            $h .= '<p>' . htmlspecialchars( $blurb ) . '</p>';
+            $h .= '</details>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
+    private function labelForRaw( ?float $raw ): string {
+        if ( $raw === null ) return '-';
+        $r = (int)round( $raw );
+        $r = max( 1, min( 5, $r ) );
+        $label = Cati::RESPONSE_LABELS[ $r ] ?? '';
+        if ( abs( $raw - $r ) > 0.01 ) {
+            return number_format( $raw, 2 ) . ' (~' . $label . ')';
+        }
+        return $label;
+    }
+
     private function renderTopItemsPerSubscale( array $rawByN ): string {
-        // For each subscale, sort items by the user's "autism-direction" score
-        // (= raw response after reverse-keying), then show top 4.
-        $h = '<dl class="pcp-cati-top-items">';
+        $h = '<div class="pcp-cati-modern-topitems">';
         foreach ( Cati::SUBSCALES as $code => $def ) {
             $name = $def['label'];
             $items = $def['items'];
-            // Score each item in the autism direction
             $byScore = [];
             foreach ( $items as $n ) {
                 $entry = $rawByN[ $n ] ?? null;
@@ -480,39 +522,33 @@ class SpecialMyAssessment extends SpecialPage {
             arsort( $byScore );
             $top = array_slice( $byScore, 0, 4, true );
             if ( !$top ) continue;
-            $h .= '<dt>' . htmlspecialchars( $name ) . '</dt><dd><ul class="pcp-cati-top-items-list">';
+            $h .= '<div class="pcp-cati-modern-topcard">';
+            $h .= '<div class="pcp-cati-modern-topcard-head">' . htmlspecialchars( $name ) . '</div>';
+            $h .= '<ul class="pcp-cati-modern-topcard-list">';
             foreach ( $top as $n => $autDirScore ) {
                 $itemText = Cati::ITEMS[ $n ] ?? ('(item ' . $n . ')');
                 $raw = $rawByN[ $n ]['num'] !== null ? (float)$rawByN[ $n ]['num'] : null;
                 $rawLabel = $this->labelForRaw( $raw );
                 $autInt = (int)round( $autDirScore );
                 $isRev  = in_array( $n, Cati::REVERSE, true );
-                $h .= '<li><strong>' . $n . '.</strong> ' . htmlspecialchars( $itemText )
-                    . ' <span class="pcp-cati-top-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
+                $h .= '<li>';
+                $h .= '<span class="pcp-cati-modern-topcard-item-n">' . $n . '.</span> ';
+                $h .= htmlspecialchars( $itemText );
+                $h .= ' <span class="pcp-cati-modern-topcard-item-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
                     . ' &middot; <strong>' . $autInt . '/5</strong> in the autistic direction'
-                    . ( $isRev ? ' <span class="pcp-cati-top-rev" title="reverse-keyed item">↻</span>' : '' )
-                    . '</span></li>';
+                    . ( $isRev ? ' <span class="pcp-cati-modern-topcard-rev" title="reverse-keyed item">&#x21BB;</span>' : '' )
+                    . '</span>';
+                $h .= '</li>';
             }
-            $h .= '</ul></dd>';
+            $h .= '</ul>';
+            $h .= '</div>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
-    private function labelForRaw( ?float $raw ): string {
-        if ( $raw === null ) return '-';
-        // Find closest 1..5 label
-        $r = (int)round( $raw );
-        $r = max( 1, min( 5, $r ) );
-        $label = Cati::RESPONSE_LABELS[ $r ] ?? '';
-        if ( abs( $raw - $r ) > 0.01 ) {
-            return number_format( $raw, 2 ) . ' (~' . $label . ')';
-        }
-        return $label;
-    }
-
     private function renderResponseTable( array $rawByN ): string {
-        $h = '<table class="wikitable pcp-cati-response-table" style="width:100%; font-size:0.9em;">';
+        $h = '<table class="wikitable pcp-cati-response-table pcp-cati-modern-resptable" style="width:100%; font-size:0.9em;">';
         $h .= '<thead><tr><th>#</th><th>Item</th>';
         foreach ( Cati::RESPONSE_LABELS as $v => $lab ) {
             $h .= '<th style="width:6em; text-align:center;">' . htmlspecialchars( $lab ) . '</th>';
@@ -550,15 +586,17 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     private function renderMethodologyBlurb(): string {
-        $h = '<p>The Comprehensive Autistic Trait Inventory (CATI) is a 42-item self-report measure of six dimensions of autistic traits, developed by Chris English and colleagues at the University of Western Australia.</p>';
-        $h .= '<p>Percentiles and gender-specific cutoffs on this page are computed from the normative tables published as supplementary material with English et al. 2025 (Autism, doi:10.1177/13623613251347740; preprint and norm tables at <a href="https://osf.io/v3kf7/">osf.io/v3kf7</a>). The original CATI development paper (English et al. 2021, Mol Autism 12(1):37) used a single overall cutoff of 134 with sensitivity 82.7% and specificity 79.0%.</p>';
-        $h .= '<p>The full CATI questionnaire, scoring key, and additional translations are available from the authors at <a href="https://www.cati-autism.com/">cati-autism.com</a>.</p>';
-        $h .= '<p>This report draws presentational ideas from the <a href="https://novopsych.com.au/assessments/autism/comprehensive-autistic-trait-inventory-cati/">NovoPsych CATI auto-scoring report</a> and the plain-language interpretation style from <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a>. It is not a diagnostic tool.</p>';
+        $h  = '<div class="pcp-cati-modern-method">';
+        $h .= '<div class="pcp-cati-modern-method-head">About the CATI</div>';
+        $h .= '<p>The Comprehensive Autistic Trait Inventory (CATI) is a 42-item self-report measure of six dimensions of autistic traits, developed by Chris English and colleagues at the University of Western Australia.</p>';
+        $h .= '<p>Percentiles and gender-specific cutoffs on this page are computed from the normative tables in <a href="https://doi.org/10.1177/13623613251347740">English et al. 2025 (Autism)</a>; preprint and full norm tables at <a href="https://osf.io/v3kf7/">osf.io/v3kf7</a>. The original CATI development paper (<a href="https://doi.org/10.1186/s13229-021-00445-7">English et al. 2021, Molecular Autism 12(1):37</a>) used a single overall cutoff of 134 with sensitivity 82.7% and specificity 79.0%.</p>';
+        $h .= '<p>Full questionnaire, scoring key, and translations: <a href="https://www.cati-autism.com/">cati-autism.com</a>. Presentational ideas adapted from <a href="https://novopsych.com.au/assessments/autism/comprehensive-autistic-trait-inventory-cati/">NovoPsych</a> and <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a>. Not a diagnostic tool.</p>';
+        $h .= '</div>';
         return $h;
     }
 
 
-    // ===== CAT-Q report =====
+    // ===== CAT-Q report (modernized 2026-05-18) =====
 
     private function renderCatqReport( $user ) {
         $out = $this->getOutput();
@@ -566,11 +604,10 @@ class SpecialMyAssessment extends SpecialPage {
         $profile = $store->getOrCreateForUser( $user->getId() );
         $profileId = (int)$profile->prof_id;
 
-        // ---- Load scores + raw responses + meta + demographics ----
-        $scores = []; $takenAt = null;
+        $scores = []; $takenAt = null; $vis = 0;
         foreach ( $store->getFields( $profileId, 'catq', $this->visMin() ) as $f ) {
             $fk = (string)$f->pf_key;
-            if ( $fk === '_vis' )     { continue; }
+            if ( $fk === '_vis' )     { $vis = (int)( $f->pf_value_num ?? 0 ); continue; }
             if ( $fk === 'taken_at' ) { $takenAt = (string)$f->pf_value_text; continue; }
             $scores[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
         }
@@ -593,147 +630,162 @@ class SpecialMyAssessment extends SpecialPage {
             return;
         }
 
-        // ---- Title + meta ----
-        $h  = '<div class="pcp-cati-report pcp-catq-report">';
-        $h .= '<p style="opacity:0.75;">';
-        $h .= 'Camouflaging Autistic Traits Questionnaire';
+        $isOwner = $this->isOwner ?? true;
+        $canRaw  = $this->canViewRaw( $store, $profile, 'catq', $isOwner );
+
+        // ---- Header card (CATI-modern aesthetic) ----
+        $visIcon = $this->catiVisIcon( $vis );
+        $retakeUrl = SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL();
+
+        $h  = '<div class="pcp-cati-modern">';
+        $h .= '<div class="pcp-cati-modern-head">';
+        $h .= '<div class="pcp-cati-modern-head-text">';
+        $h .= '<span class="pcp-cati-modern-name">CAT-Q</span>';
+        $h .= '<span class="pcp-cati-modern-full">Camouflaging Autistic Traits Questionnaire</span>';
+        $h .= '</div>';
+        $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
+        $h .= '</div>';
+        $h .= '<div class="pcp-cati-modern-meta">';
+        $h .= 'Self-report of social camouflaging strategies';
         if ( $takenAt ) {
             $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
         }
-        $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#catq-take">Retake</a>';
-        $h .= '</p>';
+        $h .= ' &middot; <a href="' . htmlspecialchars( $retakeUrl ) . '#catq-take">Retake</a>';
+        $h .= '</div>';
 
-        // ---- SECTION 1: Score table ----
-        $h .= '<h2>CAT-Q Results</h2>';
-        $h .= $this->renderCatqScoreTable( $scores );
+        // ---- SECTION 1: score bars ----
+        $h .= $this->renderCatqScoreBars( $scores );
 
-        // ---- SECTION 2: What your Total score means ----
-        $h .= '<h2>What your Total score means</h2>';
-        $h .= $this->renderCatqCutoffSection( (float)$scores['total'] );
+        // ---- SECTION 2: Total cutoff pill chips ----
+        $h .= $this->renderCatqCutoffChips( (float)$scores['total'] );
 
-        // ---- SECTION 3: Subscale interpretation ----
-        $h .= '<h2>Subscale interpretation</h2>';
+        // ---- SECTION 3: collapsible subscale narratives ----
         $h .= $this->renderCatqSubscaleNarratives( $scores );
 
-        // ---- SECTION 4 + 5 gated by raw-responses visibility ----
-        $canRaw = $this->canViewRaw( $store, $profile, 'catq', $this->isOwner ?? true );
-        $h .= '<h2>Top-scoring items per subscale</h2>';
+        // ---- SECTION 4: top items per subscale (gated) ----
+        $h .= '<h3 class="pcp-cati-modern-h">Top-scoring items per subscale</h3>';
         if ( $canRaw ) {
-            $h .= '<p style="opacity:0.75; margin-top:-0.3em;">For each subscale, the four items where your response leaned most strongly toward camouflaging. On reverse-keyed items, a low rating produces a high score in the camouflaging direction, and both your answer and the resulting score are shown.</p>';
+            $h .= '<p class="pcp-cati-modern-help">For each subscale, the four items where your response leaned most strongly toward camouflaging. On reverse-keyed items (marked &#x21BB;), a low rating produces a high score in the camouflaging direction.</p>';
             $h .= $this->renderCatqTopItemsPerSubscale( $rawByN );
         } else {
             $h .= $this->renderRawPrivate();
         }
 
-        // ---- SECTION 5: Full 25-item response table (also gated) ----
-        $h .= '<h2>All 25 responses</h2>';
+        // ---- SECTION 5: full 25-item response table (gated, collapsed) ----
         if ( $canRaw ) {
+            $h .= '<details class="pcp-cati-modern-responses"><summary><strong>Show all 25 responses</strong></summary>';
             $h .= $this->renderCatqResponseTable( $rawByN );
+            $h .= '</details>';
         } else {
+            $h .= '<h3 class="pcp-cati-modern-h">All 25 responses</h3>';
             $h .= $this->renderRawPrivate();
         }
 
-        // ---- SECTION 6: Methodology + citations ----
-        $h .= '<h2>About the CAT-Q</h2>';
+        // ---- SECTION 6: methodology dark card ----
         $h .= $this->renderCatqMethodologyBlurb();
 
-        $h .= '</div>';
+        $h .= '</div>'; // /pcp-cati-modern
         $out->addHTML( $h );
     }
 
-    private function renderCatqScoreTable( array $scores ): string {
+    /** Score bars: Total + 3 subscales with above/below-cutoff chip. */
+    private function renderCatqScoreBars( array $scores ): string {
         $rows = [
-            // [ key,                label,           min, max, cutoffKey ]
-            [ 'total',          'Total',          25, 175, 'total' ],
-            [ 'subscale_CO',    'Compensation',    8,  56, 'CO'    ],
-            [ 'subscale_MSK',   'Masking',         8,  56, 'MSK'   ],
-            [ 'subscale_ASS',   'Assimilation',    9,  63, 'ASS'   ],
+            [ 'total',          'Total',           25, 175, 'total' ],
+            [ 'subscale_CO',    'Compensation',     8,  56, 'CO'    ],
+            [ 'subscale_MSK',   'Masking',          8,  56, 'MSK'   ],
+            [ 'subscale_ASS',   'Assimilation',     9,  63, 'ASS'   ],
         ];
-        $cutoffLabels = [
-            'total' => 'Total &ge; 110',
-            'CO'    => '&ge; 35',
-            'ASS'   => '&ge; 40',
-            'MSK'   => '(none)',
-        ];
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-scores pcp-catq-scores">';
-        $h .= '<thead><tr>'
-            . '<th>Scale (possible range)</th>'
-            . '<th>Score</th>'
-            . '<th>Suggestive cutoff<br>(NeurodivUrgent)</th>'
-            . '<th>Above cutoff?</th>'
-            . '</tr></thead><tbody>';
-
+        $h  = '<div class="pcp-cati-modern-bars">';
         foreach ( $rows as [ $key, $label, $lo, $hi, $cutKey ] ) {
             $score = isset( $scores[ $key ] ) ? (float)$scores[ $key ] : null;
-            $h .= '<tr>';
-            $h .= '<th style="text-align:left;">' . htmlspecialchars( $label ) . ' (' . $lo . '&ndash;' . $hi . ')</th>';
             if ( $score === null ) {
-                $h .= '<td colspan="3" style="opacity:0.5;">incomplete</td>';
-                $h .= '</tr>';
+                $h .= '<div class="pcp-cati-modern-row pcp-cati-modern-row-incomplete">'
+                    . '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>'
+                    . '<span class="pcp-cati-modern-row-incomplete-msg">incomplete</span>'
+                    . '</div>';
                 continue;
             }
-            $h .= '<td style="text-align:center; font-weight:bold;">' . number_format( $score, $score == (int)$score ? 0 : 1 ) . '</td>';
-            $h .= '<td style="text-align:center;">' . $cutoffLabels[ $cutKey ] . '</td>';
-            $exceeds = CatqNorms::exceedsCutoff( $cutKey, $score );
-            if ( $exceeds === null ) {
-                $h .= '<td style="text-align:center; opacity:0.55;">no cutoff</td>';
-            } elseif ( $exceeds ) {
-                $h .= '<td style="text-align:center;" class="pcp-cati-pronounced">above</td>';
+            $pct = max( 0.0, min( 100.0, ( ( $score - $lo ) / ( $hi - $lo ) ) * 100.0 ) );
+            $scoreStr = number_format( $score, $score == (int)$score ? 0 : 1 );
+            $exceeds  = CatqNorms::exceedsCutoff( $cutKey, $score );
+
+            $h .= '<div class="pcp-cati-modern-row">';
+            $h .= '<div class="pcp-cati-modern-row-main">';
+            $h .= '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>';
+            $h .= '<span class="pcp-up-ocean-bar"><span class="pcp-up-ocean-fill" style="width:' . number_format( $pct, 2 ) . '%"></span></span>';
+            $h .= '<span class="pcp-cati-modern-row-val">' . htmlspecialchars( $scoreStr ) . ' <span class="pcp-cati-modern-row-of">/ ' . $hi . '</span></span>';
+            $h .= '</div>';
+            $h .= '<div class="pcp-cati-modern-row-meta">';
+            if ( $exceeds === true ) {
+                $h .= '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-pronounced">above cutoff</span>';
+            } elseif ( $exceeds === false ) {
+                $h .= '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-below">below cutoff</span>';
             } else {
-                $h .= '<td style="text-align:center;">below</td>';
+                $h .= '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-nocutoff">no cutoff defined</span>';
             }
-            $h .= '</tr>';
+            $h .= '</div>';
+            $h .= '</div>';
         }
-        $h .= '</tbody></table>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption">Raw scores. Total range 25 to 175; subscales 8&ndash;56 (CO, MSK) or 9&ndash;63 (ASS). Cutoffs from NeurodivUrgent recalibration; Masking has no suggestive cutoff (Hull 2019 found it the least discriminating factor).</p>';
         return $h;
     }
 
-    private function renderCatqCutoffSection( float $total ): string {
-        $aboveNeurodiv = $total >= CatqNorms::CUTOFF_TOTAL_NEURODIV;
-        $aboveHull     = $total >= CatqNorms::CUTOFF_TOTAL_HULL2019;
-        $h  = '<div class="pcp-cati-cutoff-box">';
-        $h .= '<p>Your Total CAT-Q score: <strong>' . number_format( $total, $total == (int)$total ? 0 : 1 ) . ' / 175</strong>.</p>';
-        $h .= '<ul>';
-        $h .= '<li>Compared to the <strong>NeurodivUrgent suggestive cutoff</strong> (Total &ge; ' . CatqNorms::CUTOFF_TOTAL_NEURODIV . '): '
-            . ( $aboveNeurodiv ? '<strong style="color:#7c3aed;">above</strong>' : 'below' ) . '.</li>';
-        $h .= '<li>Compared to the <strong>Hull 2019 original cutoff</strong> (Total &ge; ' . CatqNorms::CUTOFF_TOTAL_HULL2019 . '): '
-            . ( $aboveHull ? '<strong style="color:#7c3aed;">above</strong>' : 'below' ) . '.</li>';
-        $h .= '</ul>';
-        $h .= '<p><em>The CAT-Q is not a diagnostic instrument.</em> Unlike the CATI, there is <strong>no published diagnostic-accuracy data</strong> for the CAT-Q. No sensitivity or specificity figures exist for distinguishing autistic from non-autistic respondents. The cutoffs above are descriptive thresholds reported in validation and community-reference work; they indicate that you scored higher than typical comparison samples, but they do not estimate the probability of being autistic.</p>';
-        $h .= '<details><summary>Why the two cutoffs differ</summary>';
-        $h .= '<p>The original CAT-Q validation paper (Hull et al. 2019) proposed a total-score reference of <strong>~100</strong> for elevated camouflaging, based on the mean of their autistic sample. The community resource at <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a> raises this to <strong>~110</strong> on the basis of follow-up data suggesting the lower threshold produced too many false positives in mixed populations.</p>';
-        $h .= '<p>Both cutoffs should be read as <em>descriptive thresholds</em>: scoring above them means your responses pattern more like those of autistic adults in the published samples than like non-autistic adults, <em>not</em> that you are or are not autistic.</p>';
-        $h .= '</details>';
+    /** Pill chips for the Total against both published cutoffs. */
+    private function renderCatqCutoffChips( float $total ): string {
+        $cutNeuro = CatqNorms::CUTOFF_TOTAL_NEURODIV;
+        $cutHull  = CatqNorms::CUTOFF_TOTAL_HULL2019;
+        $deltaN = $total - $cutNeuro;
+        $deltaH = $total - $cutHull;
+        $signN  = $deltaN >= 0 ? '+' : '';
+        $signH  = $deltaH >= 0 ? '+' : '';
+        $clsN   = $deltaN >= 0 ? 'pcp-up-above' : 'pcp-up-below';
+        $clsH   = $deltaH >= 0 ? 'pcp-up-above' : 'pcp-up-below';
+        $wordN  = $deltaN >= 0 ? 'above' : 'below';
+        $wordH  = $deltaH >= 0 ? 'above' : 'below';
+
+        $h  = '<div class="pcp-cati-modern-cutoffs">';
+        $h .= '<span class="pcp-cati-modern-cutoffs-label">Total cutoffs:</span>';
+        $h .= '<span class="' . $clsN . '" title="NeurodivUrgent recalibrated suggestive cutoff (&ge; ' . $cutNeuro . ')">'
+            . htmlspecialchars( $signN . (string)(int)$deltaN ) . ' ' . $wordN . ' (NeurodivUrgent, ' . $cutNeuro . ')</span>';
+        $h .= '<span class="' . $clsH . '" title="Hull 2019 original suggestive cutoff (&ge; ' . $cutHull . ')">'
+            . htmlspecialchars( $signH . (string)(int)$deltaH ) . ' ' . $wordH . ' (Hull 2019, ' . $cutHull . ')</span>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption pcp-cati-modern-caption-note"><em>The CAT-Q is not a diagnostic instrument. Unlike the CATI, no sensitivity/specificity data has been published. Cutoffs describe how your scores compare to published reference samples; they do not estimate the probability of being autistic. The CAT-Q is best read as a measure of self-reported camouflaging.</em></p>';
         return $h;
     }
 
+    /** Collapsible subscale narratives. */
     private function renderCatqSubscaleNarratives( array $scores ): string {
-        $h = '<dl class="pcp-cati-subscale-list">';
+        $h  = '<h3 class="pcp-cati-modern-h">Subscale interpretation</h3>';
+        $h .= '<div class="pcp-cati-modern-narratives">';
         foreach ( CatqNorms::SUBSCALE_BLURBS as $code => [ $name, $blurb ] ) {
             $key = 'subscale_' . $code;
             if ( !isset( $scores[ $key ] ) || $scores[ $key ] === null ) continue;
             $s = (float)$scores[ $key ];
             $max = CatqNorms::SUBSCALE_MAX[ $code ];
             $exceeds = CatqNorms::exceedsCutoff( $code, $s );
-            $h .= '<dt><strong>' . htmlspecialchars( $name ) . '</strong>, ' . number_format( $s, $s == (int)$s ? 0 : 1 ) . ' / ' . $max;
-            if ( $exceeds !== null ) {
-                if ( $exceeds ) {
-                    $h .= ' &middot; <span class="pcp-cati-pronounced" style="padding:0 0.4em;">above cutoff</span>';
-                } else {
-                    $h .= ' &middot; <span style="opacity:0.7;">below cutoff</span>';
-                }
+            $scoreStr = number_format( $s, $s == (int)$s ? 0 : 1 );
+            $h .= '<details class="pcp-cati-modern-narrative"><summary>';
+            $h .= '<strong>' . htmlspecialchars( $name ) . '</strong> ';
+            $h .= '<span class="pcp-cati-modern-narrative-meta">' . htmlspecialchars( $scoreStr ) . ' / ' . $max;
+            if ( $exceeds === true ) {
+                $h .= ' &middot; above cutoff';
+            } elseif ( $exceeds === false ) {
+                $h .= ' &middot; below cutoff';
             }
-            $h .= '</dt><dd>' . htmlspecialchars( $blurb ) . '</dd>';
+            $h .= '</span></summary>';
+            $h .= '<p>' . htmlspecialchars( $blurb ) . '</p>';
+            $h .= '</details>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
+    /** Top-scoring items per subscale, modern dark cards. */
     private function renderCatqTopItemsPerSubscale( array $rawByN ): string {
-        $h = '<dl class="pcp-cati-top-items">';
+        $h = '<div class="pcp-cati-modern-topitems">';
         foreach ( Catq::SUBSCALES as $code => $def ) {
             $name = $def['label'];
             $items = $def['items'];
@@ -749,22 +801,28 @@ class SpecialMyAssessment extends SpecialPage {
             arsort( $byScore );
             $top = array_slice( $byScore, 0, 4, true );
             if ( !$top ) continue;
-            $h .= '<dt>' . htmlspecialchars( $name ) . '</dt><dd><ul class="pcp-cati-top-items-list">';
+            $h .= '<div class="pcp-cati-modern-topcard">';
+            $h .= '<div class="pcp-cati-modern-topcard-head">' . htmlspecialchars( $name ) . '</div>';
+            $h .= '<ul class="pcp-cati-modern-topcard-list">';
             foreach ( $top as $n => $autDirScore ) {
                 $itemText = Catq::ITEMS[ $n ] ?? ('(item ' . $n . ')');
                 $raw = $rawByN[ $n ]['num'] !== null ? (float)$rawByN[ $n ]['num'] : null;
                 $rawLabel = $this->labelForRawCatq( $raw );
                 $autInt = (int)round( $autDirScore );
                 $isRev  = in_array( $n, Catq::REVERSE, true );
-                $h .= '<li><strong>' . $n . '.</strong> ' . htmlspecialchars( $itemText )
-                    . ' <span class="pcp-cati-top-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
+                $h .= '<li>';
+                $h .= '<span class="pcp-cati-modern-topcard-item-n">' . $n . '.</span> ';
+                $h .= htmlspecialchars( $itemText );
+                $h .= ' <span class="pcp-cati-modern-topcard-item-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
                     . ' &middot; <strong>' . $autInt . '/7</strong> in the camouflaging direction'
-                    . ( $isRev ? ' <span class="pcp-cati-top-rev" title="reverse-keyed item">&#x21bb;</span>' : '' )
-                    . '</span></li>';
+                    . ( $isRev ? ' <span class="pcp-cati-modern-topcard-rev" title="reverse-keyed item">&#x21BB;</span>' : '' )
+                    . '</span>';
+                $h .= '</li>';
             }
-            $h .= '</ul></dd>';
+            $h .= '</ul>';
+            $h .= '</div>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
@@ -780,8 +838,7 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     private function renderCatqResponseTable( array $rawByN ): string {
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-response-table pcp-catq-response-table" style="width:100%; font-size:0.9em;">';
+        $h  = '<table class="wikitable pcp-cati-response-table pcp-catq-response-table pcp-cati-modern-resptable" style="width:100%; font-size:0.9em;">';
         $h .= '<thead><tr><th>#</th><th>Item</th>';
         foreach ( Catq::RESPONSE_LABELS as $v => $lab ) {
             $h .= '<th style="width:4em; text-align:center;" title="' . htmlspecialchars( $lab ) . '">' . $v . '</th>';
@@ -801,8 +858,7 @@ class SpecialMyAssessment extends SpecialPage {
             if ( $isReverse ) $h .= ' <em style="opacity:0.6;">(reverse-keyed)</em>';
             $h .= '</td>';
             foreach ( Catq::RESPONSE_LABELS as $v => $lab ) {
-                $cls = '';
-                if ( !$isUnsure && $picked === $v ) $cls = 'pcp-cati-picked';
+                $cls = ( !$isUnsure && $picked === $v ) ? 'pcp-cati-picked' : '';
                 $h .= '<td style="text-align:center;" class="' . $cls . '">' . $v . '</td>';
             }
             if ( $isUnsure ) {
@@ -811,22 +867,24 @@ class SpecialMyAssessment extends SpecialPage {
             $h .= '</tr>';
         }
         $h .= '</tbody></table>';
-        $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Column headers: 1 = Strongly disagree &middot; 2 = Disagree &middot; 3 = Somewhat disagree &middot; 4 = Neither agree nor disagree &middot; 5 = Somewhat agree &middot; 6 = Agree &middot; 7 = Strongly agree. (Hover any number for the full label.)</p>';
-        $h .= '</div>';
+        $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Column headers: 1 = Strongly disagree, 2 = Disagree, 3 = Somewhat disagree, 4 = Neither agree nor disagree, 5 = Somewhat agree, 6 = Agree, 7 = Strongly agree. Hover any number for the full label.</p>';
         return $h;
     }
 
     private function renderCatqMethodologyBlurb(): string {
-        $h  = '<p>The Camouflaging Autistic Traits Questionnaire (CAT-Q) is a 25-item self-report measure of social camouflaging strategies, developed by Hull, Mandy, Lai and colleagues at University College London. It assesses three factors: <strong>Compensation</strong> (substitutive strategies), <strong>Masking</strong> (active suppression of autistic-typical expression), and <strong>Assimilation</strong> (felt performance / inability to be oneself).</p>';
+        $h  = '<div class="pcp-cati-modern-method">';
+        $h .= '<div class="pcp-cati-modern-method-head">About the CAT-Q</div>';
+        $h .= '<p>The Camouflaging Autistic Traits Questionnaire (CAT-Q) is a 25-item self-report measure of social camouflaging strategies, developed by Hull, Mandy, Lai and colleagues at University College London. It assesses three factors: <strong>Compensation</strong> (substitutive strategies), <strong>Masking</strong> (active suppression of autistic-typical expression), and <strong>Assimilation</strong> (felt performance / inability to be oneself).</p>';
         $h .= '<p>Suggestive cutoffs on this page are drawn from two sources: the original validation paper (<a href="https://doi.org/10.1007/s10803-018-3792-6">Hull et al. 2019, J Autism Dev Disord 49(3):819-833</a>), which reported a Total threshold of ~100 from autistic-sample means; and <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a>, which recalibrated the Total threshold to ~110 plus subscale cutoffs of &ge; 35 (Compensation) and &ge; 40 (Assimilation). Masking has no suggestive cutoff because Hull 2019 found it the least discriminating factor.</p>';
-        $h .= '<p><strong>Important caveat:</strong> Unlike the CATI, the CAT-Q does <em>not</em> have published diagnostic-accuracy figures (sensitivity / specificity / AUC for distinguishing autistic from non-autistic respondents). Cutoffs on this page describe how your scores compare to published reference samples; they do not estimate the probability that you are autistic. The CAT-Q is best read as a measure of <em>self-reported camouflaging</em>, not as a screening test.</p>';
-        $h .= '<p>This report draws presentational ideas from the <a href="https://novopsych.com.au/">NovoPsych</a> auto-scoring report style and the plain-language interpretation style from <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a>.</p>';
+        $h .= '<p><strong>Important caveat:</strong> Unlike the CATI, the CAT-Q does <em>not</em> have published diagnostic-accuracy figures. Cutoffs describe how your scores compare to published reference samples; they do not estimate the probability that you are autistic. The CAT-Q is best read as a measure of <em>self-reported camouflaging</em>, not a screening test.</p>';
+        $h .= '<p>Presentational ideas adapted from <a href="https://novopsych.com.au/">NovoPsych</a> and <a href="https://www.neurodivurgent.health/results">NeurodivUrgent</a>.</p>';
+        $h .= '</div>';
         return $h;
     }
 
     // ===== End CAT-Q report =====
 
-    // ===== PID-5-BF report =====
+    // ===== PID-5-BF report (modernized 2026-05-18) =====
 
     private function renderPid5bfReport( $user ) {
         $out = $this->getOutput();
@@ -834,16 +892,15 @@ class SpecialMyAssessment extends SpecialPage {
         $profile = $store->getOrCreateForUser( $user->getId() );
         $profileId = (int)$profile->prof_id;
 
-        // ---- Load scores + raw responses + meta ----
-        $scores = []; $takenAt = null;
-        foreach ( $store->getFields( $profileId, 'pid5bf', 0 ) as $f ) {
+        $scores = []; $takenAt = null; $vis = 0;
+        foreach ( $store->getFields( $profileId, 'pid5bf', $this->visMin() ) as $f ) {
             $fk = (string)$f->pf_key;
-            if ( $fk === '_vis' )     { continue; }
+            if ( $fk === '_vis' )     { $vis = (int)( $f->pf_value_num ?? 0 ); continue; }
             if ( $fk === 'taken_at' ) { $takenAt = (string)$f->pf_value_text; continue; }
             $scores[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
         }
         $rawByN = [];
-        foreach ( $store->getFields( $profileId, 'pid5bf_raw', 0 ) as $f ) {
+        foreach ( $store->getFields( $profileId, 'pid5bf_raw', $this->visMin() ) as $f ) {
             $k = (string)$f->pf_key;
             if ( strpos( $k, 'item_' ) !== 0 ) continue;
             $rawByN[ (int)substr( $k, 5 ) ] = [
@@ -861,100 +918,111 @@ class SpecialMyAssessment extends SpecialPage {
             return;
         }
 
-        // ---- Title + meta ----
-        $h  = '<div class="pcp-cati-report pcp-pid5bf-report">';
-        $h .= '<p style="opacity:0.75;">';
-        $h .= 'Personality Inventory for DSM-5, Brief Form';
+        $isOwner = $this->isOwner ?? true;
+        $canRaw  = $this->canViewRaw( $store, $profile, 'pid5bf', $isOwner );
+
+        // ---- Header card ----
+        $visIcon = $this->catiVisIcon( $vis );
+        $retakeUrl = SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL();
+
+        $h  = '<div class="pcp-cati-modern">';
+        $h .= '<div class="pcp-cati-modern-head">';
+        $h .= '<div class="pcp-cati-modern-head-text">';
+        $h .= '<span class="pcp-cati-modern-name">PID-5-BF</span>';
+        $h .= '<span class="pcp-cati-modern-full">Personality Inventory for DSM-5, Brief Form</span>';
+        $h .= '</div>';
+        $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
+        $h .= '</div>';
+        $h .= '<div class="pcp-cati-modern-meta">';
+        $h .= '5 maladaptive personality trait domains, 25 items';
         if ( $takenAt ) {
             $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
         }
-        $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#pid5bf-take">Retake</a>';
-        $h .= '</p>';
+        $h .= ' &middot; <a href="' . htmlspecialchars( $retakeUrl ) . '#pid5bf-take">Retake</a>';
+        $h .= '</div>';
 
-        // SECTION 1: Score table
-        $h .= '<h2>PID-5-BF Results</h2>';
-        $h .= $this->renderPid5bfScoreTable( $scores );
+        // ---- SECTION 1: score bars ----
+        $h .= $this->renderPid5bfScoreBars( $scores );
 
-        // SECTION 2: What the scores mean
-        $h .= '<h2>What your scores mean</h2>';
-        $h .= $this->renderPid5bfCutoffSection( $scores );
+        // ---- SECTION 2: cutoff pill chips (per-domain summary) ----
+        $h .= $this->renderPid5bfCutoffChips( $scores );
 
-        // SECTION 3: Per-subscale narratives
-        $h .= '<h2>Domain interpretation</h2>';
+        // ---- SECTION 3: collapsible domain narratives ----
         $h .= $this->renderPid5bfSubscaleNarratives( $scores );
 
-        // SECTION 4 + 5 gated by raw-responses visibility
-        $canRaw = $this->canViewRaw( $store, $profile, 'pid5bf', $this->isOwner ?? true );
-        $h .= '<h2>Top-scoring items per domain</h2>';
+        // ---- SECTION 4: top items per domain (gated) ----
+        $h .= '<h3 class="pcp-cati-modern-h">Top-scoring items per domain</h3>';
         if ( $canRaw ) {
-            $h .= '<p style="opacity:0.75; margin-top:-0.3em;">Within each domain, the items you endorsed most strongly. PID-5-BF has no reverse-keyed items, so a high rating directly indicates higher trait expression.</p>';
+            $h .= '<p class="pcp-cati-modern-help">Within each domain, the items you endorsed most strongly. PID-5-BF has no reverse-keyed items, so a high rating directly indicates higher trait expression.</p>';
             $h .= $this->renderPid5bfTopItemsPerSubscale( $rawByN );
         } else {
             $h .= $this->renderRawPrivate();
         }
 
-        // SECTION 5: Full response table (also gated)
-        $h .= '<h2>All 25 responses</h2>';
+        // ---- SECTION 5: full 25-item response table (gated, collapsed) ----
         if ( $canRaw ) {
+            $h .= '<details class="pcp-cati-modern-responses"><summary><strong>Show all 25 responses</strong></summary>';
             $h .= $this->renderPid5bfResponseTable( $rawByN );
+            $h .= '</details>';
         } else {
+            $h .= '<h3 class="pcp-cati-modern-h">All 25 responses</h3>';
             $h .= $this->renderRawPrivate();
         }
 
-        // SECTION 6: Methodology
-        $h .= '<h2>About the PID-5-BF</h2>';
+        // ---- SECTION 6: methodology dark card ----
         $h .= $this->renderPid5bfMethodologyBlurb();
 
-        $h .= '</div>';
+        $h .= '</div>'; // /pcp-cati-modern
         $out->addHTML( $h );
     }
 
-    private function renderPid5bfScoreTable( array $scores ): string {
+    /** Score bars: Total + 5 domains, each on the 0..3 mean scale. */
+    private function renderPid5bfScoreBars( array $scores ): string {
         $rows = [
-            [ 'total',        'Total (mean of all 25 items)' ],
-            [ 'subscale_NA',  'Negative Affectivity' ],
-            [ 'subscale_DET', 'Detachment' ],
-            [ 'subscale_ANT', 'Antagonism' ],
-            [ 'subscale_DIS', 'Disinhibition' ],
-            [ 'subscale_PSY', 'Psychoticism' ],
+            [ 'total',        'Total (mean of all 25)'  ],
+            [ 'subscale_NA',  'Negative Affectivity'   ],
+            [ 'subscale_DET', 'Detachment'             ],
+            [ 'subscale_ANT', 'Antagonism'             ],
+            [ 'subscale_DIS', 'Disinhibition'          ],
+            [ 'subscale_PSY', 'Psychoticism'           ],
         ];
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-scores pcp-pid5bf-scores">';
-        $h .= '<thead><tr>'
-            . '<th>Domain (range 0.0&ndash;3.0)</th>'
-            . '<th>Score</th>'
-            . '<th>Suggestive cutoff<br>(Krueger 2013)</th>'
-            . '<th>Above cutoff?</th>'
-            . '</tr></thead><tbody>';
+        $h  = '<div class="pcp-cati-modern-bars">';
         foreach ( $rows as [ $key, $label ] ) {
             $score = isset( $scores[ $key ] ) ? (float)$scores[ $key ] : null;
-            $h .= '<tr>';
-            $h .= '<th style="text-align:left;">' . htmlspecialchars( $label ) . '</th>';
             if ( $score === null ) {
-                $h .= '<td colspan="3" style="opacity:0.5;">incomplete</td></tr>';
+                $h .= '<div class="pcp-cati-modern-row pcp-cati-modern-row-incomplete">'
+                    . '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>'
+                    . '<span class="pcp-cati-modern-row-incomplete-msg">incomplete</span>'
+                    . '</div>';
                 continue;
             }
-            $h .= '<td style="text-align:center; font-weight:bold;">' . number_format( $score, 2 ) . '</td>';
-            $h .= '<td style="text-align:center;">&ge; 2.0</td>';
-            $exceeds = Pid5bfNorms::exceedsCutoff( $score );
+            // Bar percentage on 0..3 mean scale.
+            $pct = max( 0.0, min( 100.0, ( $score / 3.0 ) * 100.0 ) );
+            $scoreStr = number_format( $score, 2 );
+            $exceeds = $score >= Pid5bfNorms::CUTOFF_MEAN;
+
+            $h .= '<div class="pcp-cati-modern-row">';
+            $h .= '<div class="pcp-cati-modern-row-main">';
+            $h .= '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>';
+            $h .= '<span class="pcp-up-ocean-bar"><span class="pcp-up-ocean-fill" style="width:' . number_format( $pct, 2 ) . '%"></span></span>';
+            $h .= '<span class="pcp-cati-modern-row-val">' . htmlspecialchars( $scoreStr ) . ' <span class="pcp-cati-modern-row-of">/ 3.00</span></span>';
+            $h .= '</div>';
+            $h .= '<div class="pcp-cati-modern-row-meta">';
             if ( $exceeds ) {
-                $h .= '<td style="text-align:center;" class="pcp-cati-pronounced">above</td>';
+                $h .= '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-pronounced">elevated (&ge; 2.0)</span>';
             } else {
-                $h .= '<td style="text-align:center;">below</td>';
+                $h .= '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-below">below cutoff</span>';
             }
-            $h .= '</tr>';
+            $h .= '</div>';
+            $h .= '</div>';
         }
-        $h .= '</tbody></table>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption">Each item rated 0&ndash;3; per-domain score is the mean of its 5 items (range 0.0 to 3.0). The total is the mean across all 25 items. Cutoff (&ge; 2.0) is the APA reporting threshold for elevated trait expression.</p>';
         return $h;
     }
 
-    private function renderPid5bfCutoffSection( array $scores ): string {
-        $total = isset( $scores['total'] ) ? (float)$scores['total'] : null;
-        $h  = '<div class="pcp-cati-cutoff-box">';
-        if ( $total !== null ) {
-            $h .= '<p>Your overall mean score across all 25 items: <strong>' . number_format( $total, 2 ) . ' / 3.00</strong>.</p>';
-        }
+    /** Pill chips summarizing which domains crossed the elevated threshold. */
+    private function renderPid5bfCutoffChips( array $scores ): string {
         $elevated = [];
         foreach ( Pid5bf::SUBSCALES as $sk => $def ) {
             $v = $scores[ 'subscale_' . $sk ] ?? null;
@@ -962,50 +1030,44 @@ class SpecialMyAssessment extends SpecialPage {
                 $elevated[] = $def['label'];
             }
         }
+        $h  = '<div class="pcp-cati-modern-cutoffs">';
+        $h .= '<span class="pcp-cati-modern-cutoffs-label">Elevated domains:</span>';
         if ( $elevated ) {
-            $h .= '<p>Domains at or above the suggestive cutoff (mean &ge; 2.0): <strong style="color:#7c3aed;">'
-                . htmlspecialchars( implode( ', ', $elevated ) ) . '</strong>.</p>';
+            foreach ( $elevated as $name ) {
+                $h .= '<span class="pcp-up-above" title="Mean &ge; 2.0 on this domain (APA reporting threshold)">' . htmlspecialchars( $name ) . '</span>';
+            }
         } else {
-            $h .= '<p>No domain reached the suggestive cutoff (mean &ge; 2.0).</p>';
+            $h .= '<span class="pcp-up-below">no domain reached &ge; 2.0</span>';
         }
-        $h .= '<p><em>The PID-5-BF is not a diagnostic instrument.</em> The brief form was developed as a quick personality-pathology screener, not as a stand-alone diagnostic tool. There is <strong>no published sensitivity/specificity data</strong> for the brief form against a personality-disorder ground truth. The "&ge; 2.0" reference is the APA reporting threshold for "elevated" expression on a domain; it does not estimate the probability of a personality-disorder diagnosis.</p>';
-        $h .= '<details><summary>How to read these numbers</summary>';
-        $h .= '<p>Each item is rated 0&ndash;3. Domain scores are the mean of their five items (so 0.0 to 3.0). The total is the mean across all 25 items.</p>';
-        $h .= '<p>The 5 domains roughly correspond to maladaptive variants of the Big Five:</p>';
-        $h .= '<ul>';
-        $h .= '<li><strong>Negative Affectivity</strong>: maladaptive high Neuroticism</li>';
-        $h .= '<li><strong>Detachment</strong>: maladaptive low Extraversion</li>';
-        $h .= '<li><strong>Antagonism</strong>: maladaptive low Agreeableness</li>';
-        $h .= '<li><strong>Disinhibition</strong>: maladaptive low Conscientiousness</li>';
-        $h .= '<li><strong>Psychoticism</strong>: a separate dimension capturing unusual perceptions and beliefs (open to debate whether it is maladaptive high Openness or distinct).</li>';
-        $h .= '</ul>';
-        $h .= '<p>The PID-5-BF is keyed to the DSM-5 Section III Alternative Model of Personality Disorders and the ICD-11 PD trait model. Both frameworks are dimensional rather than categorical: they treat personality pathology as a position on continuous traits, not as a yes/no diagnosis.</p>';
-        $h .= '</details>';
         $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption pcp-cati-modern-caption-note"><em>The PID-5-BF is not a diagnostic instrument. The brief form was developed as a quick personality-pathology screener, not as a stand-alone diagnostic tool. There is no published sensitivity / specificity data for the brief form against a personality-disorder ground truth. The &ge; 2.0 threshold is the APA reporting threshold for &ldquo;elevated&rdquo; expression on a domain; it does not estimate the probability of a personality-disorder diagnosis.</em></p>';
         return $h;
     }
 
+    /** Collapsible domain narratives. */
     private function renderPid5bfSubscaleNarratives( array $scores ): string {
-        $h = '<dl class="pcp-cati-subscale-list">';
+        $h  = '<h3 class="pcp-cati-modern-h">Domain interpretation</h3>';
+        $h .= '<div class="pcp-cati-modern-narratives">';
         foreach ( Pid5bfNorms::SUBSCALE_BLURBS as $code => [ $name, $blurb ] ) {
             $key = 'subscale_' . $code;
             if ( !isset( $scores[ $key ] ) || $scores[ $key ] === null ) continue;
             $s = (float)$scores[ $key ];
-            $exceeds = Pid5bfNorms::exceedsCutoff( $s );
-            $h .= '<dt><strong>' . htmlspecialchars( $name ) . '</strong>, ' . number_format( $s, 2 ) . ' / 3.00';
-            if ( $exceeds ) {
-                $h .= ' &middot; <span class="pcp-cati-pronounced" style="padding:0 0.4em;">above cutoff</span>';
-            } else {
-                $h .= ' &middot; <span style="opacity:0.7;">below cutoff</span>';
-            }
-            $h .= '</dt><dd>' . htmlspecialchars( $blurb ) . '</dd>';
+            $exceeds = $s >= Pid5bfNorms::CUTOFF_MEAN;
+            $h .= '<details class="pcp-cati-modern-narrative"><summary>';
+            $h .= '<strong>' . htmlspecialchars( $name ) . '</strong> ';
+            $h .= '<span class="pcp-cati-modern-narrative-meta">' . number_format( $s, 2 ) . ' / 3.00';
+            $h .= ' &middot; ' . ( $exceeds ? 'elevated' : 'below cutoff' );
+            $h .= '</span></summary>';
+            $h .= '<p>' . htmlspecialchars( $blurb ) . '</p>';
+            $h .= '</details>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
+    /** Top-scoring items per domain, modern dark cards. */
     private function renderPid5bfTopItemsPerSubscale( array $rawByN ): string {
-        $h = '<dl class="pcp-cati-top-items">';
+        $h = '<div class="pcp-cati-modern-topitems">';
         foreach ( Pid5bf::SUBSCALES as $code => $def ) {
             $name = $def['label'];
             $items = $def['items'];
@@ -1019,17 +1081,23 @@ class SpecialMyAssessment extends SpecialPage {
             arsort( $byScore );
             $top = array_slice( $byScore, 0, 4, true );
             if ( !$top ) continue;
-            $h .= '<dt>' . htmlspecialchars( $name ) . '</dt><dd><ul class="pcp-cati-top-items-list">';
+            $h .= '<div class="pcp-cati-modern-topcard">';
+            $h .= '<div class="pcp-cati-modern-topcard-head">' . htmlspecialchars( $name ) . '</div>';
+            $h .= '<ul class="pcp-cati-modern-topcard-list">';
             foreach ( $top as $n => $score ) {
                 $itemText = Pid5bf::ITEMS[ $n ] ?? ('(item ' . $n . ')');
                 $rawLabel = $this->labelForRawPid5bf( $score );
-                $h .= '<li><strong>' . $n . '.</strong> ' . htmlspecialchars( $itemText )
-                    . ' <span class="pcp-cati-top-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
-                    . ' &middot; <strong>' . (int)round( $score ) . '/3</strong></span></li>';
+                $h .= '<li>';
+                $h .= '<span class="pcp-cati-modern-topcard-item-n">' . $n . '.</span> ';
+                $h .= htmlspecialchars( $itemText );
+                $h .= ' <span class="pcp-cati-modern-topcard-item-meta">you answered <em>' . htmlspecialchars( $rawLabel ) . '</em>'
+                    . ' &middot; <strong>' . (int)round( $score ) . '/3</strong></span>';
+                $h .= '</li>';
             }
-            $h .= '</ul></dd>';
+            $h .= '</ul>';
+            $h .= '</div>';
         }
-        $h .= '</dl>';
+        $h .= '</div>';
         return $h;
     }
 
@@ -1045,8 +1113,7 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     private function renderPid5bfResponseTable( array $rawByN ): string {
-        $h  = '<div class="pcp-cati-scores-wrap">';
-        $h .= '<table class="wikitable pcp-cati-response-table pcp-pid5bf-response-table" style="width:100%; font-size:0.9em;">';
+        $h  = '<table class="wikitable pcp-cati-response-table pcp-pid5bf-response-table pcp-cati-modern-resptable" style="width:100%; font-size:0.9em;">';
         $h .= '<thead><tr><th>#</th><th>Item</th>';
         foreach ( Pid5bf::RESPONSE_LABELS as $v => $lab ) {
             $h .= '<th style="width:6em; text-align:center;" title="' . htmlspecialchars( $lab ) . '">' . $v . '</th>';
@@ -1072,16 +1139,18 @@ class SpecialMyAssessment extends SpecialPage {
             $h .= '</tr>';
         }
         $h .= '</tbody></table>';
-        $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Column headers: 0 = Very false or often false &middot; 1 = Sometimes or somewhat false &middot; 2 = Sometimes or somewhat true &middot; 3 = Very true or often true.</p>';
-        $h .= '</div>';
+        $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Column headers: 0 = Very false or often false, 1 = Sometimes or somewhat false, 2 = Sometimes or somewhat true, 3 = Very true or often true.</p>';
         return $h;
     }
 
     private function renderPid5bfMethodologyBlurb(): string {
-        $h  = '<p>The Personality Inventory for DSM-5, Brief Form (PID-5-BF) is a 25-item self-report measure of maladaptive personality traits, developed by Krueger, Derringer, Markon, Watson, and Skodol (2013). It is keyed to the DSM-5 Section III Alternative Model of Personality Disorders and the ICD-11 dimensional trait model.</p>';
-        $h .= '<p>The brief form measures five trait domains: Negative Affectivity, Detachment, Antagonism, Disinhibition, and Psychoticism. Each domain is measured by five items rated 0&ndash;3, yielding a domain mean in the 0&ndash;3 range.</p>';
-        $h .= '<p>The "elevated" cutoff used on this page (mean &ge; 2.0) is the threshold APA proposes in the brief form\'s scoring guidance for flagging a domain as worth clinical attention. It is descriptive rather than diagnostic: <strong>no published sensitivity/specificity data exists for the brief form against a personality-disorder ground truth</strong>. The full PID-5 (220 items) has more validation work; the brief form was designed as a quick screen, not a stand-alone test.</p>';
+        $h  = '<div class="pcp-cati-modern-method">';
+        $h .= '<div class="pcp-cati-modern-method-head">About the PID-5-BF</div>';
+        $h .= '<p>The Personality Inventory for DSM-5, Brief Form (PID-5-BF) is a 25-item self-report measure of maladaptive personality traits, developed by Krueger, Derringer, Markon, Watson, and Skodol (2013). It is keyed to the DSM-5 Section III Alternative Model of Personality Disorders and the ICD-11 dimensional trait model.</p>';
+        $h .= '<p>The brief form measures five trait domains: <strong>Negative Affectivity</strong>, <strong>Detachment</strong>, <strong>Antagonism</strong>, <strong>Disinhibition</strong>, and <strong>Psychoticism</strong>. Each domain is measured by five items rated 0&ndash;3, yielding a domain mean in the 0&ndash;3 range. The five domains roughly correspond to maladaptive variants of the Big Five: Negative Affectivity / high Neuroticism, Detachment / low Extraversion, Antagonism / low Agreeableness, Disinhibition / low Conscientiousness, and Psychoticism (a separate dimension capturing unusual perceptions and beliefs).</p>';
+        $h .= '<p>The &ge; 2.0 cutoff used on this page is the APA reporting threshold from the brief form\'s scoring guidance for flagging a domain as worth clinical attention. It is descriptive rather than diagnostic: <strong>no published sensitivity / specificity data exists for the brief form against a personality-disorder ground truth</strong>. The full PID-5 (220 items) has more validation work; the brief form was designed as a quick screen, not a stand-alone test.</p>';
         $h .= '<p>Original development paper: <a href="https://doi.org/10.1037/per0000002">Krueger et al. 2013, Personality Disorders: Theory, Research, and Treatment, 4(3), 264-269</a>. The instrument is in the public domain; APA distributes the official scoring sheet at <a href="https://www.psychiatry.org/psychiatrists/practice/dsm/educational-resources/assessment-measures">psychiatry.org / Online Assessment Measures</a>.</p>';
+        $h .= '</div>';
         return $h;
     }
 

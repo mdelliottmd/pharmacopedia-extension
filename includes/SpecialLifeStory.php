@@ -158,7 +158,7 @@ class SpecialLifeStory extends SpecialPage {
             $out .= '</div>';
             return $out;
         }
-        $typeLabel = [ 0=>'story', 1=>'image', 2=>'keyframe' ][ (int)$event->le_type ] ?? 'story';
+        $typeLabel = [ 0=>'story', 1=>'event', 2=>'keyframe', 3=>'observation', 4=>'episode' ][ (int)$event->le_type ] ?? 'story';
         $visIcon   = [ 0=>'🔒', 1=>'👁', 2=>'🆔', 3=>'🎭' ][ (int)$event->le_visibility ] ?? '🔒';
 
         // Prefer structured payload when present, fall back to legacy columns

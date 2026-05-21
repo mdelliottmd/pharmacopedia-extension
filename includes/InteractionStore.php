@@ -4,11 +4,20 @@ namespace MediaWiki\Extension\Pharmacopedia;
 use MediaWiki\MediaWikiServices;
 
 class InteractionStore {
+    use InteractionFlagTrait;
+
     const PERSPECTIVE_USER     = 1;
     const PERSPECTIVE_PROVIDER = 2;
 
-    const TYPE_MEDICINE = 'medicine';
-    const TYPE_CATEGORY = 'category';
+    const TYPE_MEDICINE    = 'medicine';
+    const TYPE_CATEGORY    = 'category';
+    const TYPE_ENZYME      = 'enzyme';
+    const TYPE_TRANSPORTER = 'transporter';
+    const TYPE_PHENOTYPE   = 'phenotype';
+    const TYPE_VARIANT     = 'variant';
+
+    /** Canonical placeholder when no relationship is specified (legacy rows). */
+    const REL_UNSPECIFIED = 'unspecified';
 
     /** Severity threshold for vmean (matches the effects bucket). */
     const SEVERE_VMEAN = -83.0;  // rescaled 2026-05-17 with valence widening (was -2.5 on -3..+3 scale)
@@ -20,17 +29,39 @@ class InteractionStore {
         return MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
     }
 
-    /** Page-title style: trim, collapse spaces, MW underscore convention. */
-    public static function normalizeSlug( $s ) {
+    /**
+     * Canonicalize a slug. Behavior depends on type so each endpoint
+     * namespace uses its idiomatic casing convention:
+     *   medicine / category  -> MW NS_MAIN page-title style (first-letter cap)
+     *   enzyme / transporter -> uppercase canonical gene/protein symbol (CYP2D6)
+     *   phenotype / variant  -> preserved as-given (cyp2d6_pm, hla-b_5701)
+     * The legacy 1-arg signature continues to behave as before so existing
+     * callers (manage-interactions UI, add-pair API) are unaffected.
+     */
+    public static function normalizeSlug( $s, $type = null ) {
         $s = trim( (string)$s );
         $s = preg_replace( '/\s+/u', '_', $s );
-        // MW page-title case sensitivity: first letter capitalized for NS_MAIN / NS_CATEGORY.
         if ( $s === '' ) { return ''; }
+        if ( $type === self::TYPE_ENZYME || $type === self::TYPE_TRANSPORTER ) {
+            return strtoupper( $s );
+        }
+        if ( $type === self::TYPE_PHENOTYPE || $type === self::TYPE_VARIANT ) {
+            // Lower-case the gene-symbol portion of phenotype slugs (cyp2d6_pm)
+            // but preserve the full token's existing capitalization for variant
+            // slugs that may carry star-allele asterisks etc.
+            if ( $type === self::TYPE_PHENOTYPE ) return strtolower( $s );
+            return $s;
+        }
         return mb_strtoupper( mb_substr( $s, 0, 1 ) ) . mb_substr( $s, 1 );
     }
 
     public static function isValidType( $t ) {
-        return $t === self::TYPE_MEDICINE || $t === self::TYPE_CATEGORY;
+        return $t === self::TYPE_MEDICINE
+            || $t === self::TYPE_CATEGORY
+            || $t === self::TYPE_ENZYME
+            || $t === self::TYPE_TRANSPORTER
+            || $t === self::TYPE_PHENOTYPE
+            || $t === self::TYPE_VARIANT;
     }
 
     /**
@@ -41,8 +72,8 @@ class InteractionStore {
         if ( !self::isValidType( $aType ) || !self::isValidType( $bType ) ) {
             return null;
         }
-        $aSlug = self::normalizeSlug( $aSlug );
-        $bSlug = self::normalizeSlug( $bSlug );
+        $aSlug = self::normalizeSlug( $aSlug, $aType );
+        $bSlug = self::normalizeSlug( $bSlug, $bType );
         if ( $aSlug === '' || $bSlug === '' ) { return null; }
         if ( $aType === $bType && $aSlug === $bSlug ) { return null; }
         $cmp = strcmp( $aType, $bType );
@@ -53,59 +84,144 @@ class InteractionStore {
         return [ $aType, $aSlug, $bType, $bSlug ];
     }
 
-    /** Slug used on pcp_votable_elements.ve_slug. */
-    public static function elementSlugFor( $lt, $ls, $rt, $rs ) {
-        return 'pcp-interaction:' . $lt . ':' . strtolower( $ls ) . '::' . $rt . ':' . strtolower( $rs );
+    /**
+     * Slug used on pcp_votable_elements.ve_slug. Multi-edge pairs (same two
+     * endpoints, different relationships) get distinct slugs by appending
+     * the relationship; legacy 'unspecified' edges keep the original slug
+     * for back-compat with existing votable_element rows.
+     */
+    public static function elementSlugFor( $lt, $ls, $rt, $rs, $rel = self::REL_UNSPECIFIED ) {
+        $base = 'pcp-interaction:' . $lt . ':' . strtolower( $ls )
+              . '::' . $rt . ':' . strtolower( $rs );
+        if ( $rel === self::REL_UNSPECIFIED || $rel === '' ) return $base;
+        return $base . '::' . strtolower( $rel );
     }
-    /** Human-readable label, ascii arrow. */
-    public static function pairLabel( $lt, $ls, $rt, $rs ) {
+    /** Human-readable label, ascii arrow + namespace prefix. */
+    public static function pairLabel( $lt, $ls, $rt, $rs, $rel = self::REL_UNSPECIFIED ) {
         $disp = function ( $t, $s ) {
             $name = str_replace( '_', ' ', $s );
-            return $t === self::TYPE_CATEGORY ? 'Category:' . $name : $name;
+            switch ( $t ) {
+                case self::TYPE_CATEGORY:    return 'Category:' . $name;
+                case self::TYPE_ENZYME:      return 'Enzyme:' . $name;
+                case self::TYPE_TRANSPORTER: return 'Transporter:' . $name;
+                case self::TYPE_PHENOTYPE:   return 'Phenotype:' . $name;
+                case self::TYPE_VARIANT:     return 'Variant:' . $name;
+                default:                     return $name;
+            }
         };
-        return $disp( $lt, $ls ) . ' <-> ' . $disp( $rt, $rs );
+        $label = $disp( $lt, $ls ) . ' <-> ' . $disp( $rt, $rs );
+        if ( $rel !== self::REL_UNSPECIFIED && $rel !== '' ) $label .= ' (' . $rel . ')';
+        return $label;
     }
 
     /**
      * Find or create the interaction (and its backing votable element).
      * Returns the pcp_interactions row.
+     *
+     * $opts (all optional) drives Phase-1 pharmacogenomics metadata:
+     *   - relationship  string  one of the vocabulary slugs (substrate_major,
+     *                           inhibitor_strong, pk_via_CYP2D6, avoid, ...);
+     *                           defaults to 'unspecified' for legacy edges
+     *   - intensity     int     0..100 strength scalar
+     *   - evidence      string  cpic_A / cpic_strong / fda_box / derived / ...
+     *   - mechanism     string  freeform prose; truncated to 255 chars
+     *   - kinetics      string  reversible_competitive / mechanism_based / ...
+     *
+     * When the row already exists, supplied metadata fields are applied as an
+     * upsert (overwriting differing values; leaves null-supplied fields alone).
      */
-    public function getOrCreate( $aType, $aSlug, $bType, $bSlug, $userId ) {
+    public function getOrCreate( $aType, $aSlug, $bType, $bSlug, $userId, array $opts = [] ) {
         $pair = self::normalizePair( $aType, $aSlug, $bType, $bSlug );
         if ( !$pair ) { return null; }
         [ $lt, $ls, $rt, $rs ] = $pair;
+        $rel = isset( $opts['relationship'] ) && $opts['relationship'] !== ''
+            ? (string)$opts['relationship']
+            : self::REL_UNSPECIFIED;
         $dbw = $this->dbw();
         $row = $dbw->selectRow(
             'pcp_interactions', '*',
             [ 'pi_left_type' => $lt, 'pi_left_slug' => $ls,
-              'pi_right_type' => $rt, 'pi_right_slug' => $rs ],
+              'pi_right_type' => $rt, 'pi_right_slug' => $rs,
+              'pi_relationship' => $rel ],
             __METHOD__
         );
-        if ( $row ) { return $row; }
+        if ( $row ) {
+            $this->maybeUpdateMetadata( $row, $opts );
+            return $this->getById( (int)$row->pi_id );
+        }
 
         // Create the backing votable element (page_id = 0 means "global, not page-bound").
-        $elementSlug = self::elementSlugFor( $lt, $ls, $rt, $rs );
+        $elementSlug = self::elementSlugFor( $lt, $ls, $rt, $rs, $rel );
         $element = ( new ElementStore() )->getOrCreate(
-            0, $elementSlug, 'interaction', self::pairLabel( $lt, $ls, $rt, $rs )
+            0, $elementSlug, 'interaction', self::pairLabel( $lt, $ls, $rt, $rs, $rel )
         );
         if ( !$element ) { return null; }
 
-        $dbw->insert( 'pcp_interactions', [
+        $fields = [
             'pi_element_id'      => (int)$element->ve_id,
             'pi_left_type'       => $lt,
             'pi_left_slug'       => $ls,
             'pi_right_type'      => $rt,
             'pi_right_slug'      => $rs,
+            'pi_relationship'    => $rel,
             'pi_created_user_id' => (int)$userId,
             'pi_created'         => $dbw->timestamp(),
-        ], __METHOD__, [ 'IGNORE' ] );
+        ];
+        // Provenance: stamp the source ingest run on insert only. Immutable
+        // after creation — maybeUpdateMetadata() never touches pi_ingestion_id.
+        if ( isset( $opts['ingestion_id'] ) && (int)$opts['ingestion_id'] > 0 ) {
+            $fields['pi_ingestion_id'] = (int)$opts['ingestion_id'];
+        }
+        if ( isset( $opts['intensity'] ) && $opts['intensity'] !== null ) {
+            $fields['pi_intensity'] = max( 0, min( 100, (int)$opts['intensity'] ) );
+        }
+        if ( isset( $opts['evidence'] ) && $opts['evidence'] !== '' ) {
+            $fields['pi_evidence'] = (string)$opts['evidence'];
+        }
+        if ( isset( $opts['mechanism'] ) && $opts['mechanism'] !== '' ) {
+            $fields['pi_mechanism'] = mb_substr( (string)$opts['mechanism'], 0, 2048 );
+        }
+        if ( isset( $opts['kinetics'] ) && $opts['kinetics'] !== '' ) {
+            $fields['pi_kinetics'] = (string)$opts['kinetics'];
+        }
+
+        $dbw->insert( 'pcp_interactions', $fields, __METHOD__, [ 'IGNORE' ] );
 
         return $dbw->selectRow(
             'pcp_interactions', '*',
             [ 'pi_left_type' => $lt, 'pi_left_slug' => $ls,
-              'pi_right_type' => $rt, 'pi_right_slug' => $rs ],
+              'pi_right_type' => $rt, 'pi_right_slug' => $rs,
+              'pi_relationship' => $rel ],
             __METHOD__
         );
+    }
+
+    /**
+     * Apply non-empty $opts metadata onto an existing row.
+     * Returns true if any column actually changed.
+     */
+    private function maybeUpdateMetadata( $row, array $opts ): bool {
+        $set = [];
+        if ( isset( $opts['intensity'] ) && $opts['intensity'] !== null ) {
+            $v = max( 0, min( 100, (int)$opts['intensity'] ) );
+            if ( (int)( $row->pi_intensity ?? -1 ) !== $v ) $set['pi_intensity'] = $v;
+        }
+        if ( isset( $opts['evidence'] ) && $opts['evidence'] !== '' ) {
+            $v = (string)$opts['evidence'];
+            if ( (string)( $row->pi_evidence ?? '' ) !== $v ) $set['pi_evidence'] = $v;
+        }
+        if ( isset( $opts['mechanism'] ) && $opts['mechanism'] !== '' ) {
+            $v = mb_substr( (string)$opts['mechanism'], 0, 2048 );
+            if ( (string)( $row->pi_mechanism ?? '' ) !== $v ) $set['pi_mechanism'] = $v;
+        }
+        if ( isset( $opts['kinetics'] ) && $opts['kinetics'] !== '' ) {
+            $v = (string)$opts['kinetics'];
+            if ( (string)( $row->pi_kinetics ?? '' ) !== $v ) $set['pi_kinetics'] = $v;
+        }
+        if ( !$set ) return false;
+        $this->dbw()->update( 'pcp_interactions', $set,
+            [ 'pi_id' => (int)$row->pi_id ], __METHOD__ );
+        return true;
     }
 
     /** No-create lookup; returns the row or null. Args MUST be pre-normalized. */

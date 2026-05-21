@@ -1,3 +1,339 @@
+/* ===== Self-hosted web fonts, Pharmaceutical C/Specimen redesign =====
+   Geist (UI, body, labels, data) and Newsreader (display, headings,
+   prose). Self-hosted from resources/fonts/; no external request,
+   CSP font-src 'self' compatible. Subset and weight coverage reused
+   from the Google webfont CSS, url() paths repointed at the
+   extension's own resources/fonts/. Newsreader is bundled now and
+   applied per-element by later redesign phases.
+   ============================================================ */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwcGFU.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwcGFU.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwcGFU.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/geist/v5/gyByhwUxId8gMEwcGFU.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbCJYQraA.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbDJYQraA.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbNJYQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbCJYQraA.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbDJYQraA.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbNJYQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbCJYQraA.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbDJYQraA.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLac06G1ZGsZBtoBAbNJYQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ===== Palette tokens, Pharmaceutical C/Specimen redesign =====
+   designer-claude C/Specimen redesign, 2026-05-20. Phase A re-points
+   the --pharma-* token values and adds the new redesign tokens. Token
+   NAMES persist: the existing component CSS and the component families
+   keep resolving. Legacy names the redesign renamed are kept here as
+   aliases onto the new tokens, retired as phases B to F migrate each
+   surface. Source of truth: DESIGN_TOKENS.md, C/Specimen section.
+   ========================================================== */
+
+:root {
+    /* --- C/Specimen redesign palette (new canonical tokens) --- */
+    --pharma-bg:               #0e0d0f;
+    --pharma-bg-2:             #131216;
+    --pharma-bg-3:             #18171c;
+    --pharma-ink:              #ece9f2;
+    --pharma-ink-dim:          #a29eae;
+    --pharma-ink-mute:         #94909c;
+    --pharma-violet:           #8b5cf6;
+    --pharma-violet-bright:    #a78bfa;
+    --pharma-violet-ink:       #b9a4f0;
+    --pharma-line:             #232230;
+    --pharma-line-faint:       #1a1922;
+    --pharma-ch-summary:       #5b7fc7;
+    --pharma-ch-pharmacy:      #57a065;
+    --pharma-ch-pharmacology:  #9b7ae0;
+    --pharma-tier-boxed:       #c25a52;
+    --pharma-tier-strong:      #c7884a;
+    --pharma-tier-primary:     #8b5cf6;
+    --pharma-tier-derived:     #6c6877;
+
+    /* --- Legacy aliases. Retire as phases B to F migrate surfaces. --- */
+    --pharma-violet-soft:      var(--pharma-violet-bright);
+    --pharma-violet-light:     var(--pharma-violet-bright);
+    --pharma-violet-banner:    var(--pharma-violet-bright);
+    --pharma-violet-mid:       #5d3b8e;
+    --pharma-text:             var(--pharma-ink);
+    --pharma-bone:             var(--pharma-ink);
+    --pharma-text-mute:        var(--pharma-ink-dim);
+    --pharma-lichen:           var(--pharma-ink-mute);
+    --pharma-surface:          var(--pharma-bg-2);
+    --pharma-surface-2:        var(--pharma-bg-3);
+    --pharma-bg-deep:          #000;
+    --pharma-rule:             var(--pharma-line);
+    --pharma-ring:             var(--pharma-line);
+    --pharma-track:            var(--pharma-line-faint);
+    --pharma-teal:             var(--pharma-violet-ink);
+    --pharma-info:             var(--pharma-violet-ink);
+    --pharma-danger:           var(--pharma-tier-boxed);
+    --pharma-tier1-red:        var(--pharma-tier-boxed);
+    --pharma-tier1-deep:       var(--pharma-tier-boxed);
+    --pharma-blue:             var(--pharma-ch-summary);
+    --pharma-green:            var(--pharma-ch-pharmacy);
+    --pharma-amber:            var(--pharma-tier-strong);
+    --pharma-custom-accent:    var(--pharma-tier-strong);
+}
+
+/* C/Specimen base font. Geist is the default body face for the pharma
+   skin. Scoped :not(.pcp-skin-plants) so the plants overlay keeps its
+   own body font (Inter, set in the plants skin module). Headings stay
+   on the current face until the chrome and page phases land. */
+body:not(.pcp-skin-plants) {
+    font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.pcp-skin-plants {
+    /* Plants palette overrides (botanical / field-guide register).
+       Triggered by category-chain resolution to Category:Plant via
+       the BeforePageDisplay hook (interface-claude's lane). */
+    --pharma-violet-soft:    #8eb070;   /* fern */
+    --pharma-violet:         #6a8a52;   /* moss; brand primary */
+    --pharma-surface:        #221610;   /* bark */
+    --pharma-rule:           rgba(212, 197, 168, 0.08);
+    --pharma-text:           #d4c5a8;   /* bone */
+    --pharma-violet-mid:     #4a3a2a;   /* darker bark */
+    --pharma-text-mute:      #a8927a;   /* bone-dim */
+    --pharma-violet-banner:  #b67a44;   /* amber */
+    --pharma-tier1-deep:     #7a3a22;   /* rust */
+    --pharma-teal:           #6a8a52;   /* moss (link) */
+    --pharma-surface-2:      #1c1714;   /* alt bark */
+    --pharma-danger:         #7a3a22;   /* rust */
+    --pharma-lichen:         #7a6650;   /* lichen */
+    --pharma-ring:           rgba(212, 197, 168, 0.16);
+    --pharma-track:          #2e1f15;   /* bark-raised */
+    --pharma-info:           #6a8a52;   /* moss */
+    --pharma-bone:           #d4c5a8;   /* bone */
+    --pharma-tier1-red:      #7a3a22;   /* rust */
+    --pharma-violet-light:   #8eb070;   /* fern */
+    --pharma-blue:           #6a8a52;   /* moss */
+    --pharma-green:          #6a8a52;   /* moss */
+    --pharma-bg:             #110a05;   /* loam */
+    --pharma-bg-deep:        #08050300; /* void */
+    --pharma-amber:          #b67a44;
+    --pharma-custom-accent:  #b67a44;   /* same as amber on plants */
+}
+
 /* ===== <vote> binary widget ===== */
 .pcp-vote { display: inline; }
 .pcp-vote-controls {
@@ -56,7 +392,7 @@
 .pcp-effect-pct { font-weight: 600; }
 .pcp-effect-vmean { color: #6366f1; font-variant-numeric: tabular-nums; }
 .pcp-effect-n { opacity: 0.7; }
-.pcp-effect-noreports { font-style: italic; opacity: 0.6; }
+.pcp-effect-noreports { font-style: normal; opacity: 0.6; }
 .pcp-effect-desc { font-size: 0.95em; margin: 0.3em 0 0 0; }
 .pcp-effect-controls,
 .pcp-effect-valence-row {
@@ -147,7 +483,7 @@
 .pcp-c-meta { font-size: 0.82em; opacity: 0.75; margin-bottom: 0.2em; }
 .pcp-c-author { font-weight: 600; }
 .pcp-c-time { margin-left: 0.5em; }
-.pcp-c-edited { opacity: 0.7; font-style: italic; }
+.pcp-c-edited { opacity: 0.7; font-style: normal; }
 .pcp-c-body { font-size: 0.95em; white-space: pre-wrap; word-wrap: break-word; }
 .pcp-c-deleted { opacity: 0.5; }
 .pcp-c-actions {
@@ -300,7 +636,7 @@
     background: rgba(156,163,175,0.05);
 }
 .pcp-titration-vote-placeholder {
-    font-size: 0.82em; opacity: 0.6; font-style: italic;
+    font-size: 0.82em; opacity: 0.6; font-style: normal;
 }
 
 /* "Suggest a titration strategy" button (rendered by MedTemplate) */
@@ -408,7 +744,7 @@
     background: rgba(156,163,175,0.05);
 }
 .pcp-anecdote-vote-placeholder {
-    font-size: 0.82em; opacity: 0.6; font-style: italic;
+    font-size: 0.82em; opacity: 0.6; font-style: normal;
 }
 
 /* "Suggest an anecdote" button */
@@ -484,8 +820,8 @@
 }
 .pcp-se2-pick:hover { background: rgba(37,99,235,0.22); }
 .pcp-se2-desc-preview { opacity: 0.75; font-size: 0.9em; }
-.pcp-se2-aliases-preview { opacity: 0.55; font-size: 0.82em; font-style: italic; }
-.pcp-se2-noresults { font-style: italic; opacity: 0.7; margin: 0.6em 0; }
+.pcp-se2-aliases-preview { opacity: 0.55; font-size: 0.82em; font-style: normal; }
+.pcp-se2-noresults { font-style: normal; opacity: 0.7; margin: 0.6em 0; }
 .pcp-se2-newlink { font-weight: 600; }
 
 .pcp-likert-q { opacity: 0.7; }
@@ -505,12 +841,12 @@
     background: #0d9488; color: #fff; border-color: #0d9488; font-weight: 600;
 }
 .pcp-likert-n { opacity: 0.7; }
-.pcp-likert-noreports { font-style: italic; opacity: 0.6; }
+.pcp-likert-noreports { font-style: normal; opacity: 0.6; }
 
 /* ===== Don't Know variants ===== */
 .pcp-likert-btn-dk,
 .pcp-effect-fbtn-dk {
-    font-style: italic;
+    font-style: normal;
     min-width: auto;
     padding-left: 0.7em;
     padding-right: 0.7em;
@@ -522,7 +858,7 @@
     background: #c4b5fd; color: #fff; border-color: #c4b5fd; opacity: 1;
 }
 .pcp-likert-dk-count {
-    opacity: 0.6; font-style: italic; font-size: 0.85em; margin-left: 0.4em;
+    opacity: 0.6; font-style: normal; font-size: 0.85em; margin-left: 0.4em;
 }
 
 /* Caduceus (provider) icon: 2x larger than baseline */
@@ -599,7 +935,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 /* ===== Interactions section ===== */
 .pcp-interactions { margin: 0.5em 0 1em 0; display: flex; flex-direction: column; gap: 0.5em; }
 .pcp-interactions-empty,
-.pcp-interactions-skipped { font-style: italic; opacity: 0.75; margin: 0.4em 0; }
+.pcp-interactions-skipped { font-style: normal; opacity: 0.75; margin: 0.4em 0; }
 
 .pcp-interaction-row {
     border: 1px solid rgba(128,128,128,0.35);
@@ -664,7 +1000,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-interaction-agg { display: flex; align-items: baseline; gap: 0.35em; }
 .pcp-interaction-agg-icon { font-size: 1.05em; line-height: 1; }
 .pcp-interaction-agg-provider .pcp-interaction-agg-icon { font-size: 1.45em; vertical-align: -0.1em; }
-.pcp-interaction-agg-empty { opacity: 0.55; font-style: italic; }
+.pcp-interaction-agg-empty { opacity: 0.55; font-style: normal; }
 .pcp-interaction-agg-n     { opacity: 0.55; font-size: 0.88em; }
 .pcp-interaction-agg-exp,
 .pcp-interaction-agg-val   { font-variant-numeric: tabular-nums; }
@@ -691,7 +1027,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 
 .pcp-ix-modal .pcp-ix-search { width: 100%; padding: 0.4em 0.5em; box-sizing: border-box; }
 .pcp-ix-results { margin-top: 0.6em; min-height: 4em; }
-.pcp-ix-hint, .pcp-ix-noresults { opacity: 0.65; font-style: italic; margin: 0.4em 0; }
+.pcp-ix-hint, .pcp-ix-noresults { opacity: 0.65; font-style: normal; margin: 0.4em 0; }
 
 .pcp-ix-group-h {
     font-size: 0.85em;
@@ -914,7 +1250,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-delconfirm-counter strong { font-weight: 600; }
 .pcp-ix-delconfirm-tread {
     margin: 0.6em 0 0.4em 0;
-    font-style: italic;
+    font-style: normal;
     opacity: 0.7;
     font-size: 0.92em;
 }
@@ -1218,8 +1554,8 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     line-height: 1.6;
 }
 .pcp-xp-icon { margin-right: 0.2em; }
-.pcp-xp-empty { font-style: italic; opacity: 0.6; }
-.pcp-xp-loginnote { font-style: italic; opacity: 0.7; margin: 0.4em 0; }
+.pcp-xp-empty { font-style: normal; opacity: 0.6; }
+.pcp-xp-loginnote { font-style: normal; opacity: 0.7; margin: 0.4em 0; }
 
 .pcp-xp-gate {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;
@@ -1336,14 +1672,14 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-xp-picker-results { max-height: 12em; overflow-y: auto; }
 .pcp-xp-picker-result { padding: 0.3em 0.45em; border-radius: 4px; cursor: pointer; }
 .pcp-xp-picker-result:hover { background: rgba(13,148,136,0.15); }
-.pcp-xp-picker-new { color: #0d9488; font-style: italic; }
-.pcp-xp-picker-empty { opacity: 0.55; font-style: italic; padding: 0.3em 0.45em; }
+.pcp-xp-picker-new { color: #0d9488; font-style: normal; }
+.pcp-xp-picker-empty { opacity: 0.55; font-style: normal; padding: 0.3em 0.45em; }
 .pcp-xp-picker-cancel { font-size: 0.85em; opacity: 0.7; align-self: flex-start; }
 
 .pcp-xp-anecdote { width: 100%; box-sizing: border-box; padding: 0.4em 0.5em; }
 .pcp-xp-form-actions { display: flex; align-items: center; gap: 0.8em; margin-top: 0.6em; }
 .pcp-xp-form-status { font-size: 0.9em; opacity: 0.85; }
-.pcp-xp-form-note { font-size: 0.85em; opacity: 0.6; font-style: italic; margin: 0.4em 0 0 0; }
+.pcp-xp-form-note { font-size: 0.85em; opacity: 0.6; font-style: normal; margin: 0.4em 0 0 0; }
 
 
 /* ===== Experience effect-chip card ===== */
@@ -1500,7 +1836,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     color: #c4b5fd;
 }
 .pcp-lit-empty { color: #c4b5fd; }
-.pcp-lit-loginnote { font-style: italic; color: #c4b5fd; }
+.pcp-lit-loginnote { font-style: normal; color: #c4b5fd; }
 .pcp-lit-form-wrap {
     margin-top: 0.8em;
     border: 1px solid #7c3aed;
@@ -1708,7 +2044,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     display: inline-block;
     margin-top: 0.2em;
     font-size: 0.82em;
-    font-style: italic;
+    font-style: normal;
     color: #a78bfa;
     letter-spacing: 0.06em;
 }
@@ -2050,7 +2386,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 .pcp-bfi10-instructions {
     color: #c4b5fd;
-    font-style: italic;
+    font-style: normal;
     font-size: 1.05em;
     margin: 0.4em 0 0.8em 0;
 }
@@ -2525,7 +2861,7 @@ ol.pcp-assess-items {
     color: #c4b5fd;
     font-size: 0.82em;
     margin-top: 0.2em;
-    font-style: italic;
+    font-style: normal;
 }
 .pcp-life-traits {
     margin-top: 0.6em;
@@ -2765,7 +3101,7 @@ details.pcp-life-charts summary {
 }
 .pcp-dx-suggest-problem .meta {
     color: #c4b5fd;
-    font-style: italic;
+    font-style: normal;
 }
 .pcp-dx-suggest-add-problem {
     display: block;
@@ -2804,7 +3140,7 @@ details.pcp-life-charts summary {
     border-left-color: #c4b5fd;
     background: rgba(156,163,175,0.05);
 }
-.pcp-problem-vote-placeholder { font-size: 0.82em; opacity: 0.6; font-style: italic; }
+.pcp-problem-vote-placeholder { font-size: 0.82em; opacity: 0.6; font-style: normal; }
 .pcp-problem-likert {
     display: flex; align-items: center; gap: 0.4em;
     font-size: 0.9em; margin: 0.4em 0 0.5em;
@@ -2965,7 +3301,7 @@ ol.pcp-assess-items {
     margin: 14px 0;
     padding: 12px 14px;
     background: rgba(255,255,255,0.02);
-    border-left: 3px solid #6b7280;
+    border-left: 3px solid var(--pharma-ink-mute);
     border-radius: 4px;
 }
 .pcp-enn-items-block summary {
@@ -3055,7 +3391,7 @@ ol.pcp-assess-items {
     margin-bottom: 4px;
 }
 .pcp-enn-hero-name { font-size: 1.3em; }
-.pcp-enn-hero-epithet { opacity: 0.75; font-style: italic; margin: 2px 0 8px 0; }
+.pcp-enn-hero-epithet { opacity: 0.75; font-style: normal; margin: 2px 0 8px 0; }
 .pcp-enn-hero-tritype {
     margin-top: 10px;
     padding-top: 10px;
@@ -3194,7 +3530,54 @@ ol.pcp-assess-items {
 .pcp-units-widget[data-units="us"]     .pcp-units-metric { display: none; }
 /* ===== End units widget ===== */
 
-/* ===== Generic chip-picker widget ===== */
+/* ===== Generic chip-picker widget v2 (designer-claude 2026-05-20) =====
+   4 visual states: default, custom (dashed+italic), primary
+   (amber stripe + ✦ marker), browser-fill (dotted+italic+◌).
+   Palette via CSS custom properties — plants skin overrides
+   redefine the same token names under .pcp-skin-plants. */
+
+:root {
+    /* Chip-picker COMPONENT layer.
+       Solid-color tokens reference the palette via var(); skin
+       overrides cascade automatically via .pcp-skin-plants.
+       Opacity-derived rgba() tokens stay twin-defined per skin
+       (lower-disruption refactor; future: color-mix() for cascade). */
+    --pcp-chip-brand:           var(--pharma-violet);
+    --pcp-chip-custom-accent:   var(--pharma-custom-accent);
+    --pcp-chip-amber:           var(--pharma-amber);
+    --pcp-chip-text:            var(--pharma-text);
+    --pcp-chip-text-mute:       var(--pharma-text-mute);
+    --pcp-chip-lichen:          var(--pharma-lichen);
+    --pcp-chip-rule:            var(--pharma-rule);
+    --pcp-chip-bg:              rgba(124, 58, 237, 0.10);
+    --pcp-chip-border:          rgba(124, 58, 237, 0.4);
+    --pcp-chip-bg-primary:      rgba(124, 58, 237, 0.22);
+    --pcp-chip-border-primary:  rgba(124, 58, 237, 0.55);
+    --pcp-chip-bg-custom:       rgba(217, 119, 87, 0.10);
+    --pcp-chip-border-custom:   rgba(217, 119, 87, 0.5);
+    --pcp-chip-border-fill:     rgba(136, 136, 136, 0.45);
+    --pcp-chip-suggest-bg:      var(--pharma-surface-2);
+    --pcp-chip-suggest-border:  #444;
+    --pcp-chip-suggest-hover:   rgba(124, 58, 237, 0.15);
+}
+
+.pcp-skin-plants {
+    /* Plants skin chip overrides.
+       Solid-color tokens inherit from the palette layer above
+       (they reference var(--pharma-*) which is already redefined
+       for .pcp-skin-plants). Only opacity-derived rgba() tokens
+       are twin-defined here. */
+    --pcp-chip-bg:              rgba(106, 138, 82, 0.12);
+    --pcp-chip-border:          rgba(106, 138, 82, 0.45);
+    --pcp-chip-bg-primary:      rgba(106, 138, 82, 0.28);
+    --pcp-chip-border-primary:  rgba(106, 138, 82, 0.6);
+    --pcp-chip-bg-custom:       rgba(182, 122, 68, 0.12);
+    --pcp-chip-border-custom:   rgba(182, 122, 68, 0.5);
+    --pcp-chip-border-fill:     rgba(122, 102, 80, 0.4);
+    --pcp-chip-suggest-border:  rgba(212, 197, 168, 0.16);
+    --pcp-chip-suggest-hover:   rgba(106, 138, 82, 0.15);
+}
+
 .pcp-chip-picker {
     position: relative;
     display: block;
@@ -3202,8 +3585,6 @@ ol.pcp-assess-items {
     min-width: 0;
     max-width: 100%;
 }
-/* Justify the visibility lock to the right edge of the input row, leaving
-   a visible gap between the input and the lock instead of crowding it. */
 .pcp-prof-input-wrap > .pcp-vis-toggle {
     margin-left: auto;
 }
@@ -3213,62 +3594,209 @@ ol.pcp-assess-items {
     gap: 4px;
     margin-bottom: 4px;
 }
+
+/* CHIP — shared shell */
 .pcp-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 4px 2px 8px;
-    background: rgba(124, 58, 237, 0.18);
-    color: #ede9fe;
-    border: 1px solid rgba(124, 58, 237, 0.45);
-    border-radius: 12px;
-    font-size: 0.9em;
+    height: 26px;
+    padding: 0 4px 0 10px;
+    border-radius: 3px;
+    border: 1px solid var(--pcp-chip-border);
+    background: var(--pcp-chip-bg);
+    color: var(--pcp-chip-text);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    margin: 2px 4px 2px 0;
+    transition: background 120ms ease, border-color 120ms ease;
+    position: relative;
 }
-.pcp-chip-custom {
-    background: rgba(217, 119, 87, 0.18);
-    border-color: rgba(217, 119, 87, 0.45);
-}
-.pcp-chip-primary {
-    background: rgba(124, 58, 237, 0.35);
-    border-color: #c4b5fd;
-    box-shadow: 0 0 0 1px rgba(196,181,253,0.35);
-}
-.pcp-chip-label { line-height: 1; }
-.pcp-chip-label small { opacity: 0.7; font-size: 0.8em; }
-.pcp-chip-prim,
-.pcp-chip-remove {
-    background: transparent;
-    border: none;
+
+.pcp-chip-label {
+    font: inherit;
     color: inherit;
-    cursor: pointer;
-    padding: 0 4px;
-    font-size: 1.1em;
     line-height: 1;
 }
-.pcp-chip-prim:hover { color: #fbbf24; }
-.pcp-chip-remove:hover { color: #f87171; }
-.pcp-chip-input {
-    width: 100%;
-    padding: 4px 6px;
+.pcp-chip-label small {
+    color: var(--pcp-chip-text-mute);
+    font-size: 0.85em;
+    margin-left: 4px;
+    font-feature-settings: "tnum";
+    opacity: 0.85;
 }
+
+.pcp-chip-remove {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--pcp-chip-lichen);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    margin-left: 2px;
+    padding: 0;
+}
+.pcp-chip-remove:hover {
+    color: #a8543a;
+    background: rgba(168, 84, 58, 0.1);
+}
+
+.pcp-chip-prim {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--pcp-chip-lichen);
+    font-size: 0;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+}
+
+.pcp-chip-marker {
+    display: inline-flex;
+    color: var(--pcp-chip-amber);
+    font-size: 11px;
+    line-height: 1;
+    margin-right: 2px;
+}
+
+/* STATE 2: CUSTOM (user-typed) */
+.pcp-chip-custom {
+    background: var(--pcp-chip-bg-custom);
+    border-color: var(--pcp-chip-border-custom);
+    border-style: dashed;
+    font-style: normal;
+}
+
+/* STATE 3: PRIMARY (starred) */
+.pcp-chip-primary {
+    background: var(--pcp-chip-bg-primary);
+    border-color: var(--pcp-chip-border-primary);
+    box-shadow: inset 2px 0 0 var(--pcp-chip-amber);
+    padding-left: 12px;
+}
+.pcp-chip-primary .pcp-chip-marker { display: inline-flex; }
+
+/* STATE 4: BROWSER-FILLED (prefilled, unconfirmed) */
+.pcp-chip-browserfill {
+    background: transparent;
+    border-color: var(--pcp-chip-border-fill);
+    border-style: dotted;
+    color: var(--pcp-chip-lichen);
+    font-style: normal;
+}
+.pcp-chip-browserfill .pcp-chip-marker {
+    color: var(--pcp-chip-lichen);
+}
+
+/* INPUT */
+.pcp-chip-input {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--pcp-chip-text);
+    font: inherit;
+    font-size: 13px;
+    height: 26px;
+    padding: 0 4px;
+    outline: none;
+    flex: 1;
+    min-width: 140px;
+}
+.pcp-chip-input::placeholder {
+    color: var(--pcp-chip-lichen);
+    font-style: normal;
+}
+
+/* SUGGESTION DROPDOWN */
 .pcp-chip-suggest {
     position: absolute;
-    z-index: 100;
-    background: #1f1f1f;
-    border: 1px solid #444;
-    border-radius: 4px;
-    max-height: 220px;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--pcp-chip-suggest-bg);
+    border: 1px solid var(--pcp-chip-suggest-border);
+    border-radius: 3px;
+    max-height: 280px;
     overflow-y: auto;
-    width: 100%;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+    padding: 4px 0;
 }
+.pcp-chip-suggest-open { display: block; }
+
+.pcp-chip-sug-section { padding: 2px 0; }
+
 .pcp-chip-sug-row {
-    padding: 6px 10px;
+    padding: 7px 12px;
+    font-size: 13px;
+    color: var(--pcp-chip-text);
     cursor: pointer;
-    font-size: 0.92em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.3;
 }
 .pcp-chip-sug-row:hover,
-.pcp-chip-sug-row.pcp-suggest-active { background: #2d2d2d; color: #c4b5fd; }
+.pcp-chip-sug-row.pcp-chip-sug-active {
+    background: var(--pcp-chip-suggest-hover);
+}
+.pcp-chip-sug-row small {
+    color: var(--pcp-chip-text-mute);
+    font-size: 0.85em;
+    font-feature-settings: "tnum";
+}
+.pcp-chip-sug-selected {
+    color: var(--pcp-chip-lichen);
+    cursor: default;
+}
+.pcp-chip-sug-selected:hover {
+    background: transparent;
+}
+.pcp-chip-sug-selected::after {
+    content: '✓';
+    margin-left: auto;
+    color: var(--pcp-chip-brand);
+}
+
+.pcp-chip-sug-separator {
+    height: 1px;
+    background: var(--pcp-chip-rule);
+    margin: 4px 0;
+}
+
+.pcp-chip-sug-addcustom {
+    color: var(--pcp-chip-amber);
+    font-style: normal;
+}
+.pcp-chip-sug-addcustom:hover {
+    background: rgba(200, 153, 104, 0.08);
+}
+
+.pcp-chip-sug-showall {
+    color: var(--pcp-chip-lichen);
+    font-style: normal;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--pcp-chip-rule);
+}
+.pcp-chip-sug-showall:hover {
+    background: var(--pcp-chip-suggest-hover);
+    color: var(--pcp-chip-text);
+}
+
+/* ===== End chip-picker v2 ===== */
 /* ===== End chip-picker ===== */
 
 /* ===== Structured widgets (smoking, alcohol, political, chronotype) ===== */
@@ -3911,7 +4439,7 @@ input[type=range] + output {
 }
 .pcp-fr-private-msg {
     color: #888;
-    font-style: italic;
+    font-style: normal;
 }
 .pcp-fr-detail-actions {
     display: flex;
@@ -4014,7 +4542,7 @@ input[type=range] + output {
 }
 .pcp-fr-comments-empty {
     color: #888;
-    font-style: italic;
+    font-style: normal;
 }
 
 /* Review console */
@@ -4529,7 +5057,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     color: #888;
     text-align: center;
     padding: 2em 1em;
-    font-style: italic;
+    font-style: normal;
 }
 /* ===== End trait trajectories ===== */
 
@@ -4598,7 +5126,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-vote-choice-icon { display: inline-flex; align-items: center; line-height: 1; }
 .pcp-vote-icon-svg { display: block; }
 .pcp-vote-choice-total { font-weight: 700; color: #c4b5fd; }
-.pcp-vote-choice-user { color: #d4f0d6; font-style: italic; }
+.pcp-vote-choice-user { color: #d4f0d6; font-style: normal; }
 
 .pcp-vote-choice-picker[hidden] { display: none !important; }
 .pcp-vote-choice-picker {
@@ -4761,6 +5289,21 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 /* ===== End share-profile button ===== */
 
+/* Username row (top of Public identity, above Research ID) */
+.pcp-username-row {
+    margin: 0 0 0.45em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.92em;
+}
+.pcp-username-label { color: #b599e0; font-weight: 700; }
+.pcp-username-value {
+    color: #fff;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 /* Read-only Research ID badge in Identity block (Special:MyProfile) */
 .pcp-research-id-row {
     margin: 0.5em 0 0.8em;
@@ -4838,3 +5381,3125 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     text-align: right;
     padding: 0.2em 0.4em;
 }
+
+
+/* Open-ended polls: + Add option row at bottom of picker */
+.pcp-vote-choice-add-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0.6em 0 0;
+    padding-top: 0.5em;
+    border-top: 1px dashed #5d3b8e;
+}
+.pcp-vote-choice-add-input {
+    flex: 1;
+    padding: 0.3em 0.55em;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.pcp-vote-choice-add-input:focus {
+    outline: none;
+    border-color: #b599e0;
+    box-shadow: 0 0 0 2px rgba(181, 153, 224, 0.25);
+}
+.pcp-vote-choice-add-btn {
+    padding: 0.3em 0.85em;
+    font-size: 0.88em;
+}
+.pcp-vote-choice-add-meta {
+    color: #888;
+    font-size: 0.78em;
+    white-space: nowrap;
+}
+
+/* Choice-vote: question text inline, no box. Only the summary chip is styled.
+   Targets the wrapper, content div, and the <p> MW auto-wraps content in. */
+.pcp-vote.pcp-vote-choice,
+.pcp-vote.pcp-vote-choice .pcp-vote-content,
+.pcp-vote.pcp-vote-choice .pcp-vote-content > p,
+.pcp-vote.pcp-vote-choice .pcp-vote-content > pre,
+.pcp-vote.pcp-vote-choice .pcp-vote-content > div {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+.pcp-vote.pcp-vote-choice { display: block; }
+.pcp-vote.pcp-vote-choice .pcp-vote-content { display: inline; }
+.pcp-vote.pcp-vote-choice .pcp-vote-content > p,
+.pcp-vote.pcp-vote-choice .pcp-vote-content > pre,
+.pcp-vote.pcp-vote-choice .pcp-vote-content > div {
+    display: inline;
+    margin: 0 !important;
+    white-space: normal !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    color: inherit !important;
+}
+
+
+/* ============================================================
+   pcp-formaltest: Formal Testing fieldset on Special:MyProfile.
+   2026-05-18.
+   ============================================================ */
+.pcp-ft-list { margin: 0.6em 0; }
+.pcp-ft-empty { color: #888; font-style: normal; margin: 0.4em 0; }
+.pcp-ft-cat-block { margin: 0 0 0.8em; }
+.pcp-ft-cat-heading {
+    margin: 0.6em 0 0.3em;
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #b599e0;
+    letter-spacing: 0.05em;
+}
+.pcp-ft-card {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    padding: 0.5em 0.7em;
+    margin: 0 0 0.4em;
+}
+.pcp-ft-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+.pcp-ft-abbrev {
+    background: #5d3b8e;
+    color: #fff;
+    padding: 0.1em 0.55em;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.9em;
+}
+.pcp-ft-name { color: #ddd; font-size: 0.92em; }
+.pcp-ft-year { color: #888; font-size: 0.85em; margin-left: auto; }
+.pcp-ft-custom-badge,
+.pcp-ft-legacy-badge {
+    font-size: 0.72em;
+    padding: 0.05em 0.4em;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.pcp-ft-custom-badge { background: #4a2e72; color: #c4b5fd; }
+.pcp-ft-legacy-badge { background: #3a3a3a; color: #aaa; }
+.pcp-ft-card-scores { color: #c4b5fd; font-size: 0.9em; margin-top: 0.3em; }
+.pcp-ft-card-scores b { color: #fff; }
+.pcp-ft-card-notes { color: #aaa; font-size: 0.85em; font-style: normal; margin-top: 0.2em; }
+.pcp-ft-card-actions {
+    margin-top: 0.4em;
+    display: flex;
+    gap: 0.4em;
+    justify-content: flex-end;
+}
+.pcp-ft-card-actions button {
+    background: transparent;
+    border: 1px solid #5d3b8e;
+    color: #b599e0;
+    padding: 0.15em 0.6em;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.82em;
+}
+.pcp-ft-card-actions button:hover { background: #2a2a2a; color: #fff; }
+.pcp-ft-delete:hover { border-color: #dc2626; color: #ff8a8a; }
+
+.pcp-ft-add-btn {
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #b599e0;
+    padding: 0.4em 1em;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.92em;
+    margin-top: 0.5em;
+}
+.pcp-ft-add-btn:hover { background: #4a2e72; }
+
+.pcp-ft-form {
+    background: #131313;
+    border: 1px solid #5d3b8e;
+    border-radius: 8px;
+    padding: 0.8em 1em;
+    margin-top: 0.6em;
+}
+.pcp-ft-form-inner > * { margin-bottom: 0.6em; }
+.pcp-ft-picker-wrap { position: relative; }
+.pcp-ft-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.4em 0.6em;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+}
+.pcp-ft-suggestions {
+    position: absolute;
+    left: 0; right: 0;
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 20;
+}
+.pcp-ft-suggestion {
+    padding: 0.4em 0.6em;
+    cursor: pointer;
+    color: #ddd;
+    font-size: 0.9em;
+    border-bottom: 1px solid #2a2a2a;
+}
+.pcp-ft-suggestion:hover { background: #2a2a2a; color: #fff; }
+.pcp-ft-suggestion.is-legacy i { color: #888; }
+.pcp-ft-suggestion-custom { color: #c4b5fd; font-weight: 600; font-style: normal; }
+.pcp-ft-selected {
+    background: #2a2a2a;
+    border: 1px solid #b599e0;
+    border-radius: 4px;
+    padding: 0.4em 0.6em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    color: #fff;
+    font-size: 0.92em;
+}
+.pcp-ft-selected-abbrev { background: #5d3b8e; padding: 0.1em 0.5em; border-radius: 3px; font-weight: 700; }
+.pcp-ft-selected-hint { color: #888; font-size: 0.85em; font-style: normal; margin-left: auto; }
+.pcp-ft-selected-clear { background: transparent; border: none; color: #888; cursor: pointer; font-size: 1.1em; }
+.pcp-ft-selected-clear:hover { color: #fff; }
+
+
+.pcp-ft-customize-row {
+    margin: 0 0 0.3em;
+    text-align: right;
+}
+.pcp-ft-customize-row[hidden] { display: none; }
+.pcp-ft-custom-toggle {
+    background: transparent;
+    color: #b599e0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.85em;
+    text-decoration: underline dotted;
+    font-style: normal;
+}
+.pcp-ft-custom-toggle:hover { color: #fff; text-decoration: underline; }
+.pcp-ft-custom-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5em;
+    margin-top: 0.5em;
+}
+.pcp-ft-custom-inputs[hidden] { display: none !important; }
+.pcp-ft-custom-inputs label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    font-size: 0.85em;
+    color: #b599e0;
+}
+
+.pcp-ft-score-fields,
+.pcp-ft-meta-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5em;
+}
+.pcp-ft-score-fields label,
+.pcp-ft-meta-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    font-size: 0.85em;
+    color: #b599e0;
+}
+.pcp-ft-form input[type=text],
+.pcp-ft-form input[type=number],
+.pcp-ft-form textarea,
+.pcp-ft-form select {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    padding: 0.3em 0.5em;
+    font-size: 0.9em;
+}
+.pcp-ft-notes-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    font-size: 0.85em;
+    color: #b599e0;
+}
+.pcp-ft-notes-wrap textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.pcp-ft-form-actions {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-end;
+}
+.pcp-ft-save {
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #b599e0;
+    padding: 0.35em 1em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.pcp-ft-save:hover { background: #4a2e72; }
+.pcp-ft-cancel {
+    background: transparent;
+    color: #b599e0;
+    border: 1px dashed #5d3b8e;
+    padding: 0.35em 0.9em;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.pcp-ft-cancel:hover { background: #2a2a2a; color: #fff; }
+
+
+/* Inline edit form within a card */
+.pcp-ft-card-edit { padding-top: 0.4em; }
+/* pcp-ft-card-transition: smooth crossfade between view + edit states */
+.pcp-ft-card-view,
+.pcp-ft-card-edit {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.22s ease-out;
+    max-height: 1200px;
+    opacity: 1;
+}
+.pcp-ft-card-view.is-collapsed,
+.pcp-ft-card-edit.is-collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+.pcp-ft-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.4em;
+    margin-bottom: 0.4em;
+}
+.pcp-ft-edit-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    font-size: 0.82em;
+    color: #b599e0;
+}
+.pcp-ft-card-edit input[type=number],
+.pcp-ft-card-edit input[type=text],
+.pcp-ft-card-edit textarea,
+.pcp-ft-card-edit select {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    padding: 0.25em 0.5em;
+    font-size: 0.88em;
+}
+.pcp-ft-edit-notes-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    font-size: 0.82em;
+    color: #b599e0;
+    margin-bottom: 0.4em;
+}
+.pcp-ft-edit-notes-wrap textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+.pcp-ft-edit-actions {
+    display: flex;
+    gap: 0.4em;
+    justify-content: flex-end;
+}
+.pcp-ft-edit-save {
+    background: #5d3b8e;
+    color: #fff;
+    border: 1px solid #b599e0;
+    padding: 0.3em 0.9em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+.pcp-ft-edit-save:hover { background: #4a2e72; }
+.pcp-ft-edit-cancel {
+    background: transparent;
+    color: #b599e0;
+    border: 1px dashed #5d3b8e;
+    padding: 0.3em 0.8em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+.pcp-ft-edit-cancel:hover { background: #2a2a2a; color: #fff; }
+
+
+/* Estimate toggle button (next to Raw score + Percentile inputs) */
+.pcp-ft-est-wrap {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+}
+.pcp-ft-est-wrap input[type=number] {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+.pcp-ft-est-toggle {
+    background: #2a2a2a;
+    color: #888;
+    border: 1px solid #5d3b8e;
+    border-left: 0;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    padding: 0 0.55em;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1em;
+    line-height: 1;
+}
+.pcp-ft-est-toggle:hover { background: #3a3a3a; color: #c4b5fd; }
+.pcp-ft-est-toggle.is-active {
+    background: #5d3b8e;
+    color: #fff;
+    border-color: #b599e0;
+}
+
+
+/* Visibility toggle inside the formal-testing form */
+.pcp-ft-vis-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.5em;
+}
+.pcp-ft-vis-wrap .pcp-vis-toggle {
+    font-size: 1em;
+    padding: 0.15em 0.5em;
+    background: #2a2a2a;
+    border: 1px solid #5d3b8e;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.pcp-ft-vis-wrap .pcp-vis-toggle:hover { background: #3a3a3a; }
+.pcp-ft-vis-badge {
+    margin-left: 0.4em;
+    font-size: 0.9em;
+    opacity: 0.7;
+    cursor: default;
+}
+
+
+/* ============================================================
+   pcp-ft-layout-cleanup: form crowding fixes.
+   2026-05-18.
+   ============================================================ */
+
+/* Kill browser-native number spinners inside the formal-testing forms.
+   The estimate ~ button replaces the spinner affordance. */
+.pcp-ft-form input[type=number],
+.pcp-ft-card-edit input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.pcp-ft-form input[type=number]::-webkit-inner-spin-button,
+.pcp-ft-form input[type=number]::-webkit-outer-spin-button,
+.pcp-ft-card-edit input[type=number]::-webkit-inner-spin-button,
+.pcp-ft-card-edit input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+/* Edit grid: bump min column width so labels don't fight select arrows. */
+.pcp-ft-edit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 0.55em !important;
+}
+
+/* Visibility wrap inside grids: don't try to fit inline — give it the full
+   cell width so label + toggle have breathing room. */
+.pcp-ft-edit-grid .pcp-ft-vis-wrap,
+.pcp-ft-meta-fields .pcp-ft-vis-wrap {
+    grid-column: span 1;
+    justify-content: flex-start;
+    gap: 0.6em;
+}
+
+/* Estimate ~ button: ensure it sits snug against the input's right edge. */
+.pcp-ft-est-wrap {
+    display: inline-flex !important;
+    align-items: stretch;
+    width: 100%;
+}
+.pcp-ft-est-wrap input[type=number] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.pcp-ft-est-toggle {
+    flex: 0 0 auto;
+}
+
+/* Select arrow: pad right side a bit more so the arrow doesn't kiss the text. */
+.pcp-ft-form select,
+.pcp-ft-card-edit select {
+    padding-right: 1.4em !important;
+}
+
+
+/* Estimate ~ button on the LEFT of the input (used for Percentile). */
+.pcp-ft-est-wrap-left input[type=number] {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 4px !important;
+    border-bottom-right-radius: 4px !important;
+}
+.pcp-ft-est-wrap-left .pcp-ft-est-toggle {
+    border-left: 1px solid #5d3b8e;
+    border-right: 0;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+
+/* Flash effect on the just-saved formal-test card (post-reload scroll target) */
+.pcp-ft-card.pcp-ft-card-flash {
+    box-shadow: 0 0 0 2px #c4b5fd, 0 0 16px rgba(196, 181, 253, 0.55);
+    transition: box-shadow 1.5s ease-out;
+}
+
+
+/* Formal testing section on Special:UserProfile */
+.pcp-up-formaltest h3.pcp-up-ft-cat {
+    font-size: 0.92em;
+    margin: 0.6em 0 0.2em;
+    color: #b599e0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.pcp-up-ft-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 280px);
+    gap: 0.5em;
+    margin: 0 0 0.8em 0;
+    padding: 0;
+}
+.pcp-up-ft-card {
+    background: #1a1a1a;
+    border: 1px solid #5d3b8e;
+    border-radius: 6px;
+    padding: 0.5em 0.7em;
+    line-height: 1.55;
+}
+.pcp-up-ft-abbrev {
+    background: #5d3b8e;
+    color: #fff;
+    padding: 0.05em 0.45em;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 0.88em;
+}
+.pcp-up-ft-name { margin-left: 0.2em; }
+.pcp-up-ft-year { color: #888; }
+.pcp-up-ft-legacy { background: #3a3a3a; color: #aaa; padding: 0 0.3em; border-radius: 2px; }
+
+
+/* Each category (heading + cards) is its own stacked block */
+.pcp-up-ft-section {
+    display: block;
+    clear: both;
+    margin-bottom: 0.6em;
+}
+.pcp-up-ft-section h3.pcp-up-ft-cat {
+    display: block !important;
+    margin: 0 0 0.3em 0 !important;
+    clear: both;
+}
+.pcp-up-ft-section .pcp-up-ft-list {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   pcp-cati-modern: modernized CATI rich report. Reuses .pcp-up-card,
+   .pcp-up-ocean-bar/fill, .pcp-up-above/below from the OCEAN inline
+   card; adds CATI-specific row layout, percentile chips, descriptor
+   chips, collapsible narratives, top-items card, methodology card.
+   2026-05-18.
+   ============================================================ */
+.pcp-cati-modern {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-left: 3px solid #7c3aed;
+    border-radius: 6px;
+    padding: 1em 1.2em;
+    color: #e5e7eb;
+    max-width: 920px;
+    margin: 0.6em 0;
+}
+.pcp-cati-modern-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.6em;
+    margin-bottom: 0.2em;
+}
+.pcp-cati-modern-head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+}
+.pcp-cati-modern-name {
+    font-weight: 700;
+    color: #c4b5fd;
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.pcp-cati-modern-full {
+    color: #aaa;
+    font-size: 0.88em;
+}
+.pcp-cati-modern-visbadge {
+    font-size: 1em;
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+.pcp-cati-modern-meta {
+    color: #aaa;
+    font-size: 0.88em;
+    margin-bottom: 1em;
+}
+.pcp-cati-modern-meta a {
+    color: #c4b5fd;
+}
+
+.pcp-cati-modern-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7em;
+    margin: 0 0 0.5em;
+}
+.pcp-cati-modern-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+}
+.pcp-cati-modern-row-main {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.2fr) 2fr minmax(70px, auto);
+    align-items: center;
+    gap: 0.7em;
+}
+.pcp-cati-modern-row-label {
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: 0.92em;
+}
+.pcp-cati-modern-row-val {
+    color: #fff;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95em;
+}
+.pcp-cati-modern-row-of {
+    color: #777;
+    font-weight: 400;
+    font-size: 0.82em;
+    margin-left: 0.1em;
+}
+.pcp-cati-modern-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    padding-left: calc(minmax(160px, 1.2fr) + 0.7em);
+    /* Just left-pad simply; grid math above is too complex for CSS calc */
+    margin-left: 160px;
+    font-size: 0.8em;
+}
+.pcp-cati-modern-row-incomplete .pcp-cati-modern-row-incomplete-msg {
+    color: #666;
+    font-style: normal;
+    font-size: 0.85em;
+}
+
+.pcp-cati-modern-pctchip {
+    display: inline-block;
+    padding: 0.08em 0.5em;
+    border-radius: 999px;
+    border: 1px solid #444;
+    color: #aaa;
+    font-size: 0.82em;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-cati-modern-pctchip-na {
+    border-color: #4a4a4a;
+    color: #cbd5e1;
+}
+.pcp-cati-modern-pctchip-aut {
+    border-color: #5d3b8e;
+    color: #c4b5fd;
+}
+.pcp-cati-modern-chip {
+    display: inline-block;
+    padding: 0.08em 0.6em;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 600;
+}
+.pcp-cati-modern-chip-pronounced {
+    background: rgba(124, 58, 237, 0.25);
+    border: 1px solid #7c3aed;
+    color: #ede9fe;
+}
+.pcp-cati-modern-chip-consistent {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid #5d3b8e;
+    color: #c4b5fd;
+}
+
+.pcp-cati-modern-caption {
+    color: #888;
+    font-size: 0.82em;
+    margin: 0.4em 0 0.8em;
+    font-style: normal;
+}
+.pcp-cati-modern-caption-note {
+    margin: 0.3em 0 0.8em;
+}
+
+.pcp-cati-modern-cutoffs {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+    margin: 0.6em 0 0.3em;
+    padding: 0.5em 0.6em;
+    background: #131313;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+}
+.pcp-cati-modern-cutoffs-label {
+    color: #aaa;
+    font-size: 0.88em;
+    font-weight: 600;
+}
+
+.pcp-cati-modern-h {
+    color: #c4b5fd;
+    font-size: 0.92em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1.4em 0 0.5em;
+    border: none;
+    padding: 0;
+    font-weight: 700;
+}
+.pcp-cati-modern-help {
+    color: #888;
+    font-size: 0.85em;
+    margin: -0.2em 0 0.5em;
+    font-style: normal;
+}
+
+.pcp-cati-modern-narratives {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+.pcp-cati-modern-narrative {
+    border-left: 2px solid #333;
+    padding: 0.25em 0 0.25em 0.7em;
+}
+.pcp-cati-modern-narrative > summary {
+    cursor: pointer;
+    color: #cbd5e1;
+    font-size: 0.92em;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+}
+.pcp-cati-modern-narrative > summary::-webkit-details-marker { display: none; }
+.pcp-cati-modern-narrative > summary::before {
+    content: '\25B6';
+    color: #666;
+    font-size: 0.7em;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+.pcp-cati-modern-narrative[open] > summary::before {
+    transform: rotate(90deg);
+}
+.pcp-cati-modern-narrative-meta {
+    color: #888;
+    font-size: 0.82em;
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-cati-modern-narrative > p {
+    color: #aaa;
+    font-size: 0.88em;
+    margin: 0.35em 0 0.3em;
+    line-height: 1.5;
+}
+
+.pcp-cati-modern-topitems {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5em;
+}
+@media (min-width: 720px) {
+    .pcp-cati-modern-topitems { grid-template-columns: 1fr 1fr; }
+}
+.pcp-cati-modern-topcard {
+    background: #131313;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: 0.55em 0.8em;
+}
+.pcp-cati-modern-topcard-head {
+    color: #c4b5fd;
+    font-weight: 700;
+    font-size: 0.88em;
+    margin-bottom: 0.3em;
+}
+.pcp-cati-modern-topcard-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+}
+.pcp-cati-modern-topcard-list li {
+    color: #cbd5e1;
+    font-size: 0.88em;
+    line-height: 1.4;
+}
+.pcp-cati-modern-topcard-item-n {
+    color: #777;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-cati-modern-topcard-item-meta {
+    color: #888;
+    font-size: 0.85em;
+}
+.pcp-cati-modern-topcard-item-meta em {
+    color: #c4b5fd;
+    font-style: normal;
+}
+.pcp-cati-modern-topcard-item-meta strong {
+    color: #fff;
+}
+.pcp-cati-modern-topcard-rev {
+    color: #f59e0b;
+    margin-left: 0.2em;
+    font-weight: 700;
+}
+
+.pcp-cati-modern-responses {
+    margin: 1.2em 0 0.6em;
+    border-top: 1px solid #2a2a2a;
+    padding-top: 0.6em;
+}
+.pcp-cati-modern-responses > summary {
+    cursor: pointer;
+    color: #c4b5fd;
+    font-size: 0.92em;
+    padding: 0.3em 0;
+    list-style: none;
+}
+.pcp-cati-modern-responses > summary::-webkit-details-marker { display: none; }
+.pcp-cati-modern-responses > summary::before {
+    content: '\25B6';
+    color: #666;
+    font-size: 0.7em;
+    margin-right: 0.4em;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+.pcp-cati-modern-responses[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.pcp-cati-modern-method {
+    background: #131313;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: 0.8em 1em;
+    margin: 1.2em 0 0;
+    color: #aaa;
+    font-size: 0.88em;
+    line-height: 1.5;
+}
+.pcp-cati-modern-method-head {
+    color: #c4b5fd;
+    font-weight: 700;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4em;
+}
+.pcp-cati-modern-method p {
+    margin: 0.4em 0;
+}
+.pcp-cati-modern-method a {
+    color: #c4b5fd;
+}
+
+
+/* ============================================================
+   CATI shared card on Special:UserProfile.
+   Variant of OCEAN bars: 2x height, integrated cutoff marker,
+   larger highest-line text.
+   2026-05-18.
+   ============================================================ */
+.pcp-up-cati {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+    font-size: 0.9em;
+    line-height: 1.1;
+}
+.pcp-up-cati-trait {
+    display: grid;
+    grid-template-columns: 2em 1fr 3em;
+    align-items: center;
+    gap: 0.5em;
+}
+.pcp-up-cati-label {
+    font-weight: 700;
+    color: #c4b5fd;
+    text-align: center;
+    font-size: 0.85em;
+    letter-spacing: 0.05em;
+}
+.pcp-up-cati-bar {
+    position: relative;
+    height: 14px;                     /* ~2.3x of OCEAN's 6px */
+    background: #2d2d2d;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.pcp-up-cati-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #c4b5fd);
+}
+.pcp-up-cati-cutoff-mark {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    width: 2px;
+    background: #fff;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.7);
+    z-index: 2;
+    pointer-events: auto;
+    cursor: help;
+    /* Slight horizontal centering so the line straddles the position pixel */
+    transform: translateX(-1px);
+}
+.pcp-up-cati-val {
+    color: #fff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-size: 0.95em;
+}
+.pcp-up-cati-highest {
+    color: #cbd5e1;
+    font-size: 1.25em;                /* close to 2x what <small> rendered (~0.72em) */
+    line-height: 1.3;
+    display: block;
+}
+
+
+/* ============================================================
+   Enneagram card on Special:UserProfile.
+   9 ranked rows: type# + short name + bar + score + top/wing pill.
+   Reuses .pcp-up-cati-bar / .pcp-up-cati-fill for visual consistency
+   with the other bargauge cards.
+   2026-05-18.
+   ============================================================ */
+.pcp-up-enneagram-codehead {
+    margin-bottom: 0.4em;
+}
+.pcp-up-enneagram-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22em;
+    margin-top: 0.3em;
+}
+.pcp-up-enneagram-row {
+    display: grid;
+    grid-template-columns: 1.2em 6.4em 1fr 2.4em auto;
+    align-items: center;
+    gap: 0.35em;
+    font-size: 0.82em;
+    line-height: 1.1;
+}
+.pcp-up-enneagram-num {
+    color: #999;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-up-enneagram-name {
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pcp-up-enneagram-val {
+    color: #aaa;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-weight: 600;
+}
+/* Top + wing highlighted */
+.pcp-up-enneagram-row.is-top .pcp-up-enneagram-num,
+.pcp-up-enneagram-row.is-top .pcp-up-enneagram-name {
+    color: #fff;
+    font-weight: 700;
+}
+.pcp-up-enneagram-row.is-top .pcp-up-enneagram-val {
+    color: #fff;
+}
+.pcp-up-enneagram-row.is-wing .pcp-up-enneagram-num,
+.pcp-up-enneagram-row.is-wing .pcp-up-enneagram-name {
+    color: #c4b5fd;
+}
+.pcp-up-enneagram-row.is-wing .pcp-up-enneagram-val {
+    color: #c4b5fd;
+}
+
+
+
+
+/* Enneagram bar color tiers: Top (brightest), Wing (medium), others (dim).
+   Scoped to .pcp-up-enneagram-row so CATI/CAT-Q/NFCS/WHOQOL bars are unaffected. */
+.pcp-up-enneagram-row .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #3a2659, #6b46c1);
+}
+.pcp-up-enneagram-row.is-wing .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+.pcp-up-enneagram-row.is-top .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #c4b5fd, #ede9fe);
+}
+
+/* Restructure grid: remove the auto-width mark column (5 cols -> 4 cols). */
+.pcp-up-enneagram-row {
+    grid-template-columns: 1.2em 6.4em 1fr 2.4em !important;
+}
+
+/* Compact legend strip at the bottom of the Enneagram card. */
+.pcp-up-enneagram-legend {
+    display: flex;
+    gap: 1.1em;
+    margin-top: 0.6em;
+    padding-top: 0.4em;
+    border-top: 1px solid #2a2a2a;
+    font-size: 0.72em;
+    color: #888;
+}
+.pcp-up-enneagram-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+}
+.pcp-up-enneagram-legend .legend-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+.pcp-up-enneagram-legend .legend-swatch.is-top {
+    background: linear-gradient(90deg, #c4b5fd, #ede9fe);
+}
+.pcp-up-enneagram-legend .legend-swatch.is-wing {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+
+.pcp-up-enneagram-wing-note {
+    color: #999;
+    font-size: 0.92em;
+    margin-left: 0.15em;
+}
+
+
+/* NFCS radar/spider chart on Special:UserProfile card */
+.pcp-up-nfcs-radar {
+    display: flex;
+    justify-content: center;
+    margin: 0.6em 0 0.3em;
+}
+.pcp-up-nfcs-caption {
+    color: #888;
+    font-size: 0.78em;
+    text-align: center;
+    margin: 0 0 0.4em;
+    font-style: normal;
+}
+
+
+.pcp-up-card-sublabel {
+    color: #888;
+    font-size: 0.88em;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   WHOQOL UserProfile card.
+   4 domains ranked ascending (lowest = most impacted) with
+   color tiers + legend. Reuses .pcp-up-cati-bar/.fill primitive
+   for the per-row bars; only the gradient is overridden by tier.
+   2026-05-18.
+   ============================================================ */
+.whoqol-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22em;
+    margin-top: 0.6em;
+}
+.whoqol-row {
+    display: grid;
+    grid-template-columns: 6.4em 1fr 2.4em;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.82em;
+    line-height: 1.1;
+}
+.whoqol-name { color: #999; }
+.whoqol-val {
+    color: #aaa;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-weight: 600;
+}
+.whoqol-row .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #3a2659, #6b46c1);
+}
+.whoqol-row.is-second .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+.whoqol-row.is-lowest .pcp-up-cati-fill {
+    background: linear-gradient(90deg, #c4b5fd, #ede9fe);
+}
+.whoqol-row.is-lowest .whoqol-name,
+.whoqol-row.is-lowest .whoqol-val { color: #fff; font-weight: 700; }
+.whoqol-row.is-second .whoqol-name,
+.whoqol-row.is-second .whoqol-val { color: #c4b5fd; }
+.whoqol-legend {
+    display: flex;
+    gap: 1.1em;
+    margin-top: 0.6em;
+    padding-top: 0.4em;
+    border-top: 1px solid #2a2a2a;
+    font-size: 0.72em;
+    color: #888;
+}
+.whoqol-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+}
+.legend-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+.legend-swatch.is-lowest { background: linear-gradient(90deg, #c4b5fd, #ede9fe); }
+.legend-swatch.is-second { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+
+
+/* ============================================================
+   MBTI UserProfile card.
+   Big type code + name + 4 bipolar axis bars (E-I, S-N, T-F, J-P)
+   with center-tick midpoint, position dot, strength label;
+   then cognitive function stack (Dom/Aux/Tert/Inf).
+   2026-05-18.
+   ============================================================ */
+
+/* Typehead: code pill + short name on one line. */
+.mbti-typehead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55em;
+    flex-wrap: wrap;
+    margin-bottom: 0.1em;
+}
+.mbti-typehead .pcp-up-typecode {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.9em;
+    font-weight: 700;
+    color: #ede9fe;
+    letter-spacing: 0.18em;
+    background: linear-gradient(90deg, #3a2659, #6b46c1);
+    padding: 0.05em 0.45em;
+    border-radius: 6px;
+    border: 1px solid #7c3aed;
+}
+.mbti-typename {
+    color: #c4b5fd;
+    font-size: 0.95em;
+    font-style: normal;
+}
+
+/* Bipolar axis bars. */
+.mbti-axes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32em;
+    margin-top: 0.6em;
+}
+.mbti-axis {
+    display: grid;
+    grid-template-columns: 1.1em 1fr 1.1em 4.6em;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.82em;
+}
+.mbti-axis-letter {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    text-align: center;
+    color: #888;
+    font-size: 0.95em;
+}
+.mbti-axis-letter.is-active { color: #c4b5fd; font-size: 1.1em; }
+.mbti-axis-bar {
+    position: relative;
+    height: 8px;
+    background: linear-gradient(90deg, #2d2d2d 0%, #1f1f1f 50%, #2d2d2d 100%);
+    border-radius: 4px;
+    overflow: visible;
+}
+.mbti-axis-mid {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    left: 50%;
+    width: 1px;
+    background: #555;
+}
+.mbti-axis-dot {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ede9fe, #7c3aed);
+    box-shadow: 0 0 8px rgba(196, 181, 253, 0.7);
+    border: 1.5px solid #fff;
+    z-index: 2;
+}
+.mbti-axis-strength {
+    font-size: 0.78em;
+    color: #888;
+    text-align: right;
+    letter-spacing: 0.02em;
+}
+.mbti-axis-strength.is-strong   { color: #ede9fe; font-weight: 700; }
+.mbti-axis-strength.is-clear    { color: #c4b5fd; font-weight: 600; }
+.mbti-axis-strength.is-slight   { color: #aaa; }
+.mbti-axis-strength.is-balanced { color: #777; font-style: normal; }
+
+/* Cognitive function stack. */
+.mbti-funcs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22em;
+    margin-top: 0.7em;
+    padding-top: 0.5em;
+    border-top: 1px solid #2a2a2a;
+}
+.mbti-func {
+    display: grid;
+    grid-template-columns: 2.6em 2.4em 1fr;
+    align-items: baseline;
+    gap: 0.5em;
+    font-size: 0.82em;
+    padding: 0.18em 0.3em;
+    border-radius: 3px;
+    background: #1f1f1f;
+}
+.mbti-func.is-dom { background: linear-gradient(90deg, #3a2659, #1f1f1f); }
+.mbti-func.is-aux { background: linear-gradient(90deg, #2a1d40, #1f1f1f); }
+.mbti-func-role {
+    color: #888;
+    text-transform: uppercase;
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+.mbti-func.is-dom .mbti-func-role { color: #ede9fe; }
+.mbti-func.is-aux .mbti-func-role { color: #c4b5fd; }
+.mbti-func-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    color: #c4b5fd;
+    font-size: 0.95em;
+}
+.mbti-func.is-dom .mbti-func-code { color: #ede9fe; font-size: 1.05em; }
+.mbti-func-name { color: #aaa; font-size: 0.92em; }
+
+
+/* CAT-Q / PID-5-BF chip variants (added with modernization 2026-05-18). */
+.pcp-cati-modern-chip-below {
+    background: #1f1f1f;
+    border-color: #444;
+    color: #aaa;
+}
+.pcp-cati-modern-chip-nocutoff {
+    background: #1f1f1f;
+    border-color: #3a3a3a;
+    color: #777;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   PID-5-BF UserProfile card.
+   5-axis radar (NA top, DET upper-right, ANT lower-right,
+   DIS lower-left, PSY upper-left). Dashed-white cutoff ring
+   at the 2.0 level for elevated-trait threshold. Elevated
+   labels go bright violet + bold; elevated vertex dots glow.
+   2026-05-18.
+   ============================================================ */
+.pcp-up-pid5-radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.7em;
+}
+.pcp-up-pid5-radar {
+    display: block;
+    overflow: visible;
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+}
+.pcp-up-pid5-radar .ring          { fill: none; stroke: #3a3a3a; stroke-width: 0.7; }
+.pcp-up-pid5-radar .ring-cutoff   { fill: none; stroke: #fff; stroke-width: 1.2; stroke-dasharray: 3 2; opacity: 0.7; }
+.pcp-up-pid5-radar .axis          { stroke: #2f2f2f; stroke-width: 0.5; }
+.pcp-up-pid5-radar .data          { fill: rgba(124, 58, 237, 0.32); stroke: #c4b5fd; stroke-width: 1.6; stroke-linejoin: round; }
+.pcp-up-pid5-radar .dot           { fill: #c4b5fd; stroke: #1a1a1a; stroke-width: 1; }
+.pcp-up-pid5-radar .dot.is-elev   { fill: #fff; stroke: #c4b5fd; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(196, 181, 253, 0.8)); }
+.pcp-up-pid5-radar .label         { fill: #8b8b8b; font-size: 10px; text-anchor: middle; font-family: -apple-system, sans-serif; }
+.pcp-up-pid5-radar .label.is-elev { fill: #ede9fe; font-weight: 700; }
+.pcp-up-pid5-radar .tick-label    { fill: #555; font-size: 7.5px; text-anchor: start; }
+.pcp-up-pid5-radar .tick-cutoff-label { fill: #cbd5e1; font-size: 7.5px; text-anchor: start; font-weight: 700; }
+
+.pcp-up-pid5-caption {
+    margin: 0.7em 0 0;
+    text-align: center;
+    font-size: 0.9em;     /* 2026-05-18 unified with CAT-Q */
+    color: #ede9fe;
+    line-height: 1.3;
+}
+.pcp-up-pid5-caption.is-none {
+    color: var(--pharma-ink-mute);
+    font-style: normal;
+}
+.pcp-up-pid5-caption-pattern {
+    color: #c4b5fd;
+    font-weight: 700;
+}
+.pcp-up-pid5-caption-list {
+    color: #ede9fe;
+    font-weight: 600;
+}
+.pcp-up-pid5-caption-hint {
+    display: block;
+    margin-top: 0.15em;
+    color: var(--pharma-ink-mute);
+    font-size: 0.78em;
+    font-weight: 400;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   CATI UserProfile card.
+   6-axis hexagon radar (SOC, COM, CAM, FLX, REG, SEN). Irregular
+   dashed-white cutoff polygon at each axis's 75th non-autistic
+   percentile (gender-matched, from CatiNorms). Subscales above
+   their NA-75th go bright violet + glowing dot ("consistent with
+   autism" per the rich-report descriptor).
+   2026-05-18.
+   ============================================================ */
+.pcp-up-cati-radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.7em;
+}
+.pcp-up-cati-radar {
+    display: block;
+    overflow: visible;
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+}
+.pcp-up-cati-radar .ring        { fill: none; stroke: #3a3a3a; stroke-width: 0.7; }
+.pcp-up-cati-radar .ring-cutoff { fill: none; stroke: #fff; stroke-width: 1.2; stroke-dasharray: 3 2; opacity: 0.7; }
+.pcp-up-cati-radar .axis        { stroke: #2f2f2f; stroke-width: 0.5; }
+.pcp-up-cati-radar .data        { fill: rgba(124, 58, 237, 0.32); stroke: #c4b5fd; stroke-width: 1.6; stroke-linejoin: round; }
+.pcp-up-cati-radar .dot         { fill: #c4b5fd; stroke: #1a1a1a; stroke-width: 1; }
+.pcp-up-cati-radar .dot.is-elev { fill: #fff; stroke: #c4b5fd; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(196, 181, 253, 0.8)); }
+.pcp-up-cati-radar .label         { fill: #8b8b8b; font-size: 10px; text-anchor: middle; font-family: -apple-system, sans-serif; }
+.pcp-up-cati-radar .label.is-elev { fill: #ede9fe; font-weight: 700; }
+.pcp-up-cati-radar .tick-label    { fill: #555; font-size: 7.5px; text-anchor: start; }
+
+.pcp-up-cati-caption {
+    margin: 0.7em 0 0;
+    text-align: center;
+    font-size: 0.9em;     /* 2026-05-18 unified with CAT-Q */
+    color: #ede9fe;
+    line-height: 1.3;
+}
+.pcp-up-cati-caption.is-none {
+    color: var(--pharma-ink-mute);
+    font-style: normal;
+}
+.pcp-up-cati-caption-pattern {
+    color: #c4b5fd;
+    font-weight: 700;
+}
+.pcp-up-cati-caption-list {
+    color: #ede9fe;
+    font-weight: 600;
+}
+.pcp-up-cati-caption-hint {
+    display: block;
+    margin-top: 0.15em;
+    color: var(--pharma-ink-mute);
+    font-size: 0.78em;
+    font-weight: 400;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   CAT-Q UserProfile card.
+   Triangle radar (CO top, MSK lower-right (dashed-grey/no cutoff),
+   ASS lower-left). Closed dashed-white cutoff polygon with MSK
+   pinned at outer ring. Cutoff corner dots: solid for CO/ASS,
+   hollow ring for MSK. Caption sized 1.5x standard.
+   2026-05-18.
+   ============================================================ */
+.pcp-up-catq-radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.7em;
+}
+.pcp-up-catq-radar {
+    display: block;
+    overflow: visible;
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+}
+.pcp-up-catq-radar .ring          { fill: none; stroke: #3a3a3a; stroke-width: 0.7; }
+.pcp-up-catq-radar .ring-mid      { fill: none; stroke: #2a2a2a; stroke-width: 0.5; }
+.pcp-up-catq-radar .axis          { stroke: #2f2f2f; stroke-width: 0.5; }
+.pcp-up-catq-radar .axis-nocutoff { stroke: #4a4a4a; stroke-width: 0.6; stroke-dasharray: 1 2.5; }
+.pcp-up-catq-radar .data          { fill: rgba(124, 58, 237, 0.32); stroke: #c4b5fd; stroke-width: 1.6; stroke-linejoin: round; }
+.pcp-up-catq-radar .dot           { fill: #c4b5fd; stroke: #1a1a1a; stroke-width: 1; }
+.pcp-up-catq-radar .dot.is-elev   { fill: #fff; stroke: #c4b5fd; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(196, 181, 253, 0.8)); }
+.pcp-up-catq-radar .label         { fill: #8b8b8b; font-size: 10px; text-anchor: middle; font-family: -apple-system, sans-serif; }
+.pcp-up-catq-radar .label.is-elev { fill: #ede9fe; font-weight: 700; }
+.pcp-up-catq-radar .label.is-nocutoff { fill: var(--pharma-ink-mute); font-style: normal; }
+.pcp-up-catq-radar .cutoff-poly {
+    fill: none; stroke: #fff; stroke-width: 1.2;
+    stroke-dasharray: 3 2; opacity: 0.72;
+    stroke-linejoin: round;
+}
+.pcp-up-catq-radar .cutoff-corner-solid  { fill: #fff; stroke: #1a1a1a; stroke-width: 0.8; }
+.pcp-up-catq-radar .cutoff-corner-hollow { fill: #1a1a1a; stroke: #fff; stroke-width: 1.2; opacity: 0.85; }
+
+/* Caption (C1 style, 1.5x the standard caption text size per user request). */
+.pcp-up-catq-caption {
+    margin: 0.7em 0 0;
+    text-align: center;
+    font-size: 0.9em;      /* 1.29em * 0.7 -- per user request 2026-05-18 */
+    color: #ede9fe;
+    line-height: 1.35;
+}
+.pcp-up-catq-caption-headline {
+    color: #c4b5fd;
+    font-weight: 700;
+    font-size: 0.96em;
+}
+.pcp-up-catq-caption-detail {
+    color: #cbd5e1;
+}
+.pcp-up-catq-caption-hint {
+    display: block;
+    margin-top: 0.2em;
+    color: var(--pharma-ink-mute);
+    font-size: 0.78em;
+    font-weight: 400;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   BPNS UserProfile card.
+   Triangle radar (Autonomy top, Competence lower-right,
+   Relatedness lower-left). Single dashed-white ring at the
+   low-need threshold (mean 4.0). Subscales INSIDE the ring
+   are unmet (inverted valence: low = bad) and get violet+glow.
+   Caption: C3 phenomenological ("Feeling X and Y / but less Z").
+   2026-05-18.
+   ============================================================ */
+.pcp-up-bpns-radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.7em;
+}
+.pcp-up-bpns-radar {
+    display: block;
+    overflow: visible;
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+}
+.pcp-up-bpns-radar .ring          { fill: none; stroke: #3a3a3a; stroke-width: 0.7; }
+.pcp-up-bpns-radar .ring-mid      { fill: none; stroke: #2a2a2a; stroke-width: 0.5; }
+.pcp-up-bpns-radar .axis          { stroke: #2f2f2f; stroke-width: 0.5; }
+.pcp-up-bpns-radar .data          { fill: rgba(124, 58, 237, 0.32); stroke: #c4b5fd; stroke-width: 1.6; stroke-linejoin: round; }
+.pcp-up-bpns-radar .dot           { fill: #c4b5fd; stroke: #1a1a1a; stroke-width: 1; }
+.pcp-up-bpns-radar .dot.is-unmet  { fill: #fff; stroke: #c4b5fd; stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(196, 181, 253, 0.8)); }
+.pcp-up-bpns-radar .label         { fill: #8b8b8b; font-size: 10px; text-anchor: middle; font-family: -apple-system, sans-serif; }
+.pcp-up-bpns-radar .label.is-unmet { fill: #ede9fe; font-weight: 700; }
+.pcp-up-bpns-radar .ring-low {
+    fill: none; stroke: #fff; stroke-width: 1.2;
+    stroke-dasharray: 3 2; opacity: 0.72;
+    stroke-linejoin: round;
+}
+
+.pcp-up-bpns-caption {
+    margin: 0.7em 0 0;
+    text-align: center;
+    font-size: 0.9em;
+    color: #ede9fe;
+    line-height: 1.35;
+}
+.pcp-up-bpns-caption-feel {
+    color: #c4b5fd;
+    font-weight: 700;
+}
+.pcp-up-bpns-caption-detail {
+    color: #ede9fe;
+}
+.pcp-up-bpns-caption-gap {
+    color: #ede9fe;
+    font-weight: 700;
+}
+.pcp-up-bpns-caption-hint {
+    display: block;
+    margin-top: 0.15em;
+    color: var(--pharma-ink-mute);
+    font-size: 0.78em;
+    font-weight: 400;
+    font-style: normal;
+}
+
+
+/* ============================================================
+   Pharmacogenomic + mechanism interactions render
+   (parser-tag <pharmaInteractions/>; tiered section).
+   2026-05-18.
+   ============================================================ */
+.pcp-pgx-header-band {
+    background: linear-gradient(90deg, #1a1a1a, #0e0e0e);
+    border: 1px solid #2d2d2d; border-left: 3px solid #7c3aed;
+    border-radius: 6px;
+    padding: 0.8em 1em; margin-bottom: 1em;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.pcp-pgx-header-title {
+    color: #ede9fe; font-weight: 700; font-size: 1.1em;
+}
+.pcp-pgx-header-meta {
+    color: #888; font-size: 0.78em; font-style: normal;
+}
+
+.pcp-pgx-section { margin: 1.2em 0; }
+.pcp-pgx-tier-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 1.4em 0 0.5em;
+    padding: 0.25em 0;
+}
+.pcp-pgx-tier-title {
+    font-weight: 700; font-size: 0.92em;
+    text-transform: uppercase; letter-spacing: 0.08em;
+}
+.pcp-pgx-tier-sub {
+    color: #888; font-size: 0.78em; font-style: normal;
+}
+.pcp-pgx-tier-1 .pcp-pgx-tier-title { color: #fca5a5; }
+.pcp-pgx-tier-2 .pcp-pgx-tier-title { color: #c4b5fd; }
+.pcp-pgx-tier-3 .pcp-pgx-tier-title { color: #a78bfa; opacity: 0.85; }
+.pcp-pgx-tier-4 .pcp-pgx-tier-title { color: #888; }
+
+.pcp-pgx-row {
+    display: grid; grid-template-columns: 1fr;
+    gap: 0.3em;
+    background: #1a1a1a;
+    border: 1px solid #2d2d2d;
+    border-left: 3px solid #444;
+    border-radius: 6px;
+    padding: 0.7em 0.85em;
+    margin-bottom: 0.5em;
+}
+.pcp-pgx-tier-1 .pcp-pgx-row { border-left-color: #ef4444; }
+.pcp-pgx-tier-2 .pcp-pgx-row { border-left-color: #7c3aed; }
+.pcp-pgx-tier-3 .pcp-pgx-row { border-left-color: #6b46c1; opacity: 0.95; }
+.pcp-pgx-tier-4 .pcp-pgx-row { border-left-color: #4b5563; background: #161616; opacity: 0.92; }
+
+.pcp-pgx-row-head {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0.5em; font-size: 0.96em;
+}
+.pcp-pgx-counterparty {
+    font-weight: 700; color: #ede9fe; font-size: 1.02em;
+}
+.pcp-pgx-counterparty.is-phenotype { color: #c4b5fd; }
+.pcp-pgx-counterparty.is-enzyme    { color: #93c5fd; }
+.pcp-pgx-counterparty.is-transporter { color: #93c5fd; }
+.pcp-pgx-counterparty.is-variant   { color: #fcd34d; }
+.pcp-pgx-counterparty.is-category  { color: #cbd5e1; font-style: normal; }
+.pcp-pgx-counterparty .ns-prefix {
+    color: var(--pharma-ink-mute); font-weight: 400; font-size: 0.82em;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-right: 0.15em;
+}
+
+.pcp-pgx-rel {
+    display: inline-block; padding: 0.08em 0.55em;
+    border-radius: 999px;
+    font-size: 0.78em; font-weight: 600;
+    background: rgba(124, 58, 237, 0.18);
+    border: 1px solid #7c3aed;
+    color: #ede9fe;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.02em;
+}
+.pcp-pgx-rel.is-risk { background: rgba(239, 68, 68, 0.18);  border-color: #ef4444; color: #fecaca; }
+.pcp-pgx-rel.is-safe { background: rgba(34, 197, 94, 0.15);  border-color: #22c55e; color: #bbf7d0; }
+.pcp-pgx-rel.is-info { background: #1f1f1f;                  border-color: #444;    color: #cbd5e1; }
+.pcp-pgx-rel.is-pk   { background: rgba(167, 139, 250, 0.12); border-color: #a78bfa; color: #ddd6fe; }
+
+.pcp-pgx-evid {
+    display: inline-block; padding: 0.08em 0.5em;
+    border-radius: 3px;
+    font-size: 0.72em; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.pcp-pgx-evid.is-fda-box     { background: #ef4444;                  color: #fff;    border: 1px solid #ef4444; }
+.pcp-pgx-evid.is-fda-label   { background: rgba(239,68,68,0.18);     color: #fecaca; border: 1px solid #b91c1c; }
+.pcp-pgx-evid.is-cpic-strong { background: rgba(124,58,237,0.32);    color: #fff;    border: 1px solid #c4b5fd; }
+.pcp-pgx-evid.is-cpic-mod    { background: rgba(124,58,237,0.18);    color: #ede9fe; border: 1px solid #7c3aed; }
+.pcp-pgx-evid.is-cpic-opt    { background: #1f1f1f;                  color: #c4b5fd; border: 1px solid #4b5563; }
+.pcp-pgx-evid.is-primary     { background: #1f1f1f;                  color: #93c5fd; border: 1px solid #3b82f6; }
+.pcp-pgx-evid.is-derived     { background: #1f1f1f;                  color: #9ca3af; border: 1px solid #4b5563; font-style: normal; }
+
+.pcp-pgx-intensity-wrap {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-size: 0.78em; color: #888;
+}
+.pcp-pgx-intensity {
+    position: relative; width: 90px; height: 6px;
+    background: #2d2d2d; border-radius: 3px; overflow: hidden;
+}
+.pcp-pgx-intensity-fill {
+    display: block; height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #6b46c1, #c4b5fd);
+}
+.pcp-pgx-tier-1 .pcp-pgx-intensity-fill { background: linear-gradient(90deg, #b91c1c, #ef4444); }
+.pcp-pgx-intensity-val {
+    font-weight: 700; color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+}
+
+.pcp-pgx-mech {
+    color: #cbd5e1; font-size: 0.84em; line-height: 1.45;
+}
+.pcp-pgx-kinetics {
+    display: inline-flex; align-items: center; gap: 0.35em;
+    margin-top: 0.15em;
+    padding: 0.15em 0.55em;
+    background: rgba(167, 139, 250, 0.08);
+    border: 1px solid #4b3a6a;
+    border-radius: 4px;
+    color: #ddd6fe; font-size: 0.78em;
+}
+.pcp-pgx-kinetics .clock { opacity: 0.7; }
+.pcp-pgx-kinetics.is-persistent {
+    border-color: #f59e0b; color: #fcd34d;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.pcp-pgx-provenance {
+    color: var(--pharma-ink-mute); font-size: 0.78em; font-style: normal;
+    border-top: 1px dashed #2a2a2a; padding-top: 0.35em; margin-top: 0.2em;
+}
+.pcp-pgx-provenance a { color: #9ca3af; }
+.pcp-pgx-provenance .ns-prefix {
+    color: var(--pharma-ink-mute); font-size: 0.9em;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-right: 0.15em;
+}
+
+.pcp-experience-section-title {
+    color: #ede9fe; font-weight: 600; font-size: 1.05em;
+    margin: 2.5em 0 0.6em;
+    border-bottom: 1px solid #2a2a2a; padding-bottom: 0.3em;
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase B: chrome.
+   Overlay on Vector 2022's header + shell. Every rule scoped
+   body:not(.pcp-skin-plants) so the plants overlay is untouched.
+   ============================================================ */
+
+/* shell: C/Specimen 1200px content width */
+body:not(.pcp-skin-plants) .mw-page-container-inner {
+    max-width: 1200px;
+}
+
+/* header bar */
+body:not(.pcp-skin-plants) .vector-header-container {
+    background: var(--pharma-bg);
+}
+body:not(.pcp-skin-plants) .vector-header {
+    border-bottom: 1px solid var(--pharma-line);
+}
+
+/* topbar mark: wax-seal benzene replaces the Vector logo icon.
+   .mw-logo is display:flex; the ::before sits where the icon was. */
+body:not(.pcp-skin-plants) .mw-logo-icon {
+    display: none;
+}
+body:not(.pcp-skin-plants) .mw-logo::before {
+    content: '';
+    display: block;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    margin-right: 11px;
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%20fill%3D%27none%27%20stroke%3D%27%23a78bfa%27%20stroke-linejoin%3D%27round%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M50%207%20L87%2028.5%20L87%2071.5%20L50%2093%20L13%2071.5%20L13%2028.5%20Z%27%20stroke-width%3D%274%27%2F%3E%3Cpath%20d%3D%27M50%2018%20L77.5%2034%20L77.5%2066%20L50%2082%20L22.5%2066%20L22.5%2034%20Z%27%20stroke-width%3D%272%27%2F%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%2713%27%20stroke-width%3D%272%27%2F%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%272.6%27%20fill%3D%27%23a78bfa%27%20stroke%3D%27none%27%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+
+/* wordmark: Newsreader */
+body:not(.pcp-skin-plants) .mw-logo-wordmark {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 500;
+}
+
+/* headings: Newsreader display face */
+body:not(.pcp-skin-plants) #firstHeading,
+body:not(.pcp-skin-plants) .mw-body h1,
+body:not(.pcp-skin-plants) .mw-body h2,
+body:not(.pcp-skin-plants) .mw-body h3,
+body:not(.pcp-skin-plants) .mw-body h4,
+body:not(.pcp-skin-plants) .mw-heading {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 500;
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase C: Main Page module grid.
+   All selectors scoped under .pcp-mainpage (the Main Page body
+   wrapper) so generic class names cannot collide site-wide.
+   ============================================================ */
+.pcp-mainpage { font-size: 13px; }
+
+/* hero */
+.pcp-mainpage .hero { padding: 30px 0 0; border-bottom: 1px solid var(--pharma-line); }
+.pcp-mainpage .hero-eyebrow {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--pharma-violet-bright); margin: 0 0 10px;
+}
+.pcp-mainpage .hero-title {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 48px; font-weight: 400; line-height: 1;
+    letter-spacing: -0.015em; margin: 0 0 12px; color: var(--pharma-ink);
+    border: 0; padding: 0;
+}
+.pcp-mainpage .hero-lede {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px; line-height: 1.5; color: var(--pharma-ink-dim);
+    max-width: 620px; margin: 0;
+}
+.pcp-mainpage .hero-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    margin-top: 24px; border-top: 1px solid var(--pharma-line-faint);
+}
+.pcp-mainpage .stat { padding: 13px 0; border-right: 1px solid var(--pharma-line-faint); text-align: center; }
+.pcp-mainpage .stat:last-child { border-right: 0; }
+.pcp-mainpage .stat .n {
+    font-family: 'Newsreader', Georgia, serif; font-size: 28px;
+    color: var(--pharma-ink); font-variant-numeric: tabular-nums; line-height: 1;
+}
+.pcp-mainpage .stat .l {
+    font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--pharma-ink-mute); margin-top: 6px;
+}
+
+/* status strip */
+.pcp-mainpage .strip {
+    display: flex; gap: 22px; align-items: center; padding: 7px 14px;
+    border-bottom: 1px solid var(--pharma-line); font-size: 11px;
+    color: var(--pharma-ink-mute); background: var(--pharma-bg-2);
+}
+.pcp-mainpage .strip .mature { color: var(--pharma-violet-bright); }
+.pcp-mainpage .strip .build { color: #d57b72; }
+
+/* module grid */
+.pcp-mainpage .grid { display: grid; grid-template-columns: repeat(12, 1fr); }
+.pcp-mainpage .mod {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--pharma-line);
+    border-right: 1px solid var(--pharma-line);
+    text-align: center;
+}
+.pcp-mainpage .col-5 { grid-column: span 5; }
+.pcp-mainpage .col-7 { grid-column: span 7; }
+.pcp-mainpage .col-4 { grid-column: span 4; }
+.pcp-mainpage .mod.flush-r { border-right: 0; }
+.pcp-mainpage .mod-head { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 0 0 13px; }
+.pcp-mainpage .mod-no { font-family: 'Newsreader', Georgia, serif; font-size: 13px; color: var(--pharma-violet-bright); }
+.pcp-mainpage .mod-label {
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+}
+.pcp-mainpage .mod-more { font-size: 11px; color: var(--pharma-violet-ink); }
+
+/* featured */
+.pcp-mainpage .feat-title { font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+.pcp-mainpage .feat-meta { font-size: 10.5px; color: var(--pharma-ink-mute); margin: 0 0 10px; }
+.pcp-mainpage .feat-prose { font-family: 'Newsreader', Georgia, serif; font-size: 14px; line-height: 1.6; color: var(--pharma-ink-dim); margin: 0; }
+
+/* index (browse by class) */
+.pcp-mainpage .index { columns: 2; column-gap: 24px; }
+.pcp-mainpage .ix-row {
+    display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 5px 0;
+    border-bottom: 1px solid var(--pharma-line-faint); break-inside: avoid;
+}
+.pcp-mainpage .ix-row a { font-family: 'Newsreader', Georgia, serif; font-size: 13.5px; }
+.pcp-mainpage .ix-row .ct { font-size: 11px; color: var(--pharma-ink-mute); font-variant-numeric: tabular-nums; }
+
+/* lists */
+.pcp-mainpage .list { display: flex; flex-direction: column; }
+.pcp-mainpage .li {
+    display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 5.5px 0;
+    border-bottom: 1px solid var(--pharma-line-faint);
+}
+.pcp-mainpage .li:last-child { border-bottom: 0; }
+.pcp-mainpage .li a { font-family: 'Newsreader', Georgia, serif; font-size: 13.5px; }
+
+/* portals */
+.pcp-mainpage .portal-h3 { font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; margin: 0 0 5px; }
+.pcp-mainpage .portal-p { font-size: 12px; color: var(--pharma-ink-dim); margin: 0 0 8px; line-height: 1.5; }
+.pcp-mainpage .go { font-size: 11px; color: var(--pharma-violet-ink); }
+.pcp-mainpage .about-prose { font-family: 'Newsreader', Georgia, serif; font-size: 13px; line-height: 1.6; color: var(--pharma-ink-dim); margin: 0; }
+
+@media (max-width: 880px) {
+    .pcp-mainpage .col-5, .pcp-mainpage .col-7, .pcp-mainpage .col-4 { grid-column: span 12; }
+    .pcp-mainpage .mod { border-right: 0; }
+    .pcp-mainpage .index { columns: 1; }
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase D: medicine page (cut 1).
+   Title block + numbered section heads. Scoped under .medpage.
+   ============================================================ */
+.medpage { counter-reset: medsec; }
+
+/* the MediaWiki page title is replaced by the title block */
+body:has(.medpage) #firstHeading { display: none; }
+
+/* title block */
+.medpage .titleblock {
+    padding-bottom: 20px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.medpage .tb-eyebrow {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--pharma-violet-bright); margin-bottom: 9px;
+}
+.medpage .tb-row { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.medpage .tb-name {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 46px; font-weight: 400; line-height: 1;
+    letter-spacing: -0.015em; color: var(--pharma-ink);
+}
+.medpage .tb-brand {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 20px; color: var(--pharma-ink-dim);
+}
+.medpage .tb-brand::before {
+    content: 'also '; font-size: 11px; color: var(--pharma-ink-mute);
+    font-family: 'Geist', sans-serif;
+}
+
+/* numbered section heads (replace the old <h2> tags) */
+.medpage .med-sec-head {
+    counter-increment: medsec;
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 30px 0 14px; padding-bottom: 7px;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.medpage .med-sec-head::before {
+    content: counter(medsec, decimal-leading-zero);
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 14px; color: var(--pharma-violet-bright);
+}
+.medpage .med-sec-head .sec-title {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+}
+.medpage .med-subhead {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 16px; color: var(--pharma-ink);
+    margin: 18px 0 8px;
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase D: medicine page (cut 2).
+   Datasheet rail: the float-right infobox becomes a sticky
+   right rail with three channel-marked panels. Scoped .medpage.
+   ============================================================ */
+.medpage .med-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 320px;
+}
+.medpage .med-main {
+    min-width: 0;
+    padding-right: 32px;
+    border-right: 1px solid var(--pharma-line);
+}
+.medpage .med-rail { min-width: 0; }
+.medpage .med-rail-inner { position: sticky; top: 12px; }
+
+/* structure image at the head of the rail */
+.medpage .med-structure {
+    padding: 20px; text-align: center;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.medpage .med-structure img { max-width: 100%; height: auto; }
+
+/* the three semantic channels */
+.medpage .med-channel { border-bottom: 1px solid var(--pharma-line); padding-bottom: 10px; }
+.medpage .med-channel:last-child { border-bottom: 0; }
+.medpage .ch-head {
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 20px 9px;
+}
+.medpage .ch-mark { width: 4px; height: 14px; background: var(--pharma-violet); }
+.medpage .ch-name {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--pharma-ink);
+}
+.medpage .ch-summary      .ch-mark { background: var(--pharma-ch-summary, #5b7fc7); }
+.medpage .ch-pharmacy     .ch-mark { background: var(--pharma-ch-pharmacy, #57a065); }
+.medpage .ch-pharmacology .ch-mark { background: var(--pharma-ch-pharmacology, #9b7ae0); }
+
+/* datasheet fields */
+.medpage .med-field {
+    display: grid; grid-template-columns: 96px 1fr;
+    gap: 10px; padding: 5px 20px;
+    font-size: 12px; line-height: 1.5;
+}
+.medpage .med-field .fl {
+    color: var(--pharma-ink-mute); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px;
+}
+.medpage .med-field .fv { color: var(--pharma-ink); }
+.medpage .med-field .fv a { color: var(--pharma-violet-ink); }
+.medpage .med-field .pcp-pill-id { font-size: 11px; }
+
+/* narrow viewports: the rail drops below the main column */
+@media (max-width: 1000px) {
+    .medpage .med-grid { grid-template-columns: 1fr; }
+    .medpage .med-main { border-right: 0; padding-right: 0; }
+    .medpage .med-rail {
+        border-top: 1px solid var(--pharma-line); margin-top: 24px;
+    }
+    .medpage .med-rail-inner { position: static; }
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase F: in-section widget re-skin (cut 1).
+   Re-points the pre-redesign widget styling (problems, effects,
+   titration, anecdotes, votes, rating controls, suggest links) onto
+   the C/Specimen palette + hairline/square language. Scoped .medpage;
+   CSS-only - widget markup and behavior are untouched.
+   ============================================================ */
+
+/* square off the old 6-10px radii on medicine pages */
+.medpage .pcp-effect,
+.medpage .pcp-titration,
+.medpage .pcp-anecdote,
+.medpage .pcp-row,
+.medpage .pcp-effect-btn,
+.medpage .pcp-effect-vbtn,
+.medpage .pcp-effect-fbtn,
+.medpage .pcp-likert-btn,
+.medpage .pcp-vote-controls,
+.medpage .pcp-anecdote-badge { border-radius: 0; }
+
+/* titration strategy card -> flat card, violet marker */
+.medpage .pcp-titration {
+    border: 1px solid var(--pharma-line);
+    border-left: 3px solid var(--pharma-violet);
+    background: var(--pharma-bg-2, #131216);
+    padding: 12px 16px; margin: 14px 0;
+}
+.medpage .pcp-titration-preview {
+    border-left-color: var(--pharma-ink-mute);
+    background: var(--pharma-bg-2, #131216);
+}
+.medpage .pcp-titration-title {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 400; font-size: 16px; color: var(--pharma-ink);
+}
+
+/* anecdote card -> flat card; perspective-coded left marker */
+.medpage .pcp-anecdote {
+    border: 1px solid var(--pharma-line);
+    border-left: 3px solid var(--pharma-tier-strong, #c7884a);
+    background: var(--pharma-bg-2, #131216);
+    padding: 12px 16px; margin: 14px 0;
+}
+.medpage .pcp-anecdote-provider {
+    border-left-color: var(--pharma-ch-summary, #5b7fc7);
+    background: var(--pharma-bg-2, #131216);
+}
+.medpage .pcp-anecdote-preview {
+    border-left-color: var(--pharma-ink-mute);
+    background: var(--pharma-bg-2, #131216);
+}
+.medpage .pcp-anecdote-body {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px; color: var(--pharma-ink-dim);
+}
+.medpage .pcp-anecdote-badge {
+    text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 9px; font-weight: 600; padding: 2px 7px;
+}
+.medpage .pcp-anecdote-badge-personal {
+    background: transparent; color: var(--pharma-tier-strong, #c7884a);
+    border: 1px solid var(--pharma-tier-strong, #c7884a);
+}
+.medpage .pcp-anecdote-badge-provider {
+    background: transparent; color: var(--pharma-ch-summary, #5b7fc7);
+    border: 1px solid var(--pharma-ch-summary, #5b7fc7);
+}
+
+/* effect / problem rows -> quiet hairline reveal on hover */
+.medpage .pcp-effect:hover,
+.medpage .pcp-effect:focus-within {
+    border-color: var(--pharma-line);
+    background: var(--pharma-bg-2, #131216);
+}
+
+/* rating controls -> square, hairline, violet active state */
+.medpage .pcp-effect-btn,
+.medpage .pcp-effect-vbtn,
+.medpage .pcp-effect-fbtn,
+.medpage .pcp-likert-btn {
+    background: var(--pharma-bg-3, #18171c);
+    border: 1px solid var(--pharma-line);
+    color: var(--pharma-ink-dim);
+}
+.medpage .pcp-effect-btn:hover,
+.medpage .pcp-effect-vbtn:hover,
+.medpage .pcp-effect-fbtn:hover,
+.medpage .pcp-likert-btn:hover { background: var(--pharma-bg-2, #131216); }
+.medpage .pcp-effect-btn.pcp-active,
+.medpage .pcp-effect-fbtn.pcp-active,
+.medpage .pcp-likert-btn.pcp-likert-active {
+    background: var(--pharma-violet); color: #fff;
+    border-color: var(--pharma-violet); font-weight: 600;
+}
+/* valence buttons keep their +/- semantic green/red, but flat */
+.medpage .pcp-effect-vbtn-zero.pcp-active {
+    background: var(--pharma-ink-mute); color: #fff;
+    border-color: var(--pharma-ink-mute);
+}
+/* small coloured aggregate numbers -> redesign violet */
+.medpage .pcp-effect-vmean { color: var(--pharma-violet-ink, #b9a4f0); }
+
+/* vote widget chip -> square hairline */
+.medpage .pcp-vote-controls {
+    background: var(--pharma-bg-3, #18171c);
+    border: 1px solid var(--pharma-line);
+}
+
+/* per-page suggest links -> square, violet dashed, eyebrow type */
+.medpage .pcp-titration-suggest,
+.medpage .pcp-titration-suggest-wrap a,
+.medpage .pcp-problem-suggest-wrap a,
+.medpage .pcp-effect-suggest-wrap a,
+.medpage .pcp-anecdote-suggest-wrap a {
+    display: inline-block; margin: 8px 0;
+    background: transparent;
+    border: 1px dashed var(--pharma-violet);
+    color: var(--pharma-violet-ink, #b9a4f0) !important;
+    border-radius: 0;
+    padding: 5px 12px;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    text-decoration: none !important;
+}
+.medpage .pcp-titration-suggest:hover,
+.medpage .pcp-titration-suggest-wrap a:hover,
+.medpage .pcp-problem-suggest-wrap a:hover,
+.medpage .pcp-effect-suggest-wrap a:hover,
+.medpage .pcp-anecdote-suggest-wrap a:hover {
+    background: var(--pharma-bg-2, #131216);
+    border-style: solid;
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase F: PGx interaction tiers (cut 2).
+   Styles the <pharmaInteractions/> tier render (.pcp-pgx-*) into the
+   C/Specimen four-tier language. Scoped .medpage; CSS-only. Renders
+   on medicine pages with a populated Interactions section; harmless
+   (no matching elements) on pages without one.
+   ============================================================ */
+
+/* tier severity colour, set per tier, consumed by marker + bar */
+.medpage .pcp-pgx-tier-1 { --tc: var(--pharma-tier-boxed, #c25a52); }
+.medpage .pcp-pgx-tier-2 { --tc: var(--pharma-tier-strong, #c7884a); }
+.medpage .pcp-pgx-tier-3 { --tc: var(--pharma-tier-primary, #8b5cf6); }
+.medpage .pcp-pgx-tier-4 { --tc: var(--pharma-tier-derived, #6c6877); }
+
+/* header band */
+.medpage .pcp-pgx-header-band {
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 4px 0 16px; padding-bottom: 7px;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.medpage .pcp-pgx-header-title {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--pharma-ink);
+}
+.medpage .pcp-pgx-header-meta {
+    margin-left: auto; font-size: 10.5px; color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+
+/* a tier */
+.medpage .pcp-pgx-section { margin: 0 0 18px; }
+.medpage .pcp-pgx-tier-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0 8px;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.medpage .pcp-pgx-tier-head::before {
+    content: ''; width: 4px; height: 15px; flex: none;
+    background: var(--tc, var(--pharma-violet));
+}
+.medpage .pcp-pgx-tier-title {
+    font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--pharma-ink);
+}
+.medpage .pcp-pgx-tier-sub {
+    margin-left: auto; font-size: 10.5px; color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+
+/* an edge row */
+.medpage .pcp-pgx-row {
+    padding: 11px 0;
+    border-bottom: 1px solid var(--pharma-line-faint, #1a1922);
+}
+.medpage .pcp-pgx-row:last-child { border-bottom: 0; }
+.medpage .pcp-pgx-row-head {
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+}
+.medpage .pcp-pgx-counterparty {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 14.5px; color: var(--pharma-ink);
+}
+.medpage .pcp-pgx-counterparty:hover { color: var(--pharma-violet-ink, #b9a4f0); }
+.medpage .pcp-pgx-rel {
+    font-size: 10px; letter-spacing: 0.04em; color: var(--pharma-ink-mute);
+}
+.medpage .pcp-pgx-rel.is-risk { color: var(--pharma-tier-boxed, #c25a52); }
+.medpage .pcp-pgx-rel.is-safe { color: var(--pharma-ch-pharmacy, #57a065); }
+.medpage .pcp-pgx-rel.is-pk   { color: var(--pharma-ink-dim); }
+.medpage .pcp-pgx-rel.is-info { color: var(--pharma-ink-mute); }
+
+/* intensity bar */
+.medpage .pcp-pgx-intensity-wrap {
+    display: flex; align-items: center; gap: 7px; margin-left: auto;
+}
+.medpage .pcp-pgx-intensity {
+    width: 92px; height: 6px; background: var(--pharma-line);
+    position: relative; overflow: hidden;
+}
+.medpage .pcp-pgx-intensity-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--tc, var(--pharma-violet));
+}
+.medpage .pcp-pgx-intensity-val {
+    font-size: 9.5px; color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+
+/* mechanism prose */
+.medpage .pcp-pgx-mech {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 13px; line-height: 1.55; color: var(--pharma-ink-dim);
+    margin-top: 5px; max-width: 640px;
+}
+
+/* evidence chip */
+.medpage .pcp-pgx-evid {
+    display: inline-flex; align-items: center;
+    font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 1px 5px; white-space: nowrap;
+}
+.medpage .pcp-pgx-evid.is-fda-box,
+.medpage .pcp-pgx-evid.is-label {
+    background: var(--pharma-tier-boxed, #c25a52); color: #fff;
+}
+.medpage .pcp-pgx-evid.is-cpic-strong,
+.medpage .pcp-pgx-evid.is-cpic-mod,
+.medpage .pcp-pgx-evid.is-cpic-opt {
+    border: 1px solid var(--pharma-ink-mute); color: var(--pharma-ink-dim);
+}
+.medpage .pcp-pgx-evid.is-primary { color: var(--pharma-ink-mute); }
+.medpage .pcp-pgx-evid.is-derived { color: var(--pharma-ink-mute); }
+.medpage .pcp-pgx-evid.is-derived::before { content: '~ '; }
+
+/* kinetics chip */
+.medpage .pcp-pgx-kinetics {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9.5px; margin-top: 5px;
+    color: var(--pharma-ink-mute);
+    border: 1px solid var(--pharma-line); padding: 1px 6px;
+}
+.medpage .pcp-pgx-kinetics.is-persistent {
+    color: var(--pharma-tier-strong, #c7884a);
+    border-color: var(--pharma-tier-strong, #c7884a);
+}
+
+/* derived-edge provenance line */
+.medpage .pcp-pgx-provenance {
+    font-size: 10px; color: var(--pharma-ink-mute); margin-top: 4px;
+}
+
+
+/* ============================================================
+   C/Specimen redesign, Phase F polish: post-promotion fixes.
+   1. PGx interaction edges -> quiet hairline rows (reset the
+      pre-redesign .pcp-pgx-row card border / left border / bg).
+   2. Hide a datasheet-rail channel that has no fields.
+   ============================================================ */
+.medpage .pcp-pgx-row {
+    border: 0;
+    border-bottom: 1px solid var(--pharma-line-faint, #1a1922);
+    background: transparent;
+    border-radius: 0;
+    padding: 11px 0;
+}
+.medpage .pcp-pgx-tier-1 .pcp-pgx-row,
+.medpage .pcp-pgx-tier-2 .pcp-pgx-row,
+.medpage .pcp-pgx-tier-3 .pcp-pgx-row,
+.medpage .pcp-pgx-tier-4 .pcp-pgx-row {
+    border-left: 0;
+    background: transparent;
+}
+.medpage .pcp-pgx-row:last-child { border-bottom: 0; }
+
+.medpage .med-channel:not(:has(.med-field)) { display: none; }
+
+/* No decorative italics, either skin (designer-claude hard rule, 2026-05-20). */
+em, i { font-style: normal; }
+
+
+/* ============================================================
+   WCAG 2.2 AA, M2: visible keyboard focus. The C/Specimen skin
+   spec calls for a 2px --pharma-violet :focus-visible outline on
+   every interactive element, always visible, never suppressed.
+   Keyboard focus only; mouse clicks are unaffected.
+   ============================================================ */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--pharma-violet) !important;
+    outline-offset: 2px;
+    border-radius: 1px;
+}
+
+
+/* ============================================================
+   WCAG S1: heading look-preservation. The module / section
+   labels are now real <h2>/<h3>; neutralise the UA heading
+   margin and bold so they render exactly as the old spans did
+   (the class rules above already carry size, spacing, color).
+   ============================================================ */
+.pcp-mainpage .mod-label { margin: 0; font-weight: 400; }
+.medpage .med-sec-head .sec-title { margin: 0; font-weight: 400; }
+.medpage .med-subhead { font-weight: 400; }
+
+
+/* ============================================================
+   Cross-skin cohesion (designer-claude 2026-05-20): pharma
+   whisper-grain. A whisper of the plants skin's vellum, far
+   fainter, neutral-cool. Pharma only; plants keeps its own.
+   ============================================================ */
+body:not(.pcp-skin-plants)::before {
+    content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    opacity: 0.25; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.54  0 0 0 0 0.6  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+
+/* ============================================================
+   WCAG S1 fix: heading border-bottom + padding neutralise.
+   The module / section / sub labels are real <h2>/<h3> now, so
+   they also inherit MediaWiki's content-heading border-bottom
+   and padding-bottom. The old <span>/<div> elements had
+   neither. Reset both so the headings render exactly as before.
+   (.med-sec-head keeps its own intentional underline; only the
+   inner <h2> is reset, so the section head is not double-ruled.)
+   ============================================================ */
+.pcp-mainpage h2.mod-label { border: 0; padding: 0; }
+.medpage .med-sec-head h2.sec-title { border: 0; padding: 0; }
+.medpage h3.med-subhead { border: 0; padding: 0; }
+
+
+/* ============================================================
+   WCAG S1 fix (cont.): heading font-weight neutralise.
+   The C/Specimen heading rule (body:not(.pcp-skin-plants)
+   .mw-body h2/h3/h4) sets font-weight 500 at specificity
+   (0,2,2), which outranks S1's weight resets on the relabelled
+   mod-label <h2> (0,2,0) and med-subhead <h3> (0,2,0), so both
+   render heavier than the old <span>/<div>. Re-assert weight
+   400 at (0,3,1) so they match. (sec-title's S1 reset is
+   (0,3,0) and already wins, so it is left alone.)
+   ============================================================ */
+.mw-body .pcp-mainpage h2.mod-label { font-weight: 400; }
+.mw-body .medpage h3.med-subhead { font-weight: 400; }
+
+
+/* ============================================================
+   Perspective subsystem, surface 2: the public invitee page
+   (Special:Perspective). designer-claude handoff 2026-05-20.
+   Scoped under .pcp-perspective-page. Pharma C/Specimen tokens.
+   ============================================================ */
+.pcp-perspective-page {
+    max-width: 620px;
+    margin: 0 auto;
+}
+
+/* generic invitee intro paragraph(s) */
+.pcp-perspective-intro {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--pharma-ink-dim);
+    max-width: 580px;
+    margin: 0 0 14px;
+}
+
+/* "where your answers go" notice: prominent but calm, the page's
+   trust anchor; a quiet violet-tinted panel, never a warning banner */
+.pcp-perspective-consent {
+    margin: 8px 0 26px;
+    padding: 13px 16px;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: 3px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pharma-ink-dim);
+}
+
+/* optional "how do you know this person" field */
+.pcp-perspective-rel {
+    margin: 0 0 26px;
+    padding: 0 0 22px;
+    border-bottom: 1px solid var(--pharma-line);
+}
+.pcp-perspective-rel label {
+    display: block;
+    margin: 0 0 6px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+}
+.pcp-perspective-rel select {
+    font: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    color: var(--pharma-ink);
+    background: var(--pharma-bg-3, #18171c);
+    border: 1px solid var(--pharma-line);
+}
+.pcp-perspective-rel select:focus-visible { border-color: var(--pharma-violet); }
+
+/* AMAAS-OR type blurb + answering instruction */
+.pcp-perspective-descriptor {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--pharma-ink-dim);
+    margin: 0 0 8px;
+}
+.pcp-perspective-help {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pharma-ink-mute);
+    margin: 0 0 4px;
+}
+
+/* progress indicator; the ResourceLoader module fills count + bar */
+.pcp-perspective-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0;
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-perspective-progress-bar {
+    position: relative;
+    flex: 1;
+    max-width: 200px;
+    height: 3px;
+    background: var(--pharma-line);
+}
+.pcp-perspective-progress-bar::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--pcp-progress, 0%);
+    background: var(--pharma-violet);
+}
+
+/* the 30 items */
+.pcp-perspective-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.pcp-perspective-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--pharma-line-faint);
+}
+.pcp-perspective-item-text {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px;
+    color: var(--pharma-ink);
+    max-width: 560px;
+    margin: 0 0 12px;
+}
+.pcp-perspective-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 540px;
+}
+.pcp-perspective-anchor {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: var(--pharma-ink-mute);
+}
+
+/* the rating slider: a real range input, styled track + thumb */
+.pcp-perspective-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    background: transparent;
+    cursor: pointer;
+}
+.pcp-perspective-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--pharma-line);
+}
+.pcp-perspective-slider::-moz-range-track {
+    height: 4px;
+    background: var(--pharma-line);
+}
+.pcp-perspective-slider::-moz-range-progress {
+    height: 4px;
+    background: var(--pharma-violet);
+}
+.pcp-perspective-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--pharma-violet-bright);
+    border: 3px solid var(--pharma-bg-2, #131216);
+}
+.pcp-perspective-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--pharma-violet-bright);
+    border: 3px solid var(--pharma-bg-2, #131216);
+}
+
+/* the live value readout, quiet at the row's right end */
+.pcp-perspective-out {
+    flex: 0 0 auto;
+    min-width: 3em;
+    text-align: right;
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+
+/* "Not sure" opt-out: a quiet, legitimate secondary control */
+.pcp-perspective-idk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 11px 0 0;
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+    cursor: pointer;
+}
+.pcp-perspective-idk input { accent-color: var(--pharma-ink-mute); }
+
+/* Turnstile slot */
+.pcp-perspective-captcha { margin: 22px 0; }
+
+/* submit row */
+.pcp-perspective-actions { margin-top: 24px; }
+.pcp-perspective-actions .pcp-btn-primary {
+    font: inherit;
+    font-size: 13px;
+    color: var(--pharma-ink);
+    background: rgba(139, 92, 246, 0.16);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    padding: 11px 24px;
+    cursor: pointer;
+}
+.pcp-perspective-actions .pcp-btn-primary:hover {
+    background: rgba(139, 92, 246, 0.24);
+}
+
+/* sub-states: thank-you, invalid / revoked / used-up. Neutral panels. */
+.pcp-perspective-thanks,
+.pcp-perspective-invalid,
+.pcp-perspective-rejected {
+    max-width: 460px;
+    padding: 24px 26px;
+    border: 1px solid var(--pharma-line);
+    background: var(--pharma-bg-2, #131216);
+}
+.pcp-perspective-thanks p,
+.pcp-perspective-invalid p,
+.pcp-perspective-rejected p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pharma-ink-dim);
+}
+
+
+/* ============================================================
+   Perspective subsystem, surfaces 1 + 3: the owner page
+   Special:MyPerspectives (invite panel + consent inbox).
+   designer-claude handoff 2026-05-20. Scoped .pcp-perspectives-page.
+   ============================================================ */
+.pcp-perspectives-page { max-width: 760px; }
+.pcp-perspectives-page h2 {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 400;
+}
+
+/* shared button */
+.pcp-perspectives-page .pcp-btn {
+    font: inherit;
+    font-size: 12.5px;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--pharma-violet-ink);
+    background: transparent;
+    border: 1px solid var(--pharma-line);
+}
+.pcp-perspectives-page .pcp-btn:hover {
+    border-color: var(--pharma-violet);
+    background: rgba(139, 92, 246, 0.08);
+}
+.pcp-perspectives-page .pcp-btn-primary {
+    color: var(--pharma-ink);
+    background: rgba(139, 92, 246, 0.16);
+    border-color: rgba(139, 92, 246, 0.45);
+}
+
+/* ---- surface 1: invite panel ---- */
+.pcp-perspectives-invite { margin: 0 0 40px; }
+.pcp-perspectives-invite > p:first-of-type {
+    padding: 13px 16px;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: 3px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pharma-ink-dim);
+}
+.pcp-perspectives-invite-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+}
+.pcp-perspectives-invite-form label {
+    flex: 1 1 100%;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--pharma-ink-dim);
+}
+.pcp-perspectives-invite-form input[type="text"] {
+    flex: 1 1 16em;
+    font: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    color: var(--pharma-ink);
+    background: var(--pharma-bg-3, #18171c);
+    border: 1px solid var(--pharma-line);
+}
+.pcp-perspectives-invite-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+.pcp-perspectives-invite-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--pharma-line-faint);
+}
+.pcp-perspectives-link {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    color: var(--pharma-ink-dim);
+    background: var(--pharma-bg-3, #18171c);
+    border: 1px solid var(--pharma-line);
+    word-break: break-all;
+}
+.pcp-perspectives-link-meta {
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-perspectives-inline-form { display: inline; margin: 0; }
+
+/* ---- surface 3: consent inbox ---- */
+.pcp-perspectives-inbox { margin: 0; }
+.pcp-perspectives-empty {
+    margin: 12px 0;
+    padding: 18px 20px;
+    font-size: 13px;
+    color: var(--pharma-ink-mute);
+    border: 1px dashed var(--pharma-line);
+}
+.pcp-perspective-card {
+    margin: 0 0 16px;
+    padding: 14px 18px;
+    border: 1px solid var(--pharma-line);
+    background: var(--pharma-bg-2, #131216);
+}
+.pcp-perspective-card-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 8px;
+}
+.pcp-perspective-card-head strong {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--pharma-ink);
+}
+.pcp-perspective-card-who {
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+}
+.pcp-perspective-card-date {
+    margin-left: auto;
+    font-size: 10.5px;
+    color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+
+/* validity: three distinct states, each its own treatment */
+.pcp-perspective-card-validity {
+    margin: 8px 0;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.pcp-perspective-card-validity::before { margin-right: 6px; }
+.pcp-validity-pass { color: var(--pharma-ink-dim); }
+.pcp-validity-pass::before { content: '\2713'; }
+.pcp-validity-flagged { color: var(--pharma-tier-strong, #c7884a); }
+.pcp-validity-flagged::before { content: '\25B2'; }
+.pcp-validity-notassessed { color: var(--pharma-ink-mute); }
+.pcp-validity-notassessed::before { content: '\25CC'; }
+
+.pcp-perspective-card-summary {
+    margin: 8px 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--pharma-ink-dim);
+}
+
+/* action row: equal-weight decisions; delete set apart to the right */
+.pcp-perspective-card-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--pharma-line-faint);
+}
+.pcp-perspective-card-state {
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+}
+.pcp-perspective-card-actions .pcp-perspectives-inline-form:last-child {
+    margin-left: auto;
+}
+
+
+/* ============================================================
+   Perspective surface 3: per-card state. parser-claude added the
+   data-consent hook to .pcp-perspective-card (2026-05-20).
+   data-consent="0" awaits the owner's review; "1" is published.
+   ============================================================ */
+.pcp-perspective-card[data-consent="0"] {
+    border-left: 2px solid var(--pharma-violet);
+}
+.pcp-perspective-card[data-consent="1"] .pcp-perspective-card-state {
+    color: var(--pharma-ch-pharmacy, #57a065);
+}
+
+
+/* ============================================================
+   Granular PGx interaction voting (queued 2026-05-19).
+   The collapsed panel under each .pcp-pgx-row, revealed by the
+   row's "Rate" toggle. Five curation dimensions write to
+   pcp_interaction_flags; the experience block reuses
+   pcp_interaction_reports. Wiring: ext.pharmacopedia.js
+   (.pcp-pgx-vote). Tokens fall back to hex off medicine pages.
+   ============================================================ */
+.pcp-pgx-row-actions { margin-left: 6px; }
+.pcp-row-pgxvote-panel[hidden] { display: none; }
+
+.pcp-pgx-vote { font-size: 0.92em; }
+.pcp-pgx-vote-intro {
+    margin: 0 0 0.6em;
+    font-size: 0.85em;
+    color: var(--pharma-ink-mute, #8a8794);
+}
+.pcp-pgx-vote-dim {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4em 0.7em;
+    padding: 0.5em 0;
+    border-top: 1px solid var(--pharma-line-faint, #1f1f1f);
+}
+.pcp-pgx-vote-intro + .pcp-pgx-vote-dim { border-top: 0; }
+.pcp-pgx-vote-q {
+    flex: 1 1 14em;
+    min-width: 11em;
+    color: var(--pharma-ink-dim, #cbd5e1);
+}
+.pcp-pgx-vote-scale,
+.pcp-pgx-vote-opts,
+.pcp-pgx-vote-exprow {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3em;
+}
+.pcp-pgx-vote-scale-end {
+    font-size: 0.74em;
+    font-style: italic;
+    color: var(--pharma-ink-mute, #8a8794);
+}
+.pcp-pgx-vote-btn,
+.pcp-pgx-vote-opt,
+.pcp-pgx-vote-flag,
+.pcp-pgx-vote-expbtn {
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+    background: transparent;
+    border: 1px solid var(--pharma-line, rgba(128,128,128,0.5));
+    border-radius: 3px;
+    line-height: 1.3;
+}
+.pcp-pgx-vote-btn,
+.pcp-pgx-vote-expbtn {
+    width: 2em;
+    padding: 0.16em 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-pgx-vote-opt,
+.pcp-pgx-vote-flag { padding: 0.16em 0.7em; }
+.pcp-pgx-vote-btn:hover,
+.pcp-pgx-vote-opt:hover,
+.pcp-pgx-vote-flag:hover,
+.pcp-pgx-vote-expbtn:hover { background: rgba(127,127,127,0.16); }
+.pcp-pgx-vote-btn.pcp-active,
+.pcp-pgx-vote-opt.pcp-active,
+.pcp-pgx-vote-expbtn.pcp-active {
+    background: var(--pharma-violet, #7c3aed);
+    border-color: var(--pharma-violet, #7c3aed);
+    color: #fff;
+    font-weight: 600;
+}
+.pcp-pgx-vote-flag.pcp-active {
+    background: var(--pharma-tier-strong, #c7884a);
+    border-color: var(--pharma-tier-strong, #c7884a);
+    color: #fff;
+    font-weight: 600;
+}
+.pcp-pgx-vote-agg {
+    font-size: 0.78em;
+    color: var(--pharma-ink-mute, #8a8794);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-pgx-vote-experience { display: block; }
+.pcp-pgx-vote-exp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+    margin-top: 0.4em;
+    width: 100%;
+}
+.pcp-pgx-vote-exp-sub {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5em;
+}
+.pcp-pgx-vote-exp-label {
+    flex: 0 0 15em;
+    font-size: 0.8em;
+    color: var(--pharma-ink-mute, #8a8794);
+}
+.pcp-pgx-vote-valrow.pcp-disabled { opacity: 0.4; pointer-events: none; }
+.pcp-pgx-vote-vslider-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+}
+.pcp-pgx-vote-vslider {
+    width: 11em;
+    vertical-align: middle;
+    accent-color: var(--pharma-violet, #7c3aed);
+}
+.pcp-pgx-vote-vanchor,
+.pcp-pgx-vote-vout {
+    font-size: 0.76em;
+    color: var(--pharma-ink-mute, #8a8794);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-pgx-vote-vout {
+    min-width: 2.4em;
+    text-align: center;
+    font-weight: 600;
+    color: var(--pharma-ink-dim, #cbd5e1);
+}
+.pcp-pgx-vote-status {
+    margin-top: 0.5em;
+    font-size: 0.82em;
+    color: var(--pharma-ink-mute, #8a8794);
+}
+.pcp-pgx-vote-status[hidden] { display: none; }
+
+
+/* ============================================================
+   Shulgin's Corner: Pharma-axis sibling of Pendell's Corner.
+   designer-claude spec 2026-05-20 (/design/pharma_shulgins_corner.html).
+   Standalone Template:ShulginsCorner; same block anatomy as Pendell's
+   Corner, an amber accent + skeletal-bond mark for the chemist's
+   voice. Quote stays roman on pharma; quote-italic follows the skin
+   (the plants variant in skin.plants.css sets italic).
+   ============================================================ */
+.pcp-shulgin {
+    margin: 0 0 10px;
+    background: var(--pharma-bg-2);
+    border: 1px solid var(--pharma-line);
+    border-left: 3px solid var(--pharma-amber);
+    max-width: 41em;
+}
+.pcp-shulgin-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 17px;
+    border-bottom: 1px solid var(--pharma-line-faint);
+}
+.pcp-shulgin-mark {
+    width: 30px;
+    height: 12px;
+    color: var(--pharma-amber);
+    display: block;
+}
+.pcp-shulgin-title {
+    font-size: 9.5px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--pharma-amber);
+}
+.pcp-shulgin-quote {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    color: var(--pharma-ink-dim);
+    margin: 0;
+    padding: 16px 18px 0;
+}
+.pcp-shulgin-quote p { margin: 0 0 0.62em; }
+.pcp-shulgin-quote p:last-child { margin: 0; }
+.pcp-shulgin-attr {
+    padding: 13px 18px 2px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--pharma-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-shulgin-attr:last-child { padding-bottom: 14px; }
+.pcp-shulgin-attr .who { color: var(--pharma-amber); }
+.pcp-shulgin-voice {
+    padding: 0 18px 13px;
+    text-align: right;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+}
+
+/* ============================================================
+   Formal testing: the per-field privacy badge on a score card
+   is click-to-edit (opens that card's Edit form).
+   ============================================================ */
+.pcp-ft-vis-badge {
+    cursor: pointer;
+    user-select: none;
+}
+.pcp-ft-vis-badge:hover,
+.pcp-ft-vis-badge:focus-visible {
+    outline: 1px solid currentColor;
+    border-radius: 3px;
+}
+
+
+/* ============================================================
+   Verdict card: the assessment card-family "verdict" block.
+   designer-claude spec, mockup /design/pharma_card_family.html
+   section 03. First consumer: the ASRS binary-screen share card
+   (parser-claude wires SpecialUserProfile to emit the markup).
+   Lifted against the house --pharma-* tokens (the mockup's
+   --pcp-card-* tokens are not a production layer).
+   ============================================================ */
+.verdict {
+    border: 1px solid var(--pharma-line);
+    background: var(--pharma-bg-2);
+}
+.verdict .v-head { padding: 14px 16px 0; }
+.verdict .v-code {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--pharma-violet-bright);
+}
+.verdict .v-body { padding: 12px 16px 14px; }
+.verdict .v-word {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 27px;
+    line-height: 1.05;
+    color: var(--pharma-amber);
+    margin: 0 0 4px;
+}
+.verdict .v-word.neg { color: var(--pharma-green); }
+.verdict .v-pre {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+    display: block;
+    margin-bottom: 5px;
+}
+.verdict .v-detail {
+    font-size: 11.5px;
+    color: var(--pharma-ink-dim);
+}
+.verdict .v-foot {
+    padding: 9px 16px;
+    border-top: 1px solid var(--pharma-line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+}
+.verdict .v-foot a { color: var(--pharma-violet-ink); }
+.verdict .v-foot .d { color: var(--pharma-ink-mute); }
+.verdict .v-binary {
+    display: flex;
+    gap: 5px;
+    margin: 9px 0 0;
+}
+.verdict .v-binary span {
+    width: 14px;
+    height: 6px;
+    background: var(--pharma-line);
+}
+.verdict .v-binary span.on { background: var(--pharma-amber); }
+
+
+/* ============================================================
+   Featured card: the assessment card-family radar face.
+   designer-claude spec, mockup /design/pharma_amaas_card.html.
+   First consumer: the AMAAS-SR 3-axis radar card (parser-claude
+   emits the .fc markup + the data-driven radar SVG).
+   Lifted against the house --pharma-* tokens. Radar polygons are
+   styled inline in the generated SVG, so no polygon CSS here.
+   .viz-cap is mute by default; .fc-experimental makes it amber
+   for instruments carrying an arbitrary/experimental caption.
+   ============================================================ */
+.fc {
+    border: 1px solid var(--pharma-line);
+    background: var(--pharma-bg-2);
+    display: flex;
+    flex-direction: column;
+    max-width: 340px;
+}
+.fc-head {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--pharma-line-faint);
+}
+.fc-code {
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--pharma-violet-bright);
+    display: block;
+    margin-bottom: 3px;
+}
+.fc-name {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 16px;
+}
+.fc-viz {
+    padding: 16px 18px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.fc-viz svg {
+    width: 220px;
+    height: auto;
+    display: block;
+}
+.fc .viz-cap {
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--pharma-ink-mute);
+    margin: 7px 0 0;
+    max-width: 252px;
+}
+.fc-experimental .viz-cap { color: var(--pharma-tier-strong); }
+.fc-facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--pharma-line-faint);
+}
+.fc-facts .fact {
+    padding: 9px 13px;
+    border-right: 1px solid var(--pharma-line-faint);
+}
+.fc-facts .fact:last-child { border-right: 0; }
+.fc-facts .fact .fl {
+    font-size: 9px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--pharma-ink-mute);
+    display: block;
+    margin-bottom: 3px;
+}
+.fc-facts .fact .fv {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px;
+    color: var(--pharma-ink);
+}
+.fc-facts .fact .fv.amber { color: var(--pharma-tier-strong); }
+.fc-foot {
+    padding: 10px 18px;
+    border-top: 1px solid var(--pharma-line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+}
+.fc-foot a { color: var(--pharma-violet-ink); }
+.fc-foot .d { color: var(--pharma-ink-mute); }

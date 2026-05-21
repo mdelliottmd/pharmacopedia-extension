@@ -49,35 +49,45 @@
         // implied range; iso_end carries the inclusive end.
         // Units: y/yr/yrs/year/years/yo, mo/mos/month/months, w/wk/wks/week/weeks, d/day/days.
         // Bare "m" is intentionally NOT accepted (ambiguous with minutes); use "mo".
-        var AGE_UNIT_RE = '(?:yo|years?|yrs?|y|months?|mos?|weeks?|wks?|w|days?|d)';
+        var AGE_UNIT_RE = '(?:yo|years?|yrs?|y|months?|mos?|weeks?|wks?|w|days?|d|hours?|hrs?|h|minutes?|mins?|seconds?|secs?|s)';
         var ageFullRe = new RegExp(
-            '^\\d+\\s*' + AGE_UNIT_RE +
-            '(?:\\s*(?:and\\s+)?\\d+\\s*' + AGE_UNIT_RE + ')*' +
+            '^\\d+(?:\\.\\d+)?\\s*' + AGE_UNIT_RE +
+            '(?:\\s*(?:and\\s+)?\\d+(?:\\.\\d+)?\\s*' + AGE_UNIT_RE + ')*' +
             '(?:\\s+old)?$', 'i'
         );
         if ( ageFullRe.test( text ) ) {
-            var tokenRe = new RegExp( '(\\d+)\\s*' + AGE_UNIT_RE, 'gi' );
-            var tok, years = 0, months = 0, days = 0;
-            var sawYear = false, sawMonth = false, sawWeek = false, sawDay = false;
+            var tokenRe = new RegExp( '(\\d+(?:\\.\\d+)?)\\s*' + AGE_UNIT_RE, 'gi' );
+            var tok, totalMs = 0, wholeYears = 0, wholeMonths = 0;
+            var sawY=false, sawMo=false, sawW=false, sawD=false, sawH=false, sawMin=false, sawS=false;
             var bareParts = [];
             while ( ( tok = tokenRe.exec( text ) ) !== null ) {
-                var n = parseInt( tok[ 1 ], 10 );
-                var unit = tok[ 0 ].replace( /^\d+\s*/, '' ).toLowerCase();
+                var n = parseFloat( tok[ 1 ] );
+                var unit = tok[ 0 ].replace( /^[\d.]+\s*/, '' ).toLowerCase();
+                var pN = ( n === 1 ? '' : 's' );
                 if ( /^(yo|years?|yrs?|y)$/.test( unit ) ) {
-                    years += n; sawYear = true;
-                    bareParts.push( n + ' year'  + ( n === 1 ? '' : 's' ) );
+                    var wy = Math.trunc( n ); wholeYears += wy; totalMs += ( n - wy ) * 365.25 * 86400000;
+                    sawY = true; bareParts.push( n + ' year' + pN );
                 } else if ( /^(months?|mos?)$/.test( unit ) ) {
-                    months += n; sawMonth = true;
-                    bareParts.push( n + ' month' + ( n === 1 ? '' : 's' ) );
+                    var wm = Math.trunc( n ); wholeMonths += wm; totalMs += ( n - wm ) * 30.4375 * 86400000;
+                    sawMo = true; bareParts.push( n + ' month' + pN );
                 } else if ( /^(weeks?|wks?|w)$/.test( unit ) ) {
-                    days += n * 7; sawWeek = true;
-                    bareParts.push( n + ' week'  + ( n === 1 ? '' : 's' ) );
+                    totalMs += n * 7 * 86400000;
+                    sawW = true; bareParts.push( n + ' week' + pN );
                 } else if ( /^(days?|d)$/.test( unit ) ) {
-                    days += n; sawDay = true;
-                    bareParts.push( n + ' day'   + ( n === 1 ? '' : 's' ) );
+                    totalMs += n * 86400000;
+                    sawD = true; bareParts.push( n + ' day' + pN );
+                } else if ( /^(hours?|hrs?|h)$/.test( unit ) ) {
+                    totalMs += n * 3600000;
+                    sawH = true; bareParts.push( n + ' hour' + pN );
+                } else if ( /^(minutes?|mins?)$/.test( unit ) ) {
+                    totalMs += n * 60000;
+                    sawMin = true; bareParts.push( n + ' minute' + pN );
+                } else if ( /^(seconds?|secs?|s)$/.test( unit ) ) {
+                    totalMs += n * 1000;
+                    sawS = true; bareParts.push( n + ' second' + pN );
                 }
             }
-            var precUnit = sawDay ? 'day' : sawWeek ? 'week' : sawMonth ? 'month' : sawYear ? 'year' : null;
+            var precUnit = sawS ? 'second' : sawMin ? 'minute' : sawH ? 'hour' : sawD ? 'day' : sawW ? 'week' : sawMo ? 'month' : sawY ? 'year' : null;
             if ( precUnit ) {
                 var bdStr = root.PCPDatePickerBirthday || null;
                 var startD;
@@ -88,15 +98,19 @@
                     var by = root.PCPDatePickerBirthYear || DEMO_BIRTH_YEAR;
                     startD = new Date( by, 0, 1 );
                 }
-                startD.setFullYear( startD.getFullYear() + years );
-                startD.setMonth( startD.getMonth() + months );
-                startD.setDate( startD.getDate() + days );
+                if ( wholeYears )  startD.setFullYear( startD.getFullYear() + wholeYears );
+                if ( wholeMonths ) startD.setMonth( startD.getMonth() + wholeMonths );
+                startD = new Date( startD.getTime() + totalMs );
                 var endD = new Date( startD );
                 if ( precUnit === 'year' )       endD.setFullYear( endD.getFullYear() + 1 );
                 else if ( precUnit === 'month' ) endD.setMonth( endD.getMonth() + 1 );
                 else if ( precUnit === 'week' )  endD.setDate( endD.getDate() + 7 );
-                else                              endD.setDate( endD.getDate() + 1 );
-                endD.setDate( endD.getDate() - 1 );
+                else if ( precUnit === 'day' )   endD.setDate( endD.getDate() + 1 );
+                else if ( precUnit === 'hour' )  endD.setTime( endD.getTime() + 3600000 );
+                else if ( precUnit === 'minute' )endD.setTime( endD.getTime() + 60000 );
+                else if ( precUnit === 'second' )endD.setTime( endD.getTime() + 1000 );
+                if ( precUnit === 'year' || precUnit === 'month' || precUnit === 'week' || precUnit === 'day' ) endD.setDate( endD.getDate() - 1 );
+                else endD = new Date( endD.getTime() - 1 );
                 var fmt = function ( d ) {
                     return d.getFullYear() + '-' +
                            String( d.getMonth() + 1 ).padStart( 2, '0' ) + '-' +
@@ -163,6 +177,22 @@
             }
         }
         return null;
+    }
+
+    var MONTHS_ABBR = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+    function formatParsedForPreview( p ) {
+        if ( !p ) return '';
+        var prec = String( p.precision || '' );
+        var iso = String( p.iso || '' );
+        if ( !iso ) return p.display || '';
+        var parts = iso.split( '-' );
+        var y = parts[ 0 ] || '';
+        var mo = parseInt( parts[ 1 ] || '1', 10 );
+        var d = parseInt( parts[ 2 ] || '1', 10 );
+        if ( prec === 'decade' )       return y.substring( 0, 3 ) + '0s';
+        if ( prec === 'year' )         return y;
+        if ( prec === 'month' )        return MONTHS_ABBR[ mo - 1 ] + ' ' + y;
+        return MONTHS_ABBR[ mo - 1 ] + ' ' + d + ' ' + y;
     }
 
     // ====================================================================
@@ -670,6 +700,7 @@
                 /\s+to\s+/i,
                 /\s*—\s*/, /\s*–\s*/, /\s+-\s+/,
                 /(?<=\d)-(?=[A-Za-z])/,
+                /(?<=[a-z])\s*-\s*(?=\d)/i,
                 /\s*\.\.+\s*/
             ];
             for ( var i = 0; i < seps.length; i++ ) {
@@ -836,7 +867,7 @@
                     function describe( label, side ) {
                         if ( !side ) return '';
                         if ( side.parsed ) {
-                            var d = side.parsed.display || side.parsed.iso;
+                            var d = formatParsedForPreview( side.parsed );
                             if ( side.time && side.time.parsed ) d += ' ' + side.time.parsed;
                             return label + ': ' + d;
                         }

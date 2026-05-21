@@ -30,5 +30,5 @@
 }
 .pcp-time-input .pcp-time-preview.bad {
     color: #c0392b;
-    font-style: italic;
+    font-style: normal;
 }

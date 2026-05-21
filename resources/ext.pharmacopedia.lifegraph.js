@@ -19,6 +19,8 @@
         return m ? m[1].trim() : '#c4b5fd';
     }
 
+    function escapeHtml( s ) { return escapeXml( s ); }
+
     function escapeXml( s ) {
         return String( s ).replace( /&/g, '&amp;' )
             .replace( /</g, '&lt;' ).replace( />/g, '&gt;' )
@@ -33,7 +35,7 @@
 
         var items = data.items || [];
         if ( !items.length ) {
-            mount.innerHTML = '<p class="pcp-life-graph-empty">No keyframe trajectories yet. Take an assessment, or add 2+ keyframes with the same name.</p>';
+            mount.innerHTML = '<p class="pcp-life-graph-empty">No trait trajectories yet. Take an assessment, or add 2+ observations with the same trait name.</p>';
             return;
         }
 
@@ -62,32 +64,67 @@
         // timeline's left-panel width so the y-axis sits on the same vertical
         // line as the timeline's plot-area edge.
         if ( timelineRef ) {
-            var leftPanel = document.querySelector( '#pcp-life-timeline-mount .vis-panel.vis-left' );
-            if ( leftPanel ) {
-                var lpRect = leftPanel.getBoundingClientRect();
-                ML = Math.round( lpRect.width );
-                PW = Math.max( 100, W - ML - MR );
-            }
+            // pcp-yaxis-aligned: with swimlanes removed, .vis-panel.vis-left collapses
+            // to zero width, breaking the dynamic ML computation. We force a fixed 52px
+            // both here AND in CSS on .vis-panel.vis-left so the two plot areas share
+            // an identical left edge. 52 leaves room for "100%" Y-axis labels (4 chars,
+            // text-anchor=end at ML-6, so label extends from ~X=14 to X=46, with safe
+            // breathing room at the SVG edge).
+            ML = 40;
+            // pcp-mr-aligned: vis-timeline's content area extends to the full right
+            // edge (no vis-panel.vis-right). Match it by zeroing MR in overlay mode,
+            // otherwise the trait line's right end drifts left of where the time-axis
+            // year labels sit.
+            MR = 0;
+            PW = Math.max( 100, W - ML - MR );
             // In overlay mode the timeline shows the time axis. Suppress our own bottom labels.
             MB = 8;
             PH = H - MT - MB;
         }
 
-        // Y axis: items already 0-100; use a fixed 0-100 range.
-        var yMin = 0, yMax = 100;
-        var yRange = yMax - yMin;
+        // Y axis: dynamic. Scan items for out-of-range values; extend the
+        // axis to fit while keeping 0 and 100 as visible anchors. Pick a
+        // step that yields ~4-7 readable tick labels.
+        var dataMin = 0, dataMax = 100;
+        items.forEach( function ( it ) {
+            if ( typeof it.y === 'number' && !isNaN( it.y ) ) {
+                if ( it.y < dataMin ) dataMin = it.y;
+                if ( it.y > dataMax ) dataMax = it.y;
+            }
+        } );
+        function pickYStep( range ) {
+            if ( range <= 100 )  return 25;
+            if ( range <= 200 )  return 50;
+            if ( range <= 500 )  return 100;
+            if ( range <= 1000 ) return 250;
+            return Math.ceil( range / 6 / 250 ) * 250;
+        }
+        var yStep = pickYStep( dataMax - dataMin );
+        var yMin = Math.floor( dataMin / yStep ) * yStep;
+        var yMax = Math.ceil(  dataMax / yStep ) * yStep;
+        // Always keep [0, 100] inside the visible range as anchors.
+        if ( yMin > 0 )   yMin = 0;
+        if ( yMax < 100 ) yMax = 100;
+        var yRange = ( yMax - yMin ) || 100;
+        var yExtended = ( yMin < 0 || yMax > 100 );
 
         function xPx( t ) { return ML + ( ( t - tMin ) / tRange ) * PW; }
         function yPx( v ) { return MT + PH - ( ( v - yMin ) / yRange ) * PH; }
 
         var parts = [];
         parts.push( '<svg class="pcp-trait-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" width="100%" height="' + H + '">' );
+        parts.push( '<defs><clipPath id="pcp-trait-clip"><rect x="' + ML + '" y="' + MT + '" width="' + PW + '" height="' + PH + '"/></clipPath></defs>' );
 
-        // Y gridlines + labels (every 25 between 0 and 100).
-        for ( var v = 0; v <= 100; v += 25 ) {
+        // Y gridlines + labels — step-sized to keep ~5 ticks visible.
+        // 0 and 100 get an extra "anchor" class when the axis is extended,
+        // so the user always sees the "normal" 0-100 range marked.
+        for ( var v = yMin; v <= yMax + 0.0001; v += yStep ) {
             var py = yPx( v );
-            parts.push( '<line class="pcp-trait-grid" x1="' + ML + '" y1="' + py + '" x2="' + ( W - MR ) + '" y2="' + py + '"/>' );
-            parts.push( '<text class="pcp-trait-axis-label" x="' + ( ML - 6 ) + '" y="' + ( py + 3 ) + '" text-anchor="end">' + v + '%</text>' );
+            var anchorCls = ( yExtended && ( v === 0 || v === 100 ) ) ? ' pcp-trait-grid-anchor' : '';
+            parts.push( '<line class="pcp-trait-grid' + anchorCls + '" x1="' + ML + '" y1="' + py + '" x2="' + ( W - MR ) + '" y2="' + py + '"/>' );
+            // Format label: integer + %, no trailing .0
+            var lbl = ( Math.round( v * 10 ) / 10 );
+            parts.push( '<text class="pcp-trait-axis-label' + anchorCls + '" x="' + ( ML - 6 ) + '" y="' + ( py + 3 ) + '" text-anchor="end">' + lbl + '%</text>' );
         }
 
         // X axis: only draw our own year labels in standalone mode.
@@ -125,13 +162,14 @@
             var coords = pts.map( function ( p ) {
                 return xPx( new Date( p.x ).getTime() ) + ',' + yPx( p.y );
             } ).join( ' ' );
-            parts.push( '<polyline class="pcp-trait-line" data-gid="' + escapeXml( g.id ) + '" points="' + coords + '" style="stroke:' + escapeXml( color ) + ';"/>' );
+            parts.push( '<polyline class="pcp-trait-line" clip-path="url(#pcp-trait-clip)" data-gid="' + escapeXml( g.id ) + '" points="' + coords + '" style="stroke:' + escapeXml( color ) + ';"><title>' + escapeXml( g.content || g.id ) + '</title></polyline>' );
             pts.forEach( function ( p ) {
                 var cx = xPx( new Date( p.x ).getTime() );
                 var cy = yPx( p.y );
                 var rawY = ( p.rawY !== undefined && p.rawY !== null ) ? p.rawY : p.y;
+                var dotFill = valenceColor( p.valence ) || color;
                 var title = escapeXml( ( g.content || g.id ) + ' · ' + ( typeof rawY === 'number' ? rawY.toFixed( 1 ) : rawY ) + ' (' + Math.round( p.y ) + '%) · ' + String( p.x ).slice( 0, 10 ) );
-                parts.push( '<circle class="pcp-trait-dot" data-gid="' + escapeXml( g.id ) + '" cx="' + cx + '" cy="' + cy + '" r="3.5" style="fill:' + escapeXml( color ) + ';"><title>' + title + '</title></circle>' );
+                parts.push( '<circle class="pcp-trait-dot" clip-path="url(#pcp-trait-clip)" data-gid="' + escapeXml( g.id ) + '" cx="' + cx + '" cy="' + cy + '" r="3.5" style="fill:' + escapeXml( dotFill ) + ';"><title>' + title + '</title></circle>' );
             } );
         } );
 
@@ -146,7 +184,32 @@
         var details = document.createElement( 'details' );
         details.className = 'pcp-life-graph-legend-details';
         var summary = document.createElement( 'summary' );
-        summary.textContent = 'Trait series (' + ( data.groups ? data.groups.length : 0 ) + ')';
+        var totalCount = data.groups ? data.groups.length : 0;
+        // pcp-life-graph-legend-preview: 4 preview chips + "+N more" inline beside the disclosure
+        var labelSpan = document.createElement( 'span' );
+        labelSpan.className = 'pcp-life-graph-legend-label';
+        labelSpan.textContent = 'Trait series (' + totalCount + ')';
+        summary.appendChild( labelSpan );
+        var previewWrap = document.createElement( 'span' );
+        previewWrap.className = 'pcp-life-graph-legend-preview';
+        var previewN = Math.min( 4, totalCount );
+        for ( var i = 0; i < previewN; i++ ) {
+            var pg = data.groups[i];
+            var pcolor = ( pg.style ? pg.style.match( /stroke:\s*([^;]+)/ ) : null );
+            pcolor = pcolor ? pcolor[1].trim() : '#c4b5fd';
+            var pchip = document.createElement( 'span' );
+            pchip.className = 'pcp-life-graph-legend-preview-chip';
+            pchip.innerHTML = '<span class="pcp-life-graph-legend-preview-swatch" style="background:' + pcolor + '"></span>' +
+                '<span class="pcp-life-graph-legend-preview-text">' + escapeHtml( pg.content ) + '</span>';
+            previewWrap.appendChild( pchip );
+        }
+        if ( totalCount > previewN ) {
+            var more = document.createElement( 'span' );
+            more.className = 'pcp-life-graph-legend-preview-more';
+            more.textContent = '+' + ( totalCount - previewN ) + ' more';
+            previewWrap.appendChild( more );
+        }
+        summary.appendChild( previewWrap );
         details.appendChild( summary );
         var chipWrap = document.createElement( 'div' );
         chipWrap.className = 'pcp-life-graph-legend-chips';
@@ -177,6 +240,7 @@
         var data = window.PCP_LIFE_GRAPH_DATA;
         if ( !mount || !data ) return;
         render( mount, data );
+        bindHover( mount );
         buildLegend( data );
 
         // Re-render on window resize (debounced).
@@ -214,4 +278,26 @@
     } else {
         init();
     }
+
+
+    // pcp-trait-hover-binding: highlight the full series on hover.
+    // Delegated to the mount; matches lines + dots by data-gid.
+    function bindHover( mount ) {
+        if ( !mount ) return;
+        mount.addEventListener( 'mouseover', function ( e ) {
+            var el = e.target;
+            var gid = el.getAttribute && el.getAttribute( 'data-gid' );
+            if ( !gid ) return;
+            mount.querySelectorAll( '[data-gid="' + gid + '"]' )
+                .forEach( function ( n ) { n.classList.add( 'is-active' ); } );
+        } );
+        mount.addEventListener( 'mouseout', function ( e ) {
+            var el = e.target;
+            var gid = el.getAttribute && el.getAttribute( 'data-gid' );
+            if ( !gid ) return;
+            mount.querySelectorAll( '[data-gid="' + gid + '"]' )
+                .forEach( function ( n ) { n.classList.remove( 'is-active' ); } );
+        } );
+    }
+
 }() );

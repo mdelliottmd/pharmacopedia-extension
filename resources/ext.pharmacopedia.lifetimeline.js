@@ -4,13 +4,10 @@
 ( function () {
     'use strict';
 
-    var GROUPS = [
-        { id: 'episodes',     content: 'Episodes',     order: 1, visible: true  },
-        { id: 'events',       content: 'Events',       order: 2, visible: true  },
-        { id: 'observations', content: 'Observations', order: 3, visible: true  },
-        { id: 'keyframes',    content: 'Keyframes',    order: 4, visible: false },
-        { id: 'derived',      content: 'Derived',      order: 5, visible: false }   // hidden by default
-    ];
+    // pcp-no-swimlanes: groups removed; items live in one stacked area.
+    // Item.group is still set per-item as a TYPE TAG for filter checkbox logic
+    // and per-type CSS classes, but vis-timeline does not render lanes.
+    var INITIAL_VISIBLE = { episodes: true, events: true, observations: true, derived: false };
 
     function isoOrNull( v ) {
         return ( typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test( v ) ) ? v : null;
@@ -48,10 +45,13 @@
         if ( !mount || !data || typeof vis === 'undefined' ) return;
 
         var allItems = ( data.events || [] ).map( buildItem );
-        var itemsDS  = new vis.DataSet( allItems );
-        var groupsDS = new vis.DataSet( GROUPS.map( function ( g ) {
-            return { id: g.id, content: g.content, order: g.order, visible: g.visible };
-        } ) );
+        // Initial filter: hide items whose type is in the default-off set (keyframes, derived).
+        var currentVisible = Object.assign( {}, INITIAL_VISIBLE );
+        function visibleItems() {
+            return allItems.filter( function ( i ) { return currentVisible[ i.group ] !== false; } );
+        }
+        var itemsDS  = new vis.DataSet( visibleItems() );
+        // groupsDS intentionally omitted; vis-timeline renders one stacked area when groups aren't passed.
 
         var options = {
             stack: true,
@@ -60,19 +60,123 @@
             zoomMin: 1000 * 60 * 60 * 24 * 7,
             zoomMax: 1000 * 60 * 60 * 24 * 365 * 120,
             margin: { item: 6, axis: 8 },
-            orientation: { axis: 'top', item: 'top' },
+            orientation: { axis: 'bottom', item: 'top' },
             tooltip: { followMouse: true, overflowMethod: 'flip' },
             zoomKey: 'ctrlKey',
             horizontalScroll: true,           // shift+wheel pans
             verticalScroll: true,             // wheel inside groups area scrolls vertically
-            height:          '520px',         // fixed height; internal scroll past this
+            height:          '460px',         // fixed height; internal scroll past this
             showCurrentTime: true,
             clickToUse: false
         };
 
-        var timeline = new vis.Timeline( mount, itemsDS, groupsDS, options );
+        var timeline = new vis.Timeline( mount, itemsDS, options );
         // Expose globally for race-safe pickup by the chart module.
         window.pcpLifeTimeline = timeline;
+
+        // pcp-overlay-dynamic: standalone overlays as children of mount,
+        // but their top/height get computed at every render from vis-timeline's
+        // actual panel bounding rects. That guarantees the labels sit at the
+        // SAME Y as vis-timeline's bottom panel (where its own labels live),
+        // and the grids span the EXACT same height as the center panel (the
+        // plot data area).
+        var labelOverlay = document.createElement( 'div' );
+        labelOverlay.id = 'pcp-year-labels-overlay';
+        labelOverlay.className = 'pcp-year-labels-overlay';
+        mount.appendChild( labelOverlay );
+
+        var gridsOverlay = document.createElement( 'div' );
+        gridsOverlay.id = 'pcp-year-grids-overlay';
+        gridsOverlay.className = 'pcp-year-grids-overlay';
+        mount.appendChild( gridsOverlay );
+
+        function renderYearLabels() {
+            // Strip any leftover labels we injected into vis-timeline's own
+            // axis from prior install passes.
+            mount.querySelectorAll( '.vis-time-axis .pcp-year-label, .vis-foreground .pcp-year-grid' ).forEach( function ( el ) {
+                el.remove();
+            } );
+
+            var bottomPanel = mount.querySelector( '.vis-panel.vis-bottom' );
+            var centerPanel = mount.querySelector( '.vis-panel.vis-center' );
+            if ( !centerPanel ) return;
+
+            var mountRect  = mount.getBoundingClientRect();
+            var cpRect     = centerPanel.getBoundingClientRect();
+            // bottom panel may not exist if axis='none' or similar; fall back to just below the center panel.
+            var bpRect     = bottomPanel ? bottomPanel.getBoundingClientRect() : null;
+
+            // Position labelOverlay at the Y of the bottom panel (the time-axis area).
+            var labelTop;
+            var labelHeight;
+            if ( bpRect && bpRect.height > 0 ) {
+                labelTop    = bpRect.top - mountRect.top;
+                labelHeight = bpRect.height;
+            } else {
+                // Fallback: position just below the center panel.
+                labelTop    = ( cpRect.bottom - mountRect.top );
+                labelHeight = 24;
+            }
+            labelOverlay.style.top    = labelTop + 'px';
+            labelOverlay.style.height = labelHeight + 'px';
+            labelOverlay.style.bottom = '';
+
+            // Position gridsOverlay at the Y/height of the center panel (full plot area).
+            gridsOverlay.style.top    = ( cpRect.top - mountRect.top ) + 'px';
+            gridsOverlay.style.height = cpRect.height + 'px';
+            gridsOverlay.style.bottom = '';
+
+            // Time window
+            var win = timeline.getWindow();
+            var tMin = new Date( win.start ).getTime();
+            var tMax = new Date( win.end ).getTime();
+            var tRange = tMax - tMin;
+            if ( !tRange || isNaN( tRange ) ) return;
+
+            // X coord space: relative to mount (since overlays are children of mount).
+            var plotLeft  = cpRect.left - mountRect.left;
+            var plotWidth = cpRect.width;
+
+            // Year step
+            var yrStart = new Date( tMin ).getFullYear();
+            var yrEnd   = new Date( tMax ).getFullYear();
+            var yrSpan  = Math.max( 1, yrEnd - yrStart );
+            var step = 1;
+            if ( yrSpan > 80 ) step = 20;
+            else if ( yrSpan > 40 ) step = 10;
+            else if ( yrSpan > 20 ) step = 5;
+            else if ( yrSpan > 10 ) step = 2;
+
+            labelOverlay.innerHTML = '';
+            gridsOverlay.innerHTML = '';
+
+            for ( var yr = Math.ceil( yrStart / step ) * step; yr <= yrEnd; yr += step ) {
+                var ts = new Date( yr, 0, 1 ).getTime();
+                if ( ts < tMin || ts > tMax ) continue;
+                var px = plotLeft + ( ( ts - tMin ) / tRange ) * plotWidth;
+
+                // Year label
+                var span = document.createElement( 'span' );
+                span.className = 'pcp-year-label';
+                span.style.left = px + 'px';
+                span.textContent = String( yr );
+                labelOverlay.appendChild( span );
+
+                // Vertical grid line in gridsOverlay (full plot height)
+                var grid = document.createElement( 'div' );
+                grid.className = 'pcp-year-grid';
+                grid.style.left = px + 'px';
+                gridsOverlay.appendChild( grid );
+            }
+        }
+
+        timeline.on( 'changed', renderYearLabels );
+        timeline.on( 'rangechanged', renderYearLabels );
+        requestAnimationFrame( function () {
+            requestAnimationFrame( renderYearLabels );
+        } );
+
+
         // Also notify via event (for modules that prefer event-based wiring).
         document.dispatchEvent( new CustomEvent( 'pcp-life-timeline-ready', { detail: { timeline: timeline } } ) );
 
@@ -102,6 +206,24 @@
         if ( fitBtn ) fitBtn.addEventListener( 'click', function () { fit( false ); } );
         var fitAllBtn = document.querySelector( '.pcp-life-timeline-fit-all' );
         if ( fitAllBtn ) fitAllBtn.addEventListener( 'click', function () { fit( true ); } );
+        // pcp-keyboard-zoom: + zooms in, - zooms out, 0 = fit visible.
+        // Ignored when focus is in any text input / textarea / contenteditable.
+        document.addEventListener( 'keydown', function ( e ) {
+            if ( e.metaKey || e.ctrlKey || e.altKey ) return;
+            var t = e.target;
+            if ( t && ( t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable ) ) return;
+            if ( e.key === '+' || e.key === '=' ) {
+                timeline.zoomIn( 0.4 );
+                e.preventDefault();
+            } else if ( e.key === '-' || e.key === '_' ) {
+                timeline.zoomOut( 0.4 );
+                e.preventDefault();
+            } else if ( e.key === '0' ) {
+                fit( false );
+                e.preventDefault();
+            }
+        } );
+
         var zinBtn = document.querySelector( '.pcp-life-timeline-zoomin' );
         if ( zinBtn ) zinBtn.addEventListener( 'click', function () { timeline.zoomIn( 0.4 ); } );
         var zoutBtn = document.querySelector( '.pcp-life-timeline-zoomout' );
@@ -113,11 +235,24 @@
             if ( !listView ) return;
             listView.classList.toggle( 'pcp-hide-' + gid, !on );
         }
+        // pcp-life-swatch-injected: add a color chip to each filter checkbox
+        document.querySelectorAll( '.pcp-life-timeline-group-toggle' ).forEach( function ( cb ) {
+            if ( cb.parentElement.querySelector( '.pcp-life-swatch' ) ) return;
+            var sw = document.createElement( 'span' );
+            sw.className = 'pcp-life-swatch pcp-life-swatch-' + cb.value;
+            sw.setAttribute( 'aria-hidden', 'true' );
+            cb.parentElement.insertBefore( sw, cb.nextSibling );
+        } );
+
         document.querySelectorAll( '.pcp-life-timeline-group-toggle' ).forEach( function ( cb ) {
             // Initial state -> apply filter on card list.
             applyCardFilter( cb.value, cb.checked );
             cb.addEventListener( 'change', function () {
-                groupsDS.update( { id: cb.value, visible: cb.checked } );
+                // pcp-no-swimlanes-handler: filter by item-tag, not group visibility
+                currentVisible[ cb.value ] = cb.checked;
+                var nowVisible = visibleItems();
+                itemsDS.clear();
+                itemsDS.add( nowVisible );
                 applyCardFilter( cb.value, cb.checked );
             } );
         } );
@@ -197,12 +332,20 @@
         document.querySelectorAll( '.pcp-life-view-toggle' ).forEach( function ( btn ) {
             btn.addEventListener( 'click', function () {
                 var which = btn.getAttribute( 'data-view' );
+                var wasActive = btn.classList.contains( 'active' );
+                // Deactivate ALL toggles + panes first.
                 document.querySelectorAll( '.pcp-life-view-toggle' ).forEach( function ( b ) { b.classList.remove( 'active' ); } );
-                btn.classList.add( 'active' );
                 document.querySelectorAll( '.pcp-life-view' ).forEach( function ( v ) { v.classList.remove( 'active' ); } );
+                // If we just clicked the already-active one, leave everything deactivated (toggled off).
+                if ( wasActive ) return;
+                // Otherwise activate the clicked one + its pane.
+                btn.classList.add( 'active' );
                 var pane = document.querySelector( '.pcp-life-view[data-view="' + which + '"]' );
                 if ( pane ) pane.classList.add( 'active' );
-                if ( which === 'visual' ) timeline.redraw();
+                if ( which === 'visual' && timeline && typeof timeline.redraw === 'function' ) {
+                    // Let the max-height transition reach a usable size before vis-timeline measures.
+                    setTimeout( function () { timeline.redraw(); }, 360 );
+                }
             } );
         } );
     }

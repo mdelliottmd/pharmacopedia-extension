@@ -11,7 +11,7 @@ class ElementStore {
         return MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
     }
 
-    public function getOrCreate( $pageId, $slug, $type, $label, $options = null, $optionsHash = null, $resultsPolicy = 'live' ) {
+    public function getOrCreate( $pageId, $slug, $type, $label, $options = null, $optionsHash = null, $resultsPolicy = 'live', $openEnded = false, $maxOptions = 5 ) {
         $dbw = $this->dbw();
         $row = $dbw->selectRow(
             'pcp_votable_elements', '*',
@@ -27,6 +27,9 @@ class ElementStore {
             if ( ( $row->ve_options ?? null ) !== $newOpts ) $changed['ve_options'] = $newOpts;
             if ( ( $row->ve_options_h ?? null ) !== $optionsHash ) $changed['ve_options_h'] = $optionsHash;
             if ( (string)( $row->ve_results_policy ?? 'live' ) !== (string)$resultsPolicy ) $changed['ve_results_policy'] = $resultsPolicy;
+            $ttOpen = $openEnded ? 1 : 0;
+            if ( (int)( $row->ve_open_ended ?? 0 ) !== $ttOpen ) $changed['ve_open_ended'] = $ttOpen;
+            if ( (int)( $row->ve_max_options ?? 5 ) !== (int)$maxOptions ) $changed['ve_max_options'] = (int)$maxOptions;
             if ( $changed ) {
                 $dbw->update( 'pcp_votable_elements', $changed,
                     [ 've_id' => (int)$row->ve_id ], __METHOD__ );
@@ -43,6 +46,8 @@ class ElementStore {
             've_options'   => $options !== null ? json_encode( $options ) : null,
             've_options_h' => $optionsHash,
             've_results_policy' => $resultsPolicy,
+            've_open_ended'     => $openEnded ? 1 : 0,
+            've_max_options'    => (int)$maxOptions,
             've_upvotes'   => 0,
             've_downvotes' => 0,
             've_created'   => $dbw->timestamp(),
@@ -144,7 +149,9 @@ class ElementStore {
         if ( !$row ) {
             throw new \RuntimeException( 'element not found' );
         }
-        if ( $row->ve_options_h && (string)$row->ve_options_h !== $optionsHash ) {
+        // For open-ended polls, skip the drift hash check (appends don't invalidate prior).
+        if ( (int)( $row->ve_open_ended ?? 0 ) === 0
+             && $row->ve_options_h && (string)$row->ve_options_h !== $optionsHash ) {
             throw new \RuntimeException( 'options changed since the page loaded; reload to vote' );
         }
         $opts = $row->ve_options ? json_decode( (string)$row->ve_options, true ) : [];
@@ -224,6 +231,68 @@ class ElementStore {
             $out[] = (int)$c;
         }
         return $out;
+    }
+
+
+    /**
+     * Append a new option to an open-ended vote element.
+     * Validates: element is open-ended; user is registered; label dedup
+     * (case-insensitive); under max-options cap; label <= 120 chars.
+     * Stamps the new entry with the voter_hash of the submitter for owner-side
+     * attribution (privacy-preserving via HMAC).
+     * Returns the updated row.
+     */
+    public function addOption( $elementId, $userId, string $label ) {
+        $label = trim( mb_substr( $label, 0, 120 ) );
+        if ( $label === '' ) {
+            throw new \RuntimeException( 'option text required' );
+        }
+        $dbw = $this->dbw();
+        $dbw->startAtomic( __METHOD__ );
+        try {
+            $row = $dbw->selectRow( 'pcp_votable_elements', '*',
+                [ 've_id' => $elementId ], __METHOD__, [ 'FOR UPDATE' ] );
+            if ( !$row ) {
+                throw new \RuntimeException( 'element not found' );
+            }
+            if ( (int)$row->ve_open_ended !== 1 ) {
+                throw new \RuntimeException( 'this poll does not accept new options' );
+            }
+            $rawOpts = $row->ve_options ? json_decode( (string)$row->ve_options, true ) : [];
+            if ( !is_array( $rawOpts ) ) $rawOpts = [];
+            // Dedup case-insensitive
+            $needle = mb_strtolower( $label );
+            foreach ( $rawOpts as $entry ) {
+                $existing = is_string( $entry ) ? $entry : ( is_array( $entry ) ? (string)( $entry['label'] ?? '' ) : '' );
+                if ( mb_strtolower( $existing ) === $needle ) {
+                    throw new \RuntimeException( 'option already exists' );
+                }
+            }
+            $maxCap = (int)( $row->ve_max_options ?? 5 );
+            if ( count( $rawOpts ) >= $maxCap ) {
+                throw new \RuntimeException( 'option limit reached (' . $maxCap . ')' );
+            }
+            $rawOpts[] = [
+                'label'    => $label,
+                'added_by' => $this->voterHash( $userId ),
+                'added_at' => $dbw->timestamp(),
+            ];
+            // Recompute labels-only array for hash (same shape parseOptions feeds it).
+            $labels = [];
+            foreach ( $rawOpts as $entry ) {
+                $labels[] = is_string( $entry ) ? $entry : (string)$entry['label'];
+            }
+            $newHash = substr( hash( 'sha256', json_encode( $labels ) ), 0, 8 );
+            $dbw->update( 'pcp_votable_elements', [
+                've_options'   => json_encode( $rawOpts ),
+                've_options_h' => $newHash,
+            ], [ 've_id' => $elementId ], __METHOD__ );
+            $dbw->endAtomic( __METHOD__ );
+        } catch ( \Throwable $e ) {
+            $dbw->cancelAtomic( __METHOD__ );
+            throw $e;
+        }
+        return $this->getById( $elementId );
     }
 
 }

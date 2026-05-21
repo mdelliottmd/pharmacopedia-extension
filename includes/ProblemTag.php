@@ -96,7 +96,7 @@ class ProblemTag {
         $isDk       = ( $userRating === -1 );
         $dkActiveCls = $isDk ? ' pcp-likert-active' : '';
         $likertBtns  = '<span class="pcp-likert-slider-wrap' . ( $isDk ? ' pcp-likert-dk-on' : '' ) . '">';
-        $likertBtns .= '<input type="range" class="pcp-likert-slider" min="0" max="100" step="1" value="' . $initRating . '" oninput="this.nextElementSibling.value=this.value">';
+        $likertBtns .= '<input type="range" class="pcp-likert-slider" aria-label="Your rating for this problem" min="0" max="100" step="1" value="' . $initRating . '" oninput="this.nextElementSibling.value=this.value">';
         $likertBtns .= '<output class="pcp-likert-slider-out">' . $initRating . '</output>';
         $likertBtns .= '</span>';
         $likertBtns .= '<button type="button" class="pcp-likert-btn pcp-likert-btn-dk' . $dkActiveCls . '" data-value="-1">Don\'t know</button>';

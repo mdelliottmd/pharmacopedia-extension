@@ -76,6 +76,7 @@ class ObservationParser {
             'polarity_word' => null,
             'date_struct'   => null,
             'date_text'     => null,
+            'date_display'  => null,
             'subject_text'  => null,
             'numeric_value' => null,
             'refs'          => [],
@@ -84,6 +85,7 @@ class ObservationParser {
             'is_episode'    => false,
             'episode_type'  => null,
             'episode_subtype' => null,
+            'notes'         => [],
         ];
 
         // 1) Date extraction. Pre-process partial-pair shapes, then try:
@@ -94,10 +96,41 @@ class ObservationParser {
         if ( !$dateRes ) $dateRes = $this->extractDateRange( $working );
         if ( !$dateRes ) $dateRes = $this->extractDate( $working );
         if ( $dateRes ) {
-            $result['date_text']   = $dateRes['text'];
-            $result['date_struct'] = $dateRes['struct'];
+            $result['date_text']    = $dateRes['text'];
+            $result['date_struct']  = $dateRes['struct'];
             $working = $dateRes['remaining'];
             if ( !empty( $dateRes['warning'] ) ) $result['warnings'][] = $dateRes['warning'];
+
+            // 1b) Time + timezone. After the date is consumed, look for a time
+            //     token (anchored by @/at, or bare with am/pm/colon) optionally
+            //     followed by a tz abbreviation. Attach onto the point field
+            //     (or the range's from-point) so DatePicker normalize/display
+            //     pick it up via the existing field-level time/timezone keys.
+            $timeRes = $this->extractTimeAndTz( $working );
+            if ( $timeRes ) {
+                $targetKey = null;
+                if ( ( $result['date_struct']['kind'] ?? '' ) === 'point' ) {
+                    $targetKey = 'point';
+                } elseif ( ( $result['date_struct']['kind'] ?? '' ) === 'range' ) {
+                    $targetKey = isset( $result['date_struct']['from'] ) ? 'from' : null;
+                }
+                if ( $targetKey && isset( $result['date_struct'][$targetKey] ) ) {
+                    $field = $result['date_struct'][$targetKey];
+                    $field['time'] = [
+                        'raw'    => $timeRes['raw_time'],
+                        'parsed' => $timeRes['hms'],
+                        'error'  => false,
+                    ];
+                    if ( !empty( $timeRes['tz_label'] ) ) {
+                        $field['timezone'] = $timeRes['tz_label'];
+                    }
+                    $result['date_struct'][$targetKey] = $field;
+                    $working = $timeRes['remaining'];
+                    $result['date_text'] .= ' ' . trim( $timeRes['raw'] );
+                }
+            }
+
+            $result['date_display'] = \MediaWiki\Extension\Pharmacopedia\DatePicker::formatStructForCard( $result['date_struct'] );
         }
 
         // 2) Polarity extraction
@@ -114,18 +147,23 @@ class ObservationParser {
             $result['polarity'] = 1;
         }
 
-        // 2a) Extract a numeric value from the working text, e.g. "shyness was 33.33".
-        // Match a standalone float / int that isn't part of a year-like 4-digit
-        // number; strip the leading "was a" / "was" / "is" if present.
-        if ( preg_match( '/\b(?:was|is|are|were|=)\s+(?:a\s+|an\s+)?(\d+(?:\.\d+)?)\b/i', $working, $nm, PREG_OFFSET_CAPTURE ) ) {
-            $val = (float)$nm[1][0];
-            // Sanity: skip year-like values which are usually dates, not values.
-            $isYearLike = ( $val >= 1900 && $val <= 2100 && $val == (int)$val && preg_match( '/^\d{4}$/', $nm[1][0] ) );
-            if ( !$isYearLike ) {
-                $result['numeric_value'] = $val;
-                // Strip the whole "was 33.33" phrase from working text so it doesn't
-                // pollute the subject string.
-                $working = substr_replace( $working, ' ', $nm[0][1], strlen( $nm[0][0] ) );
+        // 2a) Extract a value token (grade / stars / percent / fraction /
+        // leading-decimal / plain number) and route through
+        // KeyframeValueNormalizer for the canonical 0-100 result.
+        $valueTokenRe = '(?-i:[A-DF][+-]?)|\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*stars?|[-+]?\d+(?:\.\d+)?\s*%|[-+]?\d+(?:\.\d+)?\s*\/\s*[-+]?\d+(?:\.\d+)?|[-+]?(?:0)?\.\d+|[-+]?\d+(?:\.\d+)?';
+        $verbRe = '/\b(?:was|is|are|were|=)\s+(?:a\s+|an\s+)?(' . $valueTokenRe . ')(?=\s|[,.;:!?]|$)/i';
+        if ( preg_match( $verbRe, $working, $nm, PREG_OFFSET_CAPTURE ) ) {
+            $rawVal = $nm[1][0];
+            $r = \MediaWiki\Extension\Pharmacopedia\KeyframeValueNormalizer::normalize( $rawVal );
+            if ( $r['value'] !== null ) {
+                $isYearLike = ( $r['form'] === 'plain'
+                    && $r['value'] >= 1900.0 && $r['value'] <= 2100.0
+                    && $r['value'] == (int)$r['value']
+                    && preg_match( '/^\d{4}$/', trim( $rawVal ) ) );
+                if ( !$isYearLike ) {
+                    $result['numeric_value'] = $r['value'];
+                    $working = substr_replace( $working, ' ', $nm[0][1], strlen( $nm[0][0] ) );
+                }
             }
         }
 
@@ -141,6 +179,25 @@ class ObservationParser {
         if ( !empty( $segments ) ) {
             $result['subject_text'] = $segments[0]['text'];
             $result['refs'] = $this->resolveRefs( $segments, $profileId );
+        }
+
+        // Auto-promote unmatched free subjects to "trait_new" when we have
+        // both a numeric value AND a date. Downstream this becomes a custom
+        // keyframe rather than getting discarded as free text.
+        if ( $result['numeric_value'] !== null && $result['date_struct'] ) {
+            foreach ( $result['refs'] as &$_r ) {
+                if ( ( $_r['role'] ?? '' ) === 'subject'
+                     && ( $_r['type'] ?? '' ) === 'free'
+                     && empty( $_r['matched'] ) ) {
+                    $cleanLabel = preg_replace( '/^(?:my|the|a|an)\s+/i', '', (string)$_r['text'] );
+                    $cleanLabel = trim( $cleanLabel );
+                    if ( $cleanLabel === '' ) $cleanLabel = (string)$_r['text'];
+                    $_r['type']    = 'trait_new';
+                    $_r['label']   = $cleanLabel;
+                    $_r['matched'] = true;
+                }
+            }
+            unset( $_r );
         }
 
 
@@ -178,7 +235,7 @@ class ObservationParser {
         $subjectIsTrait = false;
         if ( !empty( $result['refs'] ) ) {
             foreach ( $result['refs'] as $r ) {
-                if ( ( $r['role'] ?? '' ) === 'subject' && ( $r['type'] ?? '' ) === 'trait' ) {
+                if ( ( $r['role'] ?? '' ) === 'subject' && in_array( $r['type'] ?? '', [ 'trait', 'trait_new' ], true ) ) {
                     $subjectIsTrait = true;
                     break;
                 }
@@ -203,13 +260,59 @@ class ObservationParser {
         if ( !$result['date_struct'] ) {
             $result['warnings'][] = 'No date detected. Add one in the date field below.';
         }
-        if ( $total > 0 && $matched < $total ) {
-            $unmatched = [];
-            foreach ( $result['refs'] as $r ) {
-                if ( !$r['matched'] ) $unmatched[] = $r['text'];
+        // Recover original casing + leading articles for any subject/ref text
+        // that came back as free / unmatched. Matching has already happened on
+        // the lowercased / article-stripped form; for DISPLAY we want the
+        // user's own phrasing back.
+        foreach ( $result['refs'] as &$_ref ) {
+            if ( !empty( $_ref['matched'] ) && ( $_ref['type'] ?? '' ) !== 'free' && ( $_ref['type'] ?? '' ) !== 'trait_new' ) continue;
+            $recovered = $this->recoverOriginalSpan( (string)( $_ref['text'] ?? '' ), $original );
+            if ( $recovered !== '' ) {
+                $_ref['text']  = $recovered;
+                // For trait_new, keep the cleanLabel (stripped article) but
+                // display the original-cased phrasing.
+                if ( ( $_ref['type'] ?? '' ) !== 'trait_new' ) {
+                    $_ref['label'] = $recovered;
+                }
             }
-            $result['warnings'][] = 'Unrecognized: ' . implode( ', ', $unmatched )
-                . ' (stored as free text; link them later).';
+        }
+        unset( $_ref );
+
+        // Also fix up subject_text on the result for display.
+        if ( !empty( $result['subject_text'] ) ) {
+            $recovered = $this->recoverOriginalSpan( (string)$result['subject_text'], $original );
+            if ( $recovered !== '' ) $result['subject_text'] = $recovered;
+        }
+
+        // Friendly note for any subjects we're auto-creating as new custom traits.
+        // (Was previously a ⚠ warning; relocated as informational.)
+        $_newTraits = [];
+        foreach ( $result['refs'] as $_r ) {
+            if ( ( $_r['type'] ?? '' ) === 'trait_new' ) {
+                $_newTraits[] = (string)$_r['label'];
+            }
+        }
+        if ( $_newTraits ) {
+            $result['notes'][] = 'New custom trait: ' . implode( ', ', $_newTraits ) . '.';
+        }
+
+        // Friendly note for unmatched free-text references. Subject-free goes
+        // through as a presumed title; non-subject-free as a free reference.
+        $titles = [];
+        $frees  = [];
+        foreach ( $result['refs'] as $r ) {
+            if ( !empty( $r['matched'] ) ) continue;
+            if ( ( $r['type'] ?? '' ) !== 'free' ) continue;
+            $label = '"' . (string)$r['text'] . '"';
+            if ( ( $r['role'] ?? '' ) === 'subject' ) $titles[] = $label;
+            else                                       $frees[]  = $label;
+        }
+        if ( $titles ) {
+            $result['notes'][] = 'Presumed title: ' . implode( ', ', $titles ) . '.';
+        }
+        if ( $frees ) {
+            $result['notes'][] = 'Free reference: ' . implode( ', ', $frees )
+                . ' (link to a known med or effect later if you like).';
         }
 
         return $result;
@@ -534,6 +637,25 @@ class ObservationParser {
             // US-style MM/DD/YYYY
             '/\b(in\s+|on\s+|,\s*)?(\d{1,2})\/(\d{1,2})\/(\d{4})\b/' => function ( $m ) {
                 $iso = sprintf( '%04d-%02d-%02d', $m[4], $m[2], $m[3] );
+                return [ 'text' => "{$m[2]}/{$m[3]}/{$m[4]}", 'iso' => $iso, 'precision' => 'day' ];
+            },
+            // US-style MM-DD-YYYY (hyphen form)
+            '/\b(in\s+|on\s+|,\s*)?(\d{1,2})-(\d{1,2})-(\d{4})\b/' => function ( $m ) {
+                $iso = sprintf( '%04d-%02d-%02d', $m[4], $m[2], $m[3] );
+                return [ 'text' => "{$m[2]}-{$m[3]}-{$m[4]}", 'iso' => $iso, 'precision' => 'day' ];
+            },
+            // US-style MM-DD-YY (2-digit year; pivot at 30 -> 00-29=2000s, 30-99=1900s)
+            '/\b(in\s+|on\s+|,\s*)?(\d{1,2})-(\d{1,2})-(\d{2})\b/' => function ( $m ) {
+                $yy = (int)$m[4];
+                $year = $yy < 30 ? 2000 + $yy : 1900 + $yy;
+                $iso = sprintf( '%04d-%02d-%02d', $year, $m[2], $m[3] );
+                return [ 'text' => "{$m[2]}-{$m[3]}-{$m[4]}", 'iso' => $iso, 'precision' => 'day' ];
+            },
+            // US-style MM/DD/YY (2-digit year; same pivot)
+            '/\b(in\s+|on\s+|,\s*)?(\d{1,2})\/(\d{1,2})\/(\d{2})\b/' => function ( $m ) {
+                $yy = (int)$m[4];
+                $year = $yy < 30 ? 2000 + $yy : 1900 + $yy;
+                $iso = sprintf( '%04d-%02d-%02d', $year, $m[2], $m[3] );
                 return [ 'text' => "{$m[2]}/{$m[3]}/{$m[4]}", 'iso' => $iso, 'precision' => 'day' ];
             },
             // Month D, YYYY  or  Month D YYYY (sep 1 2020, feb 15, 2022)
@@ -1027,4 +1149,199 @@ class ObservationParser {
 
         return null;
     }
+    /**
+     * Recover the user's original casing for a parsed text fragment by
+     * locating it (case-insensitive) in the untouched input. Also extends
+     * leftward to include a leading article ("the", "a", "an") if it
+     * directly preceded the fragment in the original.
+     *
+     * @param string $cleanedText  The article-stripped / lowercased fragment
+     * @param string $original     The user's raw input text
+     * @return string              Best-effort original-cased span, or input if not found
+     */
+    private function recoverOriginalSpan( string $cleanedText, string $original ): string {
+        $needle = trim( $cleanedText );
+        if ( $needle === '' ) return '';
+        $pos = stripos( $original, $needle );
+        if ( $pos === false ) return $cleanedText;
+        $start = $pos;
+        $end   = $pos + strlen( $needle );
+        // Extend left to grab a leading article if it sits immediately before
+        // the needle (one or more spaces between, word-bounded on the left).
+        $before = substr( $original, 0, $start );
+        if ( preg_match( '/(?:^|(?<=[\s,;:.!?\(\[\{"]))(the|an?)\s+$/i', $before, $m, PREG_OFFSET_CAPTURE ) ) {
+            $start = $m[1][1];
+        }
+        return substr( $original, $start, $end - $start );
+    }
+
+    // ===== Time + timezone extraction =====
+
+    /**
+     * Look for a time token optionally followed by a timezone abbreviation.
+     * Anchored form (\"@ 0200\" / \"at 2pm\") matches first; bare form requires
+     * an explicit time indicator (colon, am/pm, or \"noon\"/\"midnight\").
+     *
+     * Returns [ 'raw' => matched span, 'raw_time' => time portion,
+     *           'hms' => 'HH:MM:SS', 'tz_label' => 'ET'|'PST'|'+05:00'|null,
+     *           'remaining' => updated working text ] or null.
+     */
+    private function extractTimeAndTz( string $working ): ?array {
+        static $tzMap = null;
+        if ( $tzMap === null ) {
+            $tzMap = self::tzAbbrevMap();
+        }
+        $tzKeys = array_keys( $tzMap );
+        usort( $tzKeys, function ( $a, $b ) { return strlen( $b ) - strlen( $a ); } );
+        $tzAlt = implode( '|', array_map( function ( $k ) { return preg_quote( $k, '/' ); }, $tzKeys ) );
+
+        // Symbolic times first: \"noon\" / \"midnight\" with optional anchor + tz.
+        $sym = '/(?:@|\bat\b|,\s*|-\s*)?\s*(noon|midnight|midday)(?:\s+(' . $tzAlt . '|[+\-]\d{2}:?\d{2}|z))?\b/i';
+        if ( preg_match( $sym, $working, $m, PREG_OFFSET_CAPTURE ) ) {
+            $word = strtolower( $m[1][0] );
+            $hms = ( $word === 'midnight' ) ? '00:00:00' : '12:00:00';
+            $rawTz = isset( $m[2] ) ? (string)$m[2][0] : '';
+            $tzInfo = self::resolveTzLabel( $rawTz, $tzMap );
+            $offset = $m[0][1];
+            $len = strlen( $m[0][0] );
+            return [
+                'raw'       => trim( $m[0][0] ),
+                'raw_time'  => $word,
+                'hms'       => $hms,
+                'tz_label'  => $tzInfo['label'] ?? null,
+                'remaining' => substr_replace( $working, ' ', $offset, $len ),
+            ];
+        }
+
+        // Anchored numeric form: \"@ 0200\", \"at 2:30 pm\", \", 14:00\", \" - 2pm\"
+        $anchored = '/(?:@|\bat\b|,\s*|-\s*)\s*'
+            . '(?P<t>'
+                . '\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?\s?m\.?)?'   // 02:00 / 14:30:15 / 2:30 pm / 2:30 a.m.
+                . '|'
+                . '\d{1,2}\s*[ap]\.?\s?m\.?'                          // 2am / 2 pm / 2 a.m. / 2 p m
+                . '|'
+                . '\d{3,4}'                                            // 0200 / 2300 military
+            . ')'
+            . '(?:\s*h(?:rs?|ours?)?\b)?'                              // optional \"h\"/\"hrs\"/\"hours\"
+            . '(?:\s*(?P<tz>' . $tzAlt . '|[+\-]\d{2}:?\d{2}|z)\b)?'
+            . '/i';
+
+        // Bare form: requires colon or am/pm (military 4-digit without anchor is too ambiguous)
+        $bare = '/\b'
+            . '(?P<t>'
+                . '\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?\s?m\.?)?'
+                . '|'
+                . '\d{1,2}\s*[ap]\.?\s?m\.?'
+            . ')'
+            . '(?:\s*h(?:rs?|ours?)?\b)?'
+            . '(?:\s*(?P<tz>' . $tzAlt . '|[+\-]\d{2}:?\d{2}|z)\b)?'
+            . '/i';
+
+        // Bare military adjacent to a tz token (e.g. "0200ET", "1430 pst").
+        // No "@"/"at" anchor needed because the tz proximity disambiguates.
+        $bareMilTz = '/\b(?P<t>\d{3,4})(?:\s*h(?:rs?|ours?)?\b)?\s*(?P<tz>' . $tzAlt . '|[+\-]\d{2}:?\d{2}|z)\b/i';
+
+        foreach ( [ $anchored, $bareMilTz, $bare ] as $re ) {
+            if ( !preg_match( $re, $working, $m, PREG_OFFSET_CAPTURE ) ) continue;
+            $rawT = trim( $m['t'][0] );
+            $hms = self::parseTimeToken( $rawT );
+            if ( !$hms ) continue;
+            $rawTz = isset( $m['tz'] ) ? trim( (string)$m['tz'][0] ) : '';
+            $tzInfo = self::resolveTzLabel( $rawTz, $tzMap );
+            $offset = $m[0][1];
+            $len = strlen( $m[0][0] );
+            return [
+                'raw'       => trim( $m[0][0] ),
+                'raw_time'  => $rawT,
+                'hms'       => $hms,
+                'tz_label'  => $tzInfo['label'] ?? null,
+                'remaining' => substr_replace( $working, ' ', $offset, $len ),
+            ];
+        }
+        return null;
+    }
+
+    /** Time token to HH:MM:SS. Accepts colon, military, 12-hour with am/pm. */
+    private static function parseTimeToken( string $tok ): ?string {
+        $t = strtolower( trim( $tok ) );
+        // Normalize separators: collapse whitespace, strip dots in a.m./p.m.
+        $t = preg_replace( '/\s+/', '', $t );
+        $t = str_replace( '.', '', $t );
+        $ampm = null;
+        if ( substr( $t, -2 ) === 'am' )      { $ampm = 'am'; $t = substr( $t, 0, -2 ); }
+        elseif ( substr( $t, -2 ) === 'pm' )  { $ampm = 'pm'; $t = substr( $t, 0, -2 ); }
+        $t = trim( $t );
+        $h = $mi = $s = 0;
+        if ( strpos( $t, ':' ) !== false ) {
+            $parts = explode( ':', $t );
+            $h  = (int)$parts[0];
+            $mi = isset( $parts[1] ) ? (int)$parts[1] : 0;
+            $s  = isset( $parts[2] ) ? (int)$parts[2] : 0;
+        } elseif ( preg_match( '/^\d{3,4}$/', $t ) ) {
+            $t = str_pad( $t, 4, '0', STR_PAD_LEFT );
+            $h  = (int)substr( $t, 0, 2 );
+            $mi = (int)substr( $t, 2, 2 );
+        } elseif ( preg_match( '/^\d{1,2}$/', $t ) ) {
+            $h = (int)$t;
+        } else {
+            return null;
+        }
+        if ( $ampm === 'pm' && $h < 12 )      $h += 12;
+        elseif ( $ampm === 'am' && $h === 12 ) $h = 0;
+        if ( $h < 0 || $h > 23 || $mi < 0 || $mi > 59 || $s < 0 || $s > 59 ) return null;
+        return sprintf( '%02d:%02d:%02d', $h, $mi, $s );
+    }
+
+    /**
+     * Resolve a tz token (e.g. \"ET\", \"pacific\", \"+0530\", \"Z\") to a
+     * display-friendly label. Storage uses the user's compact form so card
+     * output matches what they typed.
+     */
+    private static function resolveTzLabel( string $raw, array $tzMap ): array {
+        if ( $raw === '' ) return [];
+        $r = strtolower( trim( $raw ) );
+        if ( isset( $tzMap[$r] ) ) {
+            // Prefer the abbreviated upper-case form if user gave one; otherwise
+            // title-case the long-form (\"Eastern\", \"Pacific\").
+            $isAbbrev = (bool)preg_match( '/^[a-z]{1,5}$/', $r ) && $r !== 'eastern' && $r !== 'central'
+                && $r !== 'mountain' && $r !== 'pacific' && $r !== 'hawaii' && $r !== 'alaska' && $r !== 'zulu';
+            $label = $isAbbrev ? strtoupper( $r ) : ucfirst( $r );
+            return [ 'label' => $label, 'iana' => $tzMap[$r] ];
+        }
+        if ( preg_match( '/^([+\-])(\d{2}):?(\d{2})$/', $r, $m ) ) {
+            return [ 'label' => 'UTC' . $m[1] . $m[2] . ':' . $m[3], 'iana' => null ];
+        }
+        if ( $r === 'z' ) {
+            return [ 'label' => 'UTC', 'iana' => 'UTC' ];
+        }
+        return [];
+    }
+
+    /** Lowercase tz abbreviation / name -> IANA name. */
+    private static function tzAbbrevMap(): array {
+        return [
+            'et'   => 'America/New_York',  'est'  => 'America/New_York', 'edt'  => 'America/New_York',
+            'ct'   => 'America/Chicago',   'cst'  => 'America/Chicago',  'cdt'  => 'America/Chicago',
+            'mt'   => 'America/Denver',    'mst'  => 'America/Denver',   'mdt'  => 'America/Denver',
+            'pt'   => 'America/Los_Angeles','pst' => 'America/Los_Angeles','pdt' => 'America/Los_Angeles',
+            'akt'  => 'America/Anchorage', 'akst' => 'America/Anchorage','akdt' => 'America/Anchorage',
+            'hst'  => 'Pacific/Honolulu',  'hast' => 'Pacific/Honolulu', 'hdt'  => 'Pacific/Honolulu',
+            'utc'  => 'UTC',  'gmt'  => 'UTC',  'z' => 'UTC',  'zulu' => 'UTC',
+            'bst'  => 'Europe/London',
+            'cet'  => 'Europe/Paris',      'cest' => 'Europe/Paris',
+            'eet'  => 'Europe/Athens',     'eest' => 'Europe/Athens',
+            'jst'  => 'Asia/Tokyo',        'kst'  => 'Asia/Seoul',
+            'ist'  => 'Asia/Kolkata',
+            'aest' => 'Australia/Sydney',  'aedt' => 'Australia/Sydney',
+            'awst' => 'Australia/Perth',   'acst' => 'Australia/Adelaide','acdt' => 'Australia/Adelaide',
+            'nzst' => 'Pacific/Auckland',  'nzdt' => 'Pacific/Auckland',
+            'eastern'  => 'America/New_York',
+            'central'  => 'America/Chicago',
+            'mountain' => 'America/Denver',
+            'pacific'  => 'America/Los_Angeles',
+            'hawaii'   => 'Pacific/Honolulu',
+            'alaska'   => 'America/Anchorage',
+        ];
+    }
+
 }

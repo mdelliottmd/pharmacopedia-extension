@@ -7,6 +7,7 @@ class VoteTag {
 
     /** Hard cap on choice-vote options to keep UI sensible. */
     private const MAX_OPTIONS = 5;
+    private const MAX_OPEN_OPTIONS = 10;
     private const MIN_OPTIONS = 2;
 
     public static function render( $input, array $args, $parser, $frame ) {
@@ -19,6 +20,9 @@ class VoteTag {
         if ( !in_array( $resultsPolicy, [ 'live', 'after-vote', 'hidden' ], true ) ) {
             return '<span class="pcp-error">&lt;vote&gt;: results must be live, after-vote, or hidden</span>';
         }
+        $openEnded = isset( $args['open-ended'] ) && in_array(
+            strtolower( trim( (string)$args['open-ended'] ) ), [ '1', 'true', 'yes' ], true );
+        $maxOptionsCap = $openEnded ? self::MAX_OPEN_OPTIONS : self::MAX_OPTIONS;
         if ( !in_array( $type, [ 'binary', 'single', 'multi' ], true ) ) {
             return '<span class="pcp-error">&lt;vote&gt;: type must be binary, single, or multi</span>';
         }
@@ -31,7 +35,11 @@ class VoteTag {
             return $parser->recursiveTagParse( (string)$input, $frame );
         }
 
-        $rendered = $parser->recursiveTagParse( (string)$input, $frame );
+        // dedent: strip leading whitespace per line so user indentation
+        // inside <vote>...</vote> does not trigger MW <pre> wrapping
+        $cleaned  = preg_replace( "/^[ \t]+/m", "", (string)$input );
+        $cleaned  = trim( $cleaned );
+        $rendered = $parser->recursiveTagParse( $cleaned, $frame );
         $label    = trim( strip_tags( $rendered ) );
 
         // Parse options attr for non-binary types. Separator: ; (recommended), ||, or |.
@@ -39,7 +47,7 @@ class VoteTag {
         $optionsHash = null;
         if ( $type !== 'binary' ) {
             $rawOpts = isset( $args['options'] ) ? (string)$args['options'] : '';
-            $options = self::parseOptions( $rawOpts );
+            $options = self::parseOptions( $rawOpts, $maxOptionsCap );
             if ( !$options ) {
                 return '<span class="pcp-error">&lt;vote type="' . htmlspecialchars( $type ) . '"&gt;: options required (semicolon-separated, ' . self::MIN_OPTIONS . '-' . self::MAX_OPTIONS . ' items). Use ; as separator inside templates.</span>';
             }
@@ -47,7 +55,7 @@ class VoteTag {
         }
 
         $store   = new ElementStore();
-        $element = $store->getOrCreate( $pageId, $slug, $type, $label, $options, $optionsHash, $resultsPolicy );
+        $element = $store->getOrCreate( $pageId, $slug, $type, $label, $options, $optionsHash, $resultsPolicy, $openEnded, $maxOptionsCap );
 
         $user = RequestContext::getMain()->getUser();
         $isLoggedIn = $user->isRegistered();
@@ -75,7 +83,7 @@ class VoteTag {
      *   "|"   single pipe (only outside templates/tables)
      * Returns null on invalid count (must be 2-5).
      */
-    private static function parseOptions( string $raw ): ?array {
+    private static function parseOptions( string $raw, int $maxCap = 5 ): ?array {
         if ( $raw === '' ) return null;
         $sep = null;
         if ( strpos( $raw, ';' ) !== false ) {
@@ -93,7 +101,7 @@ class VoteTag {
             if ( $p !== '' ) $opts[] = mb_substr( $p, 0, 120 );
         }
         $n = count( $opts );
-        if ( $n < self::MIN_OPTIONS || $n > self::MAX_OPTIONS ) return null;
+        if ( $n < self::MIN_OPTIONS || $n > $maxCap ) return null;
         return $opts;
     }
 
@@ -119,8 +127,16 @@ class VoteTag {
 
     private static function renderChoice( $element, string $rendered, array $userChoices, array $tally ): string {
         $type = (string)$element->ve_type;
-        $options = json_decode( (string)$element->ve_options, true ) ?: [];
-        $optionsH = (string)( $element->ve_options_h ?? '' );
+        $optionsRaw = json_decode( (string)$element->ve_options, true ) ?: [];
+        // Mixed shape: entries are strings (legacy) or { label, added_by? } objects.
+        $options = [];
+        foreach ( $optionsRaw as $entry ) {
+            if ( is_string( $entry ) ) $options[] = $entry;
+            elseif ( is_array( $entry ) && isset( $entry['label'] ) ) $options[] = (string)$entry['label'];
+        }
+        $optionsH  = (string)( $element->ve_options_h ?? '' );
+        $openEnded = (int)( $element->ve_open_ended ?? 0 ) === 1;
+        $maxOptions = (int)( $element->ve_max_options ?? 5 );
         $total = 0;
         foreach ( $tally as $c ) $total += (int)$c;
 
@@ -151,6 +167,8 @@ class VoteTag {
         $html  = '<div class="pcp-vote pcp-vote-choice" data-element-id="' . (int)$element->ve_id . '"';
         $html .= ' data-vote-type="' . $h( $type ) . '"';
         $html .= ' data-options-h="' . $h( $optionsH ) . '"';
+        $html .= ' data-open-ended="' . ( $openEnded ? '1' : '0' ) . '"';
+        $html .= ' data-max-options="' . (int)$maxOptions . '"';
         $html .= ' data-payload="' . $payload . '">';
         $html .= '<div class="pcp-vote-content">' . $rendered . '</div>';
         $html .= '<div class="pcp-vote-choice-summary" role="button" tabindex="0">';

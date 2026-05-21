@@ -7,6 +7,76 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
+## [0.9.7.0] - 2026-05-21
+
+Catch-up release: the repository had fallen behind the live extension,
+so 0.9.7.0 commits a broad backlog of subsystem work in one cut.
+Major items below; see `git log` for file-level detail.
+
+### Added
+- Perspective subsystem: per-axis perspective records with their own
+  store / registry / type-handler layer, Special:Perspective and
+  Special:MyPerspectives, and a share-invite flow. New tables
+  `pcp_perspective`, `pcp_perspective_invite`.
+- Formal testing: a standardized-test score log on the user profile.
+  `FormalTestStore` plus the `pharmacopediaformaltest` API, the
+  "Formal testing" section on Special:MyProfile (add / edit / delete)
+  and a read-only render on Special:UserProfile. New tables
+  `pcp_formal_tests` (catalog) and `pcp_user_test_scores`.
+- Per-field visibility for formal-testing scores: separate privacy
+  for raw score, percentile and pass/fail (`uts_vis_raw`,
+  `uts_vis_pct`, `uts_vis_passfail`), each gated independently on the
+  public profile; three privacy toggles in the editor, per-field
+  badges on the card.
+- ASRS adult-ADHD screener: inline assessment, and a verdict-card
+  render on Special:UserProfile (binary screen result with a
+  cardinal-item strip).
+- AMAAS-SR experimental attention self-report: inline assessment, and
+  a 3-axis radar featured card on Special:UserProfile (Inattention /
+  Hyperactivity / Impulsivity subscales, with an explicitly arbitrary
+  66.66% experimental threshold labelled as not a validated cutoff).
+- Assessment card family in the stylesheet: the verdict card
+  (`.verdict` / `.v-*`) and the featured-card radar face
+  (`.fc` / `.fc-*` / `.viz-cap` / `.fact`).
+- PhenotypeResolver: a 16-gene diplotype-to-phenotype resolver, plus
+  maintenance ingest scripts for CPIC alleles / diplotypes /
+  pair-levels / recommendations, DPWG guidelines, and the FDA
+  pharmacogenomic-biomarker and CYP drug-interaction tables.
+- Interaction-flag voting: an `InteractionFlagApi` and the granular
+  PGx interaction voting UI. New table `pcp_interaction_flags`.
+- Template:MedTemplate optional `history` rendered parameter (a
+  "History" section after the intro, before "Experience").
+- Shulgin's Corner template CSS component (`.pcp-shulgin*`), on the
+  pharma and plants skins.
+- Plants skin: an earth-toned dark skin, with self-hosted Geist,
+  Newsreader and Source Serif web fonts (`resources/fonts/`,
+  `resources/skins/`).
+- Herbal-medicine schema scaffolding (`pcp_herbal_dose`,
+  `pcp_herbal_preparation`, `pcp_herbal_use`).
+- Maintenance / audit scripts: orphan-category audit, PMID-against-
+  eutils verification, PGx-invariant validation, slug canonicalization.
+
+### Changed
+- WCAG S1 heading remediation: neutralised the border-bottom and
+  font-weight carried by relabelled module and section headings so
+  they keep their visual treatment without the heading regressions.
+- Pharma stylesheet corrections; Main Page module centering;
+  `--pharma-ink-mute` recoloured for contrast.
+- The Pendell quote renders in italic again, under the verbatim-quote
+  exception to the no-decorative-italics rule.
+- The `.pcp-vis-toggle` visibility-cycle handler is now delegated, so
+  the toggle binds regardless of when its element enters the DOM.
+
+### Schema
+- New tables: `pcp_perspective`, `pcp_perspective_invite`,
+  `pcp_formal_tests`, `pcp_user_test_scores`, `pcp_interaction_flags`,
+  plus the PGx allele / diplotype and herbal tables.
+- `pcp_user_test_scores`: `uts_raw_is_estimate` and
+  `uts_pct_is_estimate` estimate flags; `uts_vis_raw`, `uts_vis_pct`,
+  `uts_vis_passfail` per-field visibility, backfilled from the
+  record-level `uts_vis`.
+- `pcp_interactions`: added `pi_ingestion_id`; `pi_mechanism` widened.
+
 ## [0.9.6.9] - 2026-05-19
 
 ### Added

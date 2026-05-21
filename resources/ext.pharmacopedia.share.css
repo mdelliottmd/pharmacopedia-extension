@@ -98,7 +98,7 @@
 .pcp-share-pane { display: none; }
 .pcp-share-pane.active { display: block; }
 .pcp-share-help { color: #666; font-size: 0.9em; margin-top: 0; }
-.pcp-share-empty { color: #888; font-style: italic; }
+.pcp-share-empty { color: #888; font-style: normal; }
 .pcp-loading { color: #888; }
 
 .pcp-share-people-search { position: relative; margin: 0.5em 0 1em; }
