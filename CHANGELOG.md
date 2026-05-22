@@ -54,6 +54,10 @@ Appearance rail, and the fungi sub-skin. Major items below; see
   page, not only a Special: page.
 
 ### Changed
+- Administer: the Mode A passphrase encryption was hardened. The
+  Argon2id KDF is raised to MODERATE limits via a scheme-v2 design
+  (`uk_scheme_version`); an owner created under the earlier scheme is
+  transparently re-wrapped on their next unlock.
 - The twelve assessment scorers are wired through
   `AssessmentRegistry` (radio / slider / bipolar response models) so
   any of them can be administered to outside respondents; added a
