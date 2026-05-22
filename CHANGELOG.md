@@ -46,6 +46,13 @@ Appearance rail, and the fungi sub-skin. Major items below; see
   cool-dark palette, a spore-dust grain, a mushroom mark, and fungi
   section-marker hues; everything else inherits from the plants
   skin. New module `ext.pharmacopedia.skin.fungi`.
+- HYD-PCP ("How Ya Doin?"): an original wellbeing check-in. Eight
+  everyday domains (mood, functioning, sleep, movement, social
+  connection, eating, energy, stress), each one bipolar slider,
+  scored as the mean of the domains answered and built to be
+  re-taken over time. An inline test on `Special:MyProfile`, a
+  report at `Special:MyAssessment/hyd`, and a `Special:UserProfile`
+  card. A locally authored instrument, not validated.
 - New parser tags `<classGrid>` and `<classTree>` for medicine-class
   category overviews, and `<pharmaLiterature>` for the per-medicine
   literature section.
@@ -58,7 +65,7 @@ Appearance rail, and the fungi sub-skin. Major items below; see
   Argon2id KDF is raised to MODERATE limits via a scheme-v2 design
   (`uk_scheme_version`); an owner created under the earlier scheme is
   transparently re-wrapped on their next unlock.
-- The twelve assessment scorers are wired through
+- The thirteen assessment scorers are wired through
   `AssessmentRegistry` (radio / slider / bipolar response models) so
   any of them can be administered to outside respondents; added a
   server-side `Ocean` (BFI-10) scorer.
