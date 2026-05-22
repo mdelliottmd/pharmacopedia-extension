@@ -55,7 +55,7 @@ class CategoryIndexTag {
         ],
         [
             'key'     => 'Dynamis',
-            'desc'    => 'The stimulants and empathogens. Pharmako/Dynamis, 2002.',
+            'desc'    => 'The psychostimulants and empathogens. Pharmako/Dynamis, 2002.',
             'classes' => [ 'Empathogenica', 'Excitantia' ],
         ],
         [
