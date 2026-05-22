@@ -523,7 +523,7 @@ class SpecialFeatureRequests extends SpecialPage {
     private function postButton( int $id, string $action, string $label, string $extraCls = '', string $confirm = '' ): string {
         $token = htmlspecialchars( $this->getUser()->getEditToken( 'pcp-fr-detail' ) );
         $url = $this->getPageTitle( (string)$id )->getLocalURL();
-        $confirmAttr = $confirm ? ' onsubmit="return confirm(' . htmlspecialchars( json_encode( $confirm ) ) . ')"' : '';
+        $confirmAttr = $confirm ? ' class="js-pcp-confirm-delete" data-confirm="' . htmlspecialchars( $confirm ) . '"' : '';
         $h  = '<form method="POST" action="' . htmlspecialchars( $url ) . '" style="display:inline-block;"' . $confirmAttr . '>';
         $h .= '<input type="hidden" name="token" value="' . $token . '">';
         $h .= '<input type="hidden" name="fr_action" value="' . htmlspecialchars( $action ) . '">';
@@ -624,7 +624,7 @@ class SpecialFeatureRequests extends SpecialPage {
             $h .= '<ul class="pcp-fr-attlist">';
             foreach ( $existingAtt as $a ) {
                 $h .= '<li>' . htmlspecialchars( (string)$a->fra_filename )
-                    . ' <button type="submit" name="delete_att" value="' . (int)$a->fra_id . '" class="pcp-fr-btn pcp-fr-btn-danger" onclick="return confirm(\'Delete this attachment?\')">Delete</button></li>';
+                    . ' <button type="submit" name="delete_att" value="' . (int)$a->fra_id . '" class="pcp-fr-btn pcp-fr-btn-danger js-pcp-confirm-delete" data-pcp-confirm="Delete this attachment?">Delete</button></li>';
             }
             $h .= '</ul></div>';
         }

@@ -1,6 +1,6 @@
 {
     "name": "Pharmacopedia",
-    "version": "0.9.7.0",
+    "version": "0.9.8.0",
     "author": [
         "MDElliottMD"
     ],
@@ -53,6 +53,8 @@
         "pcp-interaction-flag": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionFlagApi"
     },
     "SpecialPages": {
+        "RespondToAssessment": "MediaWiki\\Extension\\Pharmacopedia\\SpecialRespondToAssessment",
+        "AdministerAssessments": "MediaWiki\\Extension\\Pharmacopedia\\SpecialAdministerAssessments",
         "Perspective": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPerspective",
         "MyPerspectives": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyPerspectives",
         "PharmacopediaActivity": "MediaWiki\\Extension\\Pharmacopedia\\SpecialPharmacopediaActivity",
@@ -183,6 +185,54 @@
             "localBasePath": "resources",
             "remoteExtPath": "Pharmacopedia/resources"
         },
+        "ext.pharmacopedia.bounceback": {
+            "scripts": [
+                "ext.pharmacopedia.bounceback.js"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.administer": {
+            "styles": [
+                "ext.pharmacopedia.administer.css"
+            ],
+            "scripts": [
+                "ext.pharmacopedia.administer.js"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.frontpage": {
+            "styles": [
+                "ext.pharmacopedia.frontpage.css"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.categoryindex": {
+            "styles": [
+                "ext.pharmacopedia.categoryindex.css"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.appearance": {
+            "scripts": [
+                "ext.pharmacopedia.appearance.js"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.confirmdelete": {
+            "scripts": [
+                "ext.pharmacopedia.confirmdelete.js"
+            ],
+            "dependencies": [
+                "ext.pharmacopedia.bounceback"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
         "ext.pharmacopedia.observation": {
             "scripts": [
                 "ext.pharmacopedia.observation.js"
@@ -250,6 +300,13 @@
         "ext.pharmacopedia.skin.plants": {
             "styles": [
                 "skins/plants/skin.plants.css"
+            ],
+            "localBasePath": "resources",
+            "remoteExtPath": "Pharmacopedia/resources"
+        },
+        "ext.pharmacopedia.skin.fungi": {
+            "styles": [
+                "skins/fungi/skin.fungi.css"
             ],
             "localBasePath": "resources",
             "remoteExtPath": "Pharmacopedia/resources"
@@ -330,6 +387,10 @@
         "PharmacopediaFeatureRequestDir": {
             "value": "/var/lib/pharmacopedia-feature-requests",
             "description": "Filesystem path where feature-request attachments are stored. Outside web root, mode 700, www-data owned."
+        },
+        "PharmacopediaAdminKeyDir": {
+            "value": "/var/lib/pharmacopedia-adminkeys",
+            "description": "Filesystem path holding the server master key for the Administer-to-others feature (Mode B). Outside web root, mode 700, www-data owned, inside open_basedir."
         }
     },
     "manifest_version": 2,

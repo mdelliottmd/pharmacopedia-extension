@@ -824,3 +824,11 @@ body.page-Special_MyLifeStory #bodyContent {
     background: rgba(196, 181, 253, 0.2);
     transform: translateX(-0.5px);
 }
+
+
+/* pcp-toggle-offstate: a group filter whose checkbox is unchecked is
+   OFF; dim its colour swatch so the solid swatch is not mistaken for
+   a checked state. Re-evaluates live as the checkbox is toggled. */
+.pcp-life-timeline-group-toggle-wrap:has( input:not(:checked) ) .pcp-life-swatch {
+    opacity: 0.3;
+}

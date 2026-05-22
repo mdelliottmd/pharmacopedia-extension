@@ -33,6 +33,8 @@ class Hooks {
         $parser->setHook( 'pharmaExperience',    [ ExperienceTag::class,    'render' ] );
         $parser->setHook( 'classGrid',     [ ClassGridTag::class,     'render' ] );
         $parser->setHook( 'classTree',     [ ClassTreeTag::class,     'render' ] );
+        $parser->setHook( 'categoryindex', [ CategoryIndexTag::class, 'render' ] );
+        $parser->setHook( 'frontpage', [ FrontPageTag::class, 'render' ] );
         $parser->setHook( 'pharmaLiterature', [ LiteratureTag::class, 'render' ] );
     }
 
@@ -186,6 +188,15 @@ class Hooks {
 
         // Granular PGx interaction-voting flags.
         $updater->addExtensionTable( 'pcp_interaction_flags', "$dir/interaction_flags.sql" );
+
+        // "Administer to others": send assessment scales to outside respondents.
+        $updater->addExtensionTable( 'pcp_administer_respondents', "$dir/administer_respondents.sql" );
+        $updater->addExtensionTable( 'pcp_administer_invites',     "$dir/administer_invites.sql" );
+        $updater->addExtensionTable( 'pcp_administer_assessments', "$dir/administer_assessments.sql" );
+        $updater->addExtensionTable( 'pcp_administer_userkey',     "$dir/administer_userkey.sql" );
+        $updater->addExtensionTable( 'pcp_administer_research',    "$dir/administer_research.sql" );
+        $updater->addExtensionField( 'pcp_administer_assessments', 'aa_respondent_enc',
+            "$dir/patch-administer-respondent_enc.sql" );
     }
 
     /**
@@ -236,12 +247,13 @@ class Hooks {
 
     /**
      * Plants-skin trigger. Assigns the .pcp-skin-plants body class and
-     * loads the plants-skin ResourceModule when the current page's
-     * category chain resolves to Category:Plant (or descendant).
+     * loads the plants-skin ResourceModule when the page's origin
+     * resolves to Plant (see resolvePcpSkin for the rule).
      *
      * Locked decisions 2026-05-20:
      *   - Overlay only (body-class layer, not standalone MW skin)
-     *   - Multi-membership: Plant wins over Pharmaceutical when both reachable
+     *   - Origin is each page's DIRECT category tag, not a recursive
+     *     walk (two-gate rule, Mark 2026-05-20); ambiguity is pharma
      *   - Plant + Plant_Medicines as root categories are skinned themselves
      *   - Main_Page stays pharma default (clinical-first identity)
      *   - Only NS_MAIN + NS_CATEGORY get skin treatment;
@@ -261,6 +273,18 @@ class Hooks {
         // is otherwise pulled in only by the parser tags, so tag-free
         // pages (Main Page, Special pages) get no redesign CSS at all.
         $out->addModuleStyles( [ 'ext.pharmacopedia.styles' ] );
+        // Styled delete confirmation: ext.pharmacopedia.confirmdelete
+        // replaces native confirm() for destructive actions site-wide.
+        $out->addModules( [ 'ext.pharmacopedia.confirmdelete', 'ext.pharmacopedia.appearance' ] );
+
+        // Diptych splash pages (Main Page, Category index): chromeless,
+        // full-viewport. The pcp-diptych-page body class drives the
+        // chrome-hiding CSS in ext.pharmacopedia.css.
+        if ( $title->inNamespace( NS_MAIN )
+            && in_array( $title->getDBkey(), [ 'Main_Page', 'Category_index' ], true )
+        ) {
+            $out->addBodyClasses( [ 'pcp-diptych-page' ] );
+        }
 
         $ns = $title->getNamespace();
         // Only NS_MAIN and NS_CATEGORY participate in skin selection.
@@ -275,55 +299,109 @@ class Hooks {
         // OutputPage does not expose a singular ParserOutput in MW 1.46.
         $resolved = self::resolvePcpSkin( $title );
 
-        if ( $resolved === 'plants' ) {
+        if ( $resolved === 'fungi' ) {
+            // Fungi is a sub-skin of plants: the body carries both
+            // classes, and the fungi module loads after the plants
+            // base so its overrides win.
+            $out->addBodyClasses( [ 'pcp-skin-plants', 'pcp-skin-fungi' ] );
+            $out->addModuleStyles( [ 'ext.pharmacopedia.skin.plants', 'ext.pharmacopedia.skin.fungi' ] );
+        } elseif ( $resolved === 'plants' ) {
             $out->addBodyClasses( [ 'pcp-skin-plants' ] );
             $out->addModuleStyles( [ 'ext.pharmacopedia.skin.plants' ] );
         }
     }
 
     /**
-     * Walk the category-parent chain of $title up to $maxDepth levels
-     * to find the first reachable skin-root in [Plant, Pharmaceutical].
+     * Resolve which skin a page gets: 'plants', 'pharma', or null.
      *
-     * Multi-membership rule (i): Plant wins over Pharmaceutical when
-     * both are reachable, regardless of which is found at a shallower
-     * depth. We BFS, return immediately on first Plant hit, and only
-     * fall back to Pharmaceutical if Plant is never found within depth.
+     * Two-gate origin rule (standing rule, Mark 2026-05-20): every
+     * medicine page carries exactly ONE direct origin category,
+     * Category:Plants or Category:Pharmaceutical. For a content page the
+     * skin is read from that DIRECT tag only, never a recursive category
+     * walk: class categories are deliberately dual-parented (e.g.
+     * Category:Psychedelics sits under BOTH Plant and Pharmaceutical), so
+     * a recursive "is this under Plant?" test would mis-skin pages such
+     * as LSD. A content page gets the plants skin only on an unambiguous
+     * direct Plant tag; anything else is pharma.
+     *
+     * A CATEGORY page has no single direct origin, so it is resolved by
+     * its category chain (see pcpResolveCategoryChain): plants only when
+     * the chain is purely Plant.
+     *
+     * @param \MediaWiki\Title\Title $title
+     * @param int $maxDepth category-chain hop cap for CATEGORY pages
+     * @return string|null 'plants' / 'pharma' / null
+     */
+    public static function resolvePcpSkin( $title, $maxDepth = 8 ) {
+        $ns = $title->getNamespace();
+
+        // A CATEGORY page may itself be an origin root; otherwise it is
+        // resolved by walking its category chain.
+        if ( $ns === NS_CATEGORY ) {
+            $dbKey = $title->getDBkey();
+            if ( $dbKey === 'Fungi' ) return 'fungi';
+            if ( $dbKey === 'Plant' || $dbKey === 'Plants' || $dbKey === 'Plant_Medicines' ) return 'plants';
+            if ( $dbKey === 'Pharmaceutical' ) return 'pharma';
+            return self::pcpResolveCategoryChain( $title, $maxDepth );
+        }
+
+        // A content (medicine) page: read its OWN DIRECT origin tag only.
+        // No recursion, so a page sitting in a dual-parented class
+        // category is skinned by its own origin, not by its class.
+        $direct = self::pcpFetchParentCategories( $title->getDBkey(), $ns );
+        // Fungi sub-skin: a direct Category:Fungi tag wins, checked
+        // ahead of the Plant test (a fungus page carries both the
+        // Plants origin tag and the Fungi kingdom tag).
+        if ( in_array( 'Fungi', $direct, true ) ) {
+            return 'fungi';
+        }
+        $hasPlant = in_array( 'Plant', $direct, true )
+            || in_array( 'Plants', $direct, true )
+            || in_array( 'Plant_Medicines', $direct, true );
+        $hasPharma = in_array( 'Pharmaceutical', $direct, true );
+
+        // Plants skin only on an unambiguous direct Plant tag. A page
+        // tagged both (a tagging error under the two-gate rule) falls
+        // through to pharma, the clinical-first default.
+        if ( $hasPlant && !$hasPharma ) return 'plants';
+        if ( $hasPharma ) return 'pharma';
+        return null;
+    }
+
+    /**
+     * Resolve the skin for a non-root CATEGORY page by walking its
+     * category chain up to $maxDepth hops. A category is given the
+     * plants skin only when it is purely Plant: Plant (or
+     * Plant_Medicines) is reachable and Pharmaceutical is not. A
+     * category that reaches Pharmaceutical, including a dual-parented
+     * class category such as Psychedelics, defaults to pharma
+     * (clinical-first identity).
      *
      * @param \MediaWiki\Title\Title $title
      * @param int $maxDepth
      * @return string|null 'plants' / 'pharma' / null
      */
-    public static function resolvePcpSkin( $title, $maxDepth = 8 ) {
-        // If the page IS a category, check whether it itself is a skin root.
-        if ( $title->getNamespace() === NS_CATEGORY ) {
-            $dbKey = $title->getDBkey();
-            if ( $dbKey === 'Plant' || $dbKey === 'Plant_Medicines' ) return 'plants';
-            if ( $dbKey === 'Pharmaceutical' ) return 'pharma';
-        }
-
-        // BFS frontier: pairs of [ db_title, namespace ].
+    private static function pcpResolveCategoryChain( $title, $maxDepth ) {
         $visited = [];
         $current = [ [ $title->getDBkey(), $title->getNamespace() ] ];
+        $plantSeen = false;
         $pharmaSeen = false;
 
         for ( $depth = 0; $depth < $maxDepth && !empty( $current ); $depth++ ) {
             $next = [];
             foreach ( $current as $pair ) {
                 $catKey = $pair[0];
-                $ns = (int)$pair[1];
-                $visKey = $ns . ':' . $catKey;
+                $cns = (int)$pair[1];
+                $visKey = $cns . ':' . $catKey;
                 if ( isset( $visited[ $visKey ] ) ) continue;
                 $visited[ $visKey ] = true;
 
-                $parents = self::pcpFetchParentCategories( $catKey, $ns );
+                $parents = self::pcpFetchParentCategories( $catKey, $cns );
                 foreach ( $parents as $p ) {
-                    if ( $p === 'Plant' || $p === 'Plant_Medicines' ) {
-                        return 'plants'; // Plant wins; bail immediately
-                    }
-                    if ( $p === 'Pharmaceutical' ) {
+                    if ( $p === 'Plant' || $p === 'Plants' || $p === 'Plant_Medicines' ) {
+                        $plantSeen = true;
+                    } elseif ( $p === 'Pharmaceutical' ) {
                         $pharmaSeen = true;
-                        // Keep walking; Plant might be deeper in another branch
                     }
                     $next[] = [ $p, NS_CATEGORY ];
                 }
@@ -331,7 +409,9 @@ class Hooks {
             $current = $next;
         }
 
-        return $pharmaSeen ? 'pharma' : null;
+        if ( $plantSeen && !$pharmaSeen ) return 'plants';
+        if ( $pharmaSeen ) return 'pharma';
+        return null;
     }
 
     /**

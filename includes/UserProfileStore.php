@@ -65,6 +65,18 @@ class UserProfileStore {
             [ 'prof_user_id' => $userId ], __METHOD__ );
     }
 
+    /**
+     * Read-only profile lookup by user id; returns null when the user
+     * has no profile row yet. Use this on GET / read paths.
+     * getOrCreateForUser performs an INSERT and is for explicit write
+     * actions only.
+     */
+    public function getForUser( int $userId ): ?\stdClass {
+        $row = $this->dbr()->selectRow( 'pcp_user_profiles', '*',
+            [ 'prof_user_id' => $userId ], __METHOD__ );
+        return $row ?: null;
+    }
+
     /** Look up a profile by username. Used for Special:UserProfile/<name> view. */
     public function getByUsername( string $username ): ?\stdClass {
         $userFactory = MediaWikiServices::getInstance()->getUserFactory();

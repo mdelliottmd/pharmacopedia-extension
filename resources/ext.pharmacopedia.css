@@ -268,6 +268,7 @@
     --pharma-tier-strong:      #c7884a;
     --pharma-tier-primary:     #8b5cf6;
     --pharma-tier-derived:     #6c6877;
+    --pharma-redlink:          #a8736d;
 
     /* --- Legacy aliases. Retire as phases B to F migrate surfaces. --- */
     --pharma-violet-soft:      var(--pharma-violet-bright);
@@ -293,6 +294,15 @@
     --pharma-green:            var(--pharma-ch-pharmacy);
     --pharma-amber:            var(--pharma-tier-strong);
     --pharma-custom-accent:    var(--pharma-tier-strong);
+
+    /* --- Full-width layout tokens (2026-05-21, designer-claude) --- */
+    --layout-gutter:   clamp(20px, 3.4vw, 52px);
+    --measure-prose:   45em;
+    --col-gap:         clamp(34px, 4.2vw, 70px);
+    --datasheet-w:     clamp(280px, 23vw, 372px);
+    --topbar-h:        54px;
+    --rail-w:          292px;
+    --type-scale:      1;
 }
 
 /* C/Specimen base font. Geist is the default body face for the pharma
@@ -332,6 +342,39 @@ body:not(.pcp-skin-plants) {
     --pharma-bg-deep:        #08050300; /* void */
     --pharma-amber:          #b67a44;
     --pharma-custom-accent:  #b67a44;   /* same as amber on plants */
+    --pharma-redlink:        #c08372;   /* desaturated rust; redlink, AA on loam */
+}
+
+body.pcp-skin-fungi {
+    /* Fungi sub-skin: re-points the --pharma-* consumption layer to
+       the fungi palette, exactly as .pcp-skin-plants does for plants.
+       element + class, so it out-specifies the plants block above. */
+    --pharma-violet-soft:    #8b9bd4;   /* bruise-bright */
+    --pharma-violet:         #6878b8;   /* bruise; brand primary */
+    --pharma-surface:        #181b19;   /* flesh */
+    --pharma-rule:           rgba(216, 211, 193, 0.08);
+    --pharma-text:           #d8d3c1;   /* spore */
+    --pharma-violet-mid:     #2f332c;   /* flesh-edge */
+    --pharma-text-mute:      #a6a292;   /* spore-dim */
+    --pharma-violet-banner:  #c2965a;   /* ochre */
+    --pharma-tier1-deep:     #8a3f2b;   /* rot */
+    --pharma-teal:           #8b9bd4;   /* bruise-bright (link) */
+    --pharma-surface-2:      #0e100f;   /* substrate-warm */
+    --pharma-danger:         #8a3f2b;   /* rot */
+    --pharma-lichen:         #888a7d;   /* veil */
+    --pharma-ring:           rgba(216, 211, 193, 0.16);
+    --pharma-track:          #22251f;   /* flesh-raised */
+    --pharma-info:           #6878b8;   /* bruise */
+    --pharma-bone:           #d8d3c1;   /* spore */
+    --pharma-tier1-red:      #8a3f2b;   /* rot */
+    --pharma-violet-light:   #8b9bd4;   /* bruise-bright */
+    --pharma-blue:           #6878b8;   /* bruise */
+    --pharma-green:          #74b89a;   /* foxfire */
+    --pharma-bg:             #0a0c0b;   /* substrate */
+    --pharma-bg-deep:        #0a0c0b00; /* void */
+    --pharma-amber:          #c2965a;   /* ochre */
+    --pharma-custom-accent:  #c2965a;   /* ochre */
+    --pharma-redlink:        #c08a73;   /* desaturated rot; redlink */
 }
 
 /* ===== <vote> binary widget ===== */
@@ -1384,6 +1427,18 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     max-height: none;
     pointer-events: auto;
     margin: 0.35em 0;
+}
+
+/* The valence row stays gated. JS (refreshButtons) marks it
+   .pcp-disabled whenever the user has not earned the right to rate -
+   patient perspective without a "Yes", or provider perspective with no
+   frequency picked. The reveal rule above is more specific than the
+   base .pcp-effect-valence-row.pcp-disabled rule, so the disabled state
+   has to be re-asserted at rate-panel specificity here, or the slider
+   renders lit and draggable while still gated. */
+.pcp-row.pcp-effect .pcp-row-rate-panel .pcp-effect-valence-row.pcp-disabled {
+    opacity: 0.4;
+    pointer-events: none;
 }
 .pcp-row.pcp-effect .pcp-row-rate-panel .pcp-effect-perspective-row {
     opacity: 1;
@@ -3576,6 +3631,22 @@ ol.pcp-assess-items {
     --pcp-chip-border-fill:     rgba(122, 102, 80, 0.4);
     --pcp-chip-suggest-border:  rgba(212, 197, 168, 0.16);
     --pcp-chip-suggest-hover:   rgba(106, 138, 82, 0.15);
+}
+
+body.pcp-skin-fungi {
+    /* Fungi sub-skin chip overrides. Solid tokens inherit from the
+       --pharma-* layer above (already re-pointed for fungi); only
+       the opacity-derived rgba() tokens are twin-defined here, as
+       .pcp-skin-plants does. Bruise indigo / ochre / veil. */
+    --pcp-chip-bg:              rgba(104, 120, 184, 0.12);
+    --pcp-chip-border:          rgba(104, 120, 184, 0.45);
+    --pcp-chip-bg-primary:      rgba(104, 120, 184, 0.28);
+    --pcp-chip-border-primary:  rgba(104, 120, 184, 0.6);
+    --pcp-chip-bg-custom:       rgba(194, 150, 90, 0.12);
+    --pcp-chip-border-custom:   rgba(194, 150, 90, 0.5);
+    --pcp-chip-border-fill:     rgba(136, 138, 125, 0.4);
+    --pcp-chip-suggest-border:  rgba(216, 211, 193, 0.16);
+    --pcp-chip-suggest-hover:   rgba(104, 120, 184, 0.15);
 }
 
 .pcp-chip-picker {
@@ -7097,9 +7168,38 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
    body:not(.pcp-skin-plants) so the plants overlay is untouched.
    ============================================================ */
 
-/* shell: C/Specimen 1200px content width */
-body:not(.pcp-skin-plants) .mw-page-container-inner {
-    max-width: 1200px;
+/* Full-width fluid layout (2026-05-21, designer-claude handoff).
+   The centered fixed-width shell is retired: the page runs edge to
+   edge in both skins. This mirrors Vector 2022's own full-width rule
+   (.vector-feature-limited-width-clientpref-0, the Wide client
+   preference), applied unconditionally so it no longer depends on a
+   per-user width preference (which is being retired). Unscoped on
+   purpose: both skins. The --layout-gutter inset, the left-anchored
+   article grid and the prose-measure cap follow in a separate step. */
+.mw-page-container,
+.mw-page-container-inner,
+.vector-sticky-header,
+.mw-header {
+    max-width: none;
+}
+
+/* Full-width layout step 2: the --layout-gutter inset + the prose
+   measure. --layout-gutter is the shared viewport inset on Vector's
+   page container, so chrome and content keep one content edge.
+   Running article prose (the direct-child paragraphs and lists of
+   the parser output) caps at --measure-prose so text is never
+   stretched on a wide monitor; width-wanting content (tables, the
+   datasheet, category trees, dashboards) is not a direct child and
+   is left to use the full column. */
+.mw-page-container {
+    padding-left: var(--layout-gutter);
+    padding-right: var(--layout-gutter);
+}
+.mw-parser-output > p,
+.mw-parser-output > ul,
+.mw-parser-output > ol,
+.mw-parser-output > dl {
+    max-width: var(--measure-prose);
 }
 
 /* header bar */
@@ -7310,7 +7410,10 @@ body:has(.medpage) #firstHeading { display: none; }
    ============================================================ */
 .medpage .med-grid {
     display: grid;
-    grid-template-columns: minmax(0,1fr) 320px;
+    /* left-anchored: prose column measure-bound, datasheet fixed,
+       slack pools at the right edge (full-width layout step 2). */
+    grid-template-columns: minmax(0, 820px) var(--datasheet-w);
+    justify-content: start;
 }
 .medpage .med-main {
     min-width: 0;
@@ -7357,11 +7460,15 @@ body:has(.medpage) #firstHeading { display: none; }
 .medpage .med-field .fv a { color: var(--pharma-violet-ink); }
 .medpage .med-field .pcp-pill-id { font-size: 11px; }
 
-/* narrow viewports: the rail drops below the main column */
+/* narrow viewports: the rail (key-facts datasheet) leads ABOVE
+   the main column. Desktop two-column order is unaffected - the
+   order flip lives only in this media query. The grid separator
+   moves to .med-main so it still sits between the two blocks. */
 @media (max-width: 1000px) {
     .medpage .med-grid { grid-template-columns: 1fr; }
-    .medpage .med-main { border-right: 0; padding-right: 0; }
-    .medpage .med-rail {
+    .medpage .med-rail { order: -1; }
+    .medpage .med-main {
+        border-right: 0; padding-right: 0;
         border-top: 1px solid var(--pharma-line); margin-top: 24px;
     }
     .medpage .med-rail-inner { position: static; }
@@ -7788,7 +7895,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .pcp-perspective-rel select:focus-visible { border-color: var(--pharma-violet); }
 
-/* AMAAS-OR type blurb + answering instruction */
+/* AMAAS-PCP-OR type blurb + answering instruction */
 .pcp-perspective-descriptor {
     font-family: 'Newsreader', Georgia, serif;
     font-size: 15px;
@@ -8503,3 +8610,373 @@ body:not(.pcp-skin-plants)::before {
 }
 .fc-foot a { color: var(--pharma-violet-ink); }
 .fc-foot .d { color: var(--pharma-ink-mute); }
+
+
+/* pcp-card-compact: Card List cards at roughly half their vertical
+   height. Trims card padding + inter-card margin, collapses the stacked
+   header/title/body margins, and tightens line-height. Scoped to the
+   list view; the visual timeline and the edit forms are untouched. */
+.pcp-life-view[data-view="list"] .pcp-life-card {
+    padding: 0.25em 0.85em;
+    margin: 0.3em 0;
+    line-height: 1.3;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card-header {
+    margin-bottom: 0.05em;
+}
+.pcp-life-view[data-view="list"] .pcp-life-title {
+    margin: 0 0 0.05em 0;
+    line-height: 1.2;
+}
+.pcp-life-view[data-view="list"] .pcp-life-body {
+    margin: 0.08em 0;
+    line-height: 1.25;
+}
+.pcp-life-view[data-view="list"] .pcp-life-traits {
+    margin-top: 0.3em;
+}
+.pcp-life-view[data-view="list"] .pcp-life-tags {
+    margin-top: 0.25em;
+}
+.pcp-life-view[data-view="list"] .pcp-life-images {
+    margin: 0.3em 0;
+}
+
+
+/* pcp-card-grid: Card List cards as a 2-column grid - a fixed meta
+   rail on the left (date, type badge, controls; tags below) and the
+   title + body + any further content blocks on the right. Uses the
+   wide horizontal space so a simple card is about two rows tall
+   instead of a four-deep stack. List view only; pairs with the
+   pcp-card-compact block above. Every child defaults to column 2;
+   only header/title/body/tags are explicitly placed, so image,
+   trait and episode cards still flow correctly. */
+.pcp-life-view[data-view="list"] .pcp-life-card {
+    display: grid;
+    grid-template-columns: 15em 1fr;
+    column-gap: 1.15em;
+    row-gap: 0.15em;
+    align-items: start;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card > * {
+    grid-column: 2;
+    min-width: 0;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card > .pcp-life-card-header {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2em 0.4em;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card > .pcp-life-tags {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0.15em 0 0 0;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card > .pcp-life-title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+}
+.pcp-life-view[data-view="list"] .pcp-life-card > .pcp-life-body {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+}
+
+/* pcp-effect-slider-skin: native sliders, accent-color tinted. The
+   effect / interaction Rate-panel range sliders flex to the card width
+   so the rate panel does not overflow or clip on the right (they were a
+   fixed 220px / 200px). They stay NATIVE sliders so accent-color works:
+   the valence slider is tinted to its value by JS (pcp-effect-valence-
+   tint - purple at 0, red at -100, green at +100); the frequency slider
+   keeps the static purple base. */
+.pcp-effect-fslider-wrap,
+.pcp-effect-vslider-wrap {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+.pcp-effect-fslider,
+.pcp-effect-vslider,
+.pcp-ix-vslider {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    accent-color: #5d3b8e;
+}
+
+/* ===== Personality/Assessments picker (Special:MyProfile) ===== */
+.pcp-assess-catalog {
+    margin: 0.6em 0 1em;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 6px;
+}
+.pcp-assess-catalog-summary {
+    cursor: pointer;
+    padding: 0.55em 0.8em;
+    font-weight: 600;
+    color: #b9a3e3;
+}
+.pcp-assess-catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.7em;
+    padding: 0.2em 0.8em 0.9em;
+}
+.pcp-assess-tile {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 6px;
+    padding: 0.7em;
+}
+.pcp-assess-tile-name {
+    font-weight: 600;
+}
+.pcp-assess-tile-blurb {
+    font-size: 0.88em;
+    opacity: 0.85;
+    margin: 0.3em 0 0.5em;
+    flex: 1 1 auto;
+}
+.pcp-assess-tile-meta {
+    font-size: 0.8em;
+    opacity: 0.6;
+    margin-bottom: 0.55em;
+}
+.pcp-assess-tile-add {
+    align-self: flex-start;
+}
+.pcp-assess-picked {
+    position: relative;
+}
+.pcp-assess-remove {
+    position: absolute;
+    top: 0.35em;
+    right: 0.35em;
+    z-index: 2;
+    width: 1.7em;
+    height: 1.7em;
+    line-height: 1;
+    padding: 0;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.5;
+    cursor: pointer;
+}
+.pcp-assess-remove:hover,
+.pcp-assess-remove:focus {
+    opacity: 1;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+.pcp-assess-empty {
+    margin-top: 0.6em;
+}
+
+
+/* ============================================================
+   Appearance rail (2026-05-21, designer-claude Option B).
+   A custom collapsible right-edge rail, both skins. Collapsed by
+   default (a quiet tab); expanded it docks below the topbar and
+   pushes the content left. ext.pharmacopedia.appearance injects
+   the markup and persists state. The --pharma-* tokens are
+   remapped by the plants skin, so the rail themes per skin.
+   ============================================================ */
+
+/* the Text-size control scales the root font: a real text-zoom */
+html:root { font-size: calc(100% * var(--type-scale, 1)); }
+
+/* content yields to the panel; the topbar stays full-bleed */
+.mw-content-container,
+.mw-footer-container {
+    transition: margin-right .24s cubic-bezier(.4, 0, .2, 1);
+}
+body[data-rail="open"] .mw-content-container,
+body[data-rail="open"] .mw-footer-container {
+    margin-right: var(--rail-w);
+}
+
+/* collapsed: a quiet tab in the right-edge whitespace */
+.pcp-rail-tab {
+    position: fixed; top: 50%; right: 0; transform: translateY(-50%);
+    z-index: 40; display: flex; flex-direction: column;
+    align-items: center; gap: 11px; width: 38px; padding: 17px 0;
+    background: var(--pharma-bg-2); color: var(--pharma-violet-ink);
+    border: 1px solid var(--pharma-line); border-right: 0;
+    border-radius: 9px 0 0 9px; cursor: pointer;
+    transition: transform .24s cubic-bezier(.4,0,.2,1),
+        opacity .16s ease, background .15s ease;
+}
+.pcp-rail-tab:hover { background: var(--pharma-bg-3); border-color: var(--pharma-violet); }
+.pcp-rail-tab:focus-visible { outline: 2px solid var(--pharma-violet); outline-offset: 2px; }
+.pcp-rail-tab-chev {
+    padding: 3px; border: solid var(--pharma-violet-bright);
+    border-width: 0 1.6px 1.6px 0; transform: rotate(135deg);
+}
+.pcp-rail-tab-label {
+    writing-mode: vertical-rl; font-size: 9.5px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--pharma-ink-mute);
+}
+.pcp-rail-tab:hover .pcp-rail-tab-label { color: var(--pharma-ink-dim); }
+body[data-rail="open"] .pcp-rail-tab {
+    transform: translateY(-50%) translateX(120%);
+    opacity: 0; pointer-events: none;
+}
+
+/* expanded: the panel */
+.pcp-rail-panel {
+    position: fixed; top: var(--topbar-h); right: 0; bottom: 0;
+    width: var(--rail-w); z-index: 40;
+    background: var(--pharma-bg-2); border-left: 1px solid var(--pharma-line);
+    transform: translateX(100%);
+    transition: transform .24s cubic-bezier(.4,0,.2,1);
+}
+body[data-rail="open"] .pcp-rail-panel { transform: translateX(0); }
+.pcp-rail-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px 13px 20px; border-bottom: 1px solid var(--pharma-line);
+}
+.pcp-rail-title {
+    font-family: 'Newsreader', Georgia, serif; font-size: 16px;
+    color: var(--pharma-ink);
+}
+.pcp-rail-collapse {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; background: none;
+    border: 1px solid var(--pharma-line); cursor: pointer;
+    color: var(--pharma-violet-ink);
+}
+.pcp-rail-collapse:hover { border-color: var(--pharma-violet); background: var(--pharma-bg-3); }
+.pcp-rail-collapse:focus-visible { outline: 2px solid var(--pharma-violet); outline-offset: 2px; }
+.pcp-rail-collapse-chev {
+    padding: 3px; border: solid var(--pharma-violet-bright);
+    border-width: 0 1.6px 1.6px 0; transform: rotate(-45deg); margin-left: -2px;
+}
+.pcp-rail-body { padding: 20px; }
+.pcp-rail-label {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--pharma-ink-mute); margin-bottom: 9px;
+}
+.pcp-rail-seg { display: flex; border: 1px solid var(--pharma-line); }
+.pcp-rail-seg-btn {
+    flex: 1; padding: 8px 6px; background: var(--pharma-bg-3); cursor: pointer;
+    font-family: 'Geist', sans-serif; font-size: 11.5px;
+    color: var(--pharma-ink-dim); border: 0;
+    border-right: 1px solid var(--pharma-line);
+}
+.pcp-rail-seg-btn:last-child { border-right: 0; }
+.pcp-rail-seg-btn:hover { color: var(--pharma-ink); background: var(--pharma-bg-2); }
+.pcp-rail-seg-btn.pcp-on {
+    background: rgba(139,92,246,0.16); color: var(--pharma-violet-ink);
+    box-shadow: inset 0 -2px 0 var(--pharma-violet);
+}
+.pcp-rail-seg-btn:focus-visible { outline: 2px solid var(--pharma-violet); outline-offset: -2px; }
+.pcp-rail-note {
+    margin: 13px 0 0; font-size: 10.5px;
+    color: var(--pharma-ink-mute); line-height: 1.55;
+}
+
+/* below 880px: the rail folds away (a topbar Text-size affordance
+   is a designer-claude follow-up) */
+@media (max-width: 880px) {
+    .pcp-rail-tab, .pcp-rail-panel { display: none !important; }
+    body[data-rail="open"] .mw-content-container,
+    body[data-rail="open"] .mw-footer-container { margin-right: 0 !important; }
+}
+@media print {
+    .pcp-rail-tab, .pcp-rail-panel { display: none !important; }
+    body[data-rail="open"] .mw-content-container,
+    body[data-rail="open"] .mw-footer-container { margin-right: 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mw-content-container, .mw-footer-container,
+    .pcp-rail-tab, .pcp-rail-panel { transition: none; }
+}
+
+/* ===== OCI-PCP report radar. Reuses the .pcp-up-cati-radar styling;
+   this only sizes and centers it in the wider Special:MyAssessment
+   report context. ===== */
+.pcp-ocipcp-report-radar {
+    max-width: 340px;
+    margin: 0.4em auto 0.8em;
+}
+
+
+/* Hide Vector 2022's native client-preferences ("Appearance") menu. The
+   custom ext.pharmacopedia.appearance rail is the sole appearance UI
+   (designer-claude Option B); Vector's menu would duplicate it. The
+   feature is also being disabled wholesale in LocalSettings (server-
+   claude's config); this keeps it off the page meanwhile, and is
+   harmless once the feature is off. */
+#vector-appearance,
+#vector-appearance-dropdown {
+    display: none !important;
+}
+
+
+/* ============================================================
+   Diptych splash pages (Main Page, Category index). The
+   pcp-diptych-page body class - added by onBeforePageDisplay on
+   exactly those two pages - makes them chromeless full-viewport
+   splashes: the diptych module is the whole page. Every other
+   page is unaffected. designer-claude spec, 2026-05-21.
+   ============================================================ */
+body.pcp-diptych-page .vector-header-container,
+body.pcp-diptych-page .vector-sticky-header,
+body.pcp-diptych-page #mw-navigation,
+body.pcp-diptych-page .vector-page-titlebar,
+body.pcp-diptych-page .vector-page-toolbar,
+body.pcp-diptych-page .vector-column-start,
+body.pcp-diptych-page .vector-column-end,
+body.pcp-diptych-page .vector-sitenotice-container,
+body.pcp-diptych-page .mw-footer-container,
+body.pcp-diptych-page #firstHeading,
+body.pcp-diptych-page .pcp-rail-tab,
+body.pcp-diptych-page #contentSub,
+body.pcp-diptych-page .vector-body-before-content,
+body.pcp-diptych-page #catlinks,
+body.pcp-diptych-page .pcp-rail-panel {
+    display: none;
+}
+/* remove the layout box: no shell, no --layout-gutter, no padding */
+/* the page backdrop matches the diptych dark, so no band shows
+   top or bottom even if an ancestor leaves residual space. */
+html:has( body.pcp-diptych-page ),
+body.pcp-diptych-page {
+    background: #0e0d0f;
+}
+body.pcp-diptych-page .mw-page-container,
+body.pcp-diptych-page .mw-page-container-inner,
+body.pcp-diptych-page .mw-content-container,
+body.pcp-diptych-page #mw-content-text,
+body.pcp-diptych-page .mw-parser-output,
+body.pcp-diptych-page .mw-body {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+/* flatten Vector's content grids - .mw-page-container-inner and
+   .mw-body are CSS grids whose content column is capped at the
+   content-container width (grid-template-columns, which max-width
+   does not release); blocking them lets the diptych span the full
+   viewport. */
+body.pcp-diptych-page .mw-page-container-inner,
+body.pcp-diptych-page .mw-body {
+    display: block;
+}
+
+/* the page-container backdrop matches the diptych dark, so the
+   topbar (or any transparent band) never betrays Vector's
+   lighter container colour. */
+body.pcp-diptych-page .mw-page-container {
+    background: var(--pharma-bg);
+}
+

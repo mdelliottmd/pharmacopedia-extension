@@ -53,7 +53,7 @@ class SpecialMyLifeStory extends SpecialPage {
         }
         $out->setSubtitle( '<a href="#" class="pcp-share-trigger" data-ns="life_events" data-label="Life story">🔗 Share</a>' );
         $out->addModuleStyles( [ 'ext.pharmacopedia.styles', 'ext.pharmacopedia.datepicker.styles', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation' ] );
-        $out->addModules( [ 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation', 'ext.pharmacopedia.lifetimeline', 'ext.pharmacopedia.lifegraph' ] );
+        $out->addModules( [ 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation', 'ext.pharmacopedia.lifetimeline', 'ext.pharmacopedia.lifegraph', 'ext.pharmacopedia.bounceback', 'ext.pharmacopedia.confirmdelete' ] );
 
         $user = $this->getUser();
         if ( !$user->isRegistered() ) {
@@ -184,7 +184,7 @@ class SpecialMyLifeStory extends SpecialPage {
             $savedId = (int)$request->getVal( 'saved' );
             if ( $savedId > 0 ) {
                 $savedEvent = $store->getEvent( $savedId );
-                $tmap = [ 0 => 'stories', 1 => 'events', 3 => 'observations', 4 => 'episodes' ];
+                $tmap = [ 0 => 'stories', 1 => 'events', 2 => 'observations', 3 => 'observations', 4 => 'episodes' ];
                 $savedGroup = $savedEvent ? ( $tmap[ (int)$savedEvent->le_type ] ?? 'events' ) : 'events';
                 $out->addHTML(
                     '<script>document.addEventListener("DOMContentLoaded",function(){' .
@@ -208,6 +208,20 @@ class SpecialMyLifeStory extends SpecialPage {
         }
         if ( $request->getVal( 'deleted' ) ) {
             $out->addHTML( $this->banner( 'Deleted.', 'Event removed.' ) );
+            // Bounce-back: the delete happens from the Card list, so re-open
+            // that view on the post-delete reload. Scroll position is restored
+            // by the ext.pharmacopedia.bounceback helper (the delete form
+            // carries class js-pcp-bounceback).
+            $out->addHTML(
+                '<script>document.addEventListener("DOMContentLoaded",function(){' .
+                'document.querySelectorAll(".pcp-life-view-toggle").forEach(function(b){b.classList.remove("active");});' .
+                'var lb=document.querySelector(\'.pcp-life-view-toggle[data-view="list"]\');' .
+                'if(lb)lb.classList.add("active");' .
+                'document.querySelectorAll(".pcp-life-view").forEach(function(v){v.classList.remove("active");});' .
+                'var lp=document.querySelector(\'.pcp-life-view[data-view="list"]\');' .
+                'if(lp)lp.classList.add("active");' .
+                '});</script>'
+            );
         }
         if ( $request->getVal( 'upload_error' ) ) {
             $out->addHTML( $this->banner( 'Upload error',
@@ -447,7 +461,7 @@ class SpecialMyLifeStory extends SpecialPage {
         foreach ( $groups as $gid => $meta ) {
             $checked = $meta['on'] ? ' checked' : '';
             $togglesHtml .= '<label class="pcp-life-timeline-group-toggle-wrap">'
-                . '<input type="checkbox" class="pcp-life-timeline-group-toggle" value="' . htmlspecialchars( $gid ) . '"' . $checked . '>'
+                . '<input type="checkbox" class="pcp-life-timeline-group-toggle" autocomplete="off" value="' . htmlspecialchars( $gid ) . '"' . $checked . '>'
                 . ' ' . htmlspecialchars( $meta['label'] )
                 . '</label>';
         }
@@ -485,7 +499,7 @@ class SpecialMyLifeStory extends SpecialPage {
 
     private function timelineItemForStored( $e, $linkPage ): array {
         $type = (int)$e->le_type;
-        $group = [ 0=>'stories', 1=>'events', 3=>'observations', 4=>'episodes' ][ $type ] ?? 'events';
+        $group = [ 0=>'stories', 1=>'events', 2=>'observations', 3=>'observations', 4=>'episodes' ][ $type ] ?? 'events';
         $start = null; $end = null;
         if ( $e->le_date_struct ) {
             $s = json_decode( (string)$e->le_date_struct, true );
@@ -611,7 +625,7 @@ class SpecialMyLifeStory extends SpecialPage {
             // Inline delete button (X). Submits a tiny form so it works without JS,
             // and JS adds a confirm() before submit.
             $delAction = $this->getPageTitle()->getLocalURL();
-            $out .= ' <form method="post" action="' . $h( $delAction ) . '" class="pcp-life-card-delete-form" data-confirm="Delete this event? This cannot be undone.">'
+            $out .= ' <form method="post" action="' . $h( $delAction ) . '" class="pcp-life-card-delete-form js-pcp-bounceback js-pcp-confirm-delete" data-confirm="Delete this event? This cannot be undone.">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $h( $token ) . '">'
                 . '<input type="hidden" name="pcp_action" value="delete_event">'
@@ -870,12 +884,12 @@ class SpecialMyLifeStory extends SpecialPage {
         $out->addHTML( '</div></form>' );
 
         // Delete.
-        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
+        $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form js-pcp-confirm-delete">'
             . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
             . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
             . '<input type="hidden" name="pcp_action" value="delete_event">'
             . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
-            . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this observation?\')">Delete observation</button>'
+            . '<button type="submit" class="pcp-btn pcp-btn-danger" data-pcp-confirm="Delete this observation?">Delete observation</button>'
             . '</form>' );
         $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
@@ -1091,12 +1105,12 @@ class SpecialMyLifeStory extends SpecialPage {
         $out->addHTML( '<a class="pcp-btn" href="' . $h( $this->getPageTitle()->getLocalURL() ) . '">Cancel</a>' );
         $out->addHTML( '</div></form>' );
         if ( $isEdit ) {
-            $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form">'
+            $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-delete-form js-pcp-confirm-delete">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
                 . '<input type="hidden" name="pcp_action" value="delete_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
-                . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this episode?\')">Delete episode</button>'
+                . '<button type="submit" class="pcp-btn pcp-btn-danger" data-pcp-confirm="Delete this episode?">Delete episode</button>'
                 . '</form>' );
             $out->addHTML( '<form method="post" action="' . $action . '" class="pcp-life-dup-form">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
@@ -1374,13 +1388,13 @@ class SpecialMyLifeStory extends SpecialPage {
                     $delUrl = htmlspecialchars( $action );
                     $out->addHTML( '<li><a href="' . $url . '">' . $h( $im->li_orig_name ) . '</a> '
                         . '(' . round( $im->li_size_bytes / 1024 ) . ' KB) '
-                        . '<form method="post" action="' . $delUrl . '" style="display:inline">'
+                        . '<form method="post" action="' . $delUrl . '" class="js-pcp-confirm-delete" style="display:inline">'
                         . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                         . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
                         . '<input type="hidden" name="pcp_action" value="delete_image">'
                         . '<input type="hidden" name="image_id" value="' . (int)$im->li_id . '">'
                         . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
-                        . '<button type="submit" class="pcp-life-img-del" onclick="return confirm(\'Delete this image?\')">delete</button>'
+                        . '<button type="submit" class="pcp-life-img-del" data-pcp-confirm="Delete this image?">delete</button>'
                         . '</form></li>' );
                 }
                 $out->addHTML( '</ul></div>' );
@@ -1399,12 +1413,12 @@ class SpecialMyLifeStory extends SpecialPage {
 
         // ----- Delete (edit mode only) -----
         if ( $isEdit ) {
-            $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-delete-form">'
+            $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-delete-form js-pcp-confirm-delete">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'
                 . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
                 . '<input type="hidden" name="pcp_action" value="delete_event">'
                 . '<input type="hidden" name="event_id" value="' . (int)$event->le_id . '">'
-                . '<button type="submit" class="pcp-btn pcp-btn-danger" onclick="return confirm(\'Delete this event and its images?\')">Delete event</button>'
+                . '<button type="submit" class="pcp-btn pcp-btn-danger" data-pcp-confirm="Delete this event and its images?">Delete event</button>'
                 . '</form>' );
             $out->addHTML( '<form method="post" action="' . $h( $action ) . '" class="pcp-life-dup-form">'
                 . '<input type="hidden" name="pcp_title" value="' . $h( $this->getPageTitle()->getPrefixedDBkey() ) . '">'

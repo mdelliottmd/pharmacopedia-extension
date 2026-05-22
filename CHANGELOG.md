@@ -7,6 +7,88 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
+## [0.9.8.0] - 2026-05-22
+
+A feature release: the "Administer to others" subsystem, the
+two-origin diptych front-of-house, the full-width layout with the
+Appearance rail, and the fungi sub-skin. Major items below; see
+`git log` for file-level detail.
+
+### Added
+- Administer to others: a registered user (the owner) can send any
+  of the twelve registered assessment scales to people outside the
+  wiki by a one-time link, collect their results, and follow them
+  over time, with no account required of the respondent. Owner hub
+  `Special:AdministerAssessments`, respondent take-flow
+  `Special:RespondToAssessment`. `AssessmentRegistry` is the single
+  source of truth for the twelve instruments. `AdminCrypto` provides
+  per-owner X25519 keypairs, `crypto_box_seal` result encryption,
+  and two protection modes: managed (a server master key, seamless)
+  and an opt-in zero-knowledge passphrase mode (Argon2id, AES-256-GCM
+  key wrapping, unrecoverable by design). A decoupled, de-identified
+  research pool with no link back to the owner. New module
+  `ext.pharmacopedia.administer`.
+- The two-origin diptych: the Main Page and the Category index
+  rebuilt as chromeless full-viewport splashes giving the
+  pharmaceutical and plant origins equal face. Parser tags
+  `<frontpage>` (`FrontPageTag`) and `<categoryindex>`
+  (`CategoryIndexTag`); `DiptychChrome` for the shared topbar and
+  footer; a `body.pcp-diptych-page` chromeless mode that hides the
+  Vector chrome; a full-height two-origin split. New modules
+  `ext.pharmacopedia.frontpage` and `ext.pharmacopedia.categoryindex`.
+- Full-width layout: an edge-to-edge content frame with the prose
+  held to a readable measure, plus a collapsible Appearance rail
+  carrying a reader text-size control. New module
+  `ext.pharmacopedia.appearance`.
+- Fungi sub-skin (`.pcp-skin-fungi`): a specialization of the plants
+  skin for fungal medicine pages, resolved by a direct
+  `Category:Fungi` tag (checked ahead of the plant test). A damp
+  cool-dark palette, a spore-dust grain, a mushroom mark, and fungi
+  section-marker hues; everything else inherits from the plants
+  skin. New module `ext.pharmacopedia.skin.fungi`.
+- New parser tags `<classGrid>` and `<classTree>` for medicine-class
+  category overviews, and `<pharmaLiterature>` for the per-medicine
+  literature section.
+- `Special:PCPCtrls`: an "Administer to others" section and a "Wiki
+  front-of-house" section; section rows may now point at a content
+  page, not only a Special: page.
+
+### Changed
+- The twelve assessment scorers are wired through
+  `AssessmentRegistry` (radio / slider / bipolar response models) so
+  any of them can be administered to outside respondents; added a
+  server-side `Ocean` (BFI-10) scorer.
+- `Hooks::resolvePcpSkin` gains the fungi branch ahead of the plant
+  test; the docblock origin-tag example corrected to the canonical
+  `Category:Plants`.
+- The Administer surfaces refined per design review: the "Not sure"
+  dim scoped to the answer content, an explicit slider track and
+  thumb, a quiet per-invite delete, hover and focus states, and a
+  narrow-viewport slider-row wrap.
+- The Main Page masthead lines render in lifted pharma-to-plant
+  gradient containers.
+- About:Pharmacopedia.ext reconciled to the current surface (this
+  resolves the documentation follow-up flagged at the 0.9.7.0 cut).
+
+### Schema
+- New tables: `pcp_administer_respondents`, `pcp_administer_invites`,
+  `pcp_administer_assessments`, `pcp_administer_userkey`,
+  `pcp_administer_research`.
+- `pcp_administer_assessments.aa_respondent_enc`: the respondent's
+  own copy of each result, sealed to a key derived from the invite
+  token.
+
+### Fixed
+- The effect-card valence slider stayed interactive before the
+  effect was marked experienced; it is now disabled until "Yes".
+- The Appearance-rail text-size control had no visible effect.
+- Security audit M4: the de-identified research row was inserted
+  unconditionally, so a resubmit or replica-lag race duplicated it;
+  it is now written only when the submission completed a scale.
+- Security audit L4: `Special:MyPerspectives` no longer creates a
+  profile row on a plain page view (`getOrCreateForUser` moved to
+  the invite-minting POST; new read-only `getForUser`).
+
 ## [0.9.7.0] - 2026-05-21
 
 Catch-up release: the repository had fallen behind the live extension,

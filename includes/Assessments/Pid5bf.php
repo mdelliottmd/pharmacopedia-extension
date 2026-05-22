@@ -13,10 +13,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Pid5bf {
     public const KEY        = 'pid5bf';
-    public const NAME       = 'PID-5-BF';
+    public const NAME       = 'PID-5-BF-PCP';
     public const FULL_NAME  = 'Personality Inventory for DSM-5 — Brief Form';
     public const CITATION   = 'Krueger et al. 2013 (Personality Disorders, 4(3), 264-269)';
-    public const DESCRIPTION = 'Five trait domains mapping to the DSM-5 Section III (Alternative Model) and ICD-11 PD trait model. 25 items, ~5 minutes.';
+    public const DESCRIPTION = 'Five trait domains mapping to the DSM-5 Section III (Alternative Model) and ICD-11 PD trait model. 25 items, ~5 minutes.  (Adapted from PID-5-BF)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 25; // single page
 

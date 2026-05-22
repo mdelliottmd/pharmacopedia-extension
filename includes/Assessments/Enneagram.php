@@ -34,10 +34,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Enneagram {
     public const KEY         = 'enneagram';
-    public const NAME        = 'Enneagram';
+    public const NAME        = 'Enneagram-PCP';
     public const FULL_NAME   = 'Enneagram of Personality';
     public const CITATION    = 'Ichazo (Arica, 1960s); Naranjo 1970s; Riso & Hudson 1999 (Wisdom of the Enneagram). Items: content-derived screening statements.';
-    public const DESCRIPTION = 'Nine interrelated personality patterns arranged on a circle, with stress/growth lines and wings. Treated here dimensionally — every user has a continuous score on every type, and the "primary type" is simply the current high score.';
+    public const DESCRIPTION = 'Nine interrelated personality patterns arranged on a circle, with stress/growth lines and wings. Treated here dimensionally — every user has a continuous score on every type, and the "primary type" is simply the current high score.  (Adapted from the Enneagram test)';
     public const WARNING     = '';
     public const PAGE_SIZE   = 45;
 

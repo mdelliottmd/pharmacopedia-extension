@@ -1,6 +1,6 @@
 /*
  * Perspective subsystem: client enhancement for Special:Perspective.
- * The AMAAS-OR observer form is CSP-clean (no inline JS); this module
+ * The AMAAS-PCP-OR observer form is CSP-clean (no inline JS); this module
  * adds the per-slider value readout and the live progress indicator.
  * Plain DOM, no dependencies. designer-claude handoff 2026-05-20.
  */
@@ -98,6 +98,18 @@
             msg = 'Delete this perspective? This permanently removes it ' +
                 'and cannot be undone.';
         } else {
+            return;
+        }
+        if ( op === 'delete' ) {
+            if ( form.dataset.pcpConfirmed === '1' ) {
+                delete form.dataset.pcpConfirmed;
+                return;
+            }
+            e.preventDefault();
+            window.PCPConfirmDelete( msg, function () {
+                form.dataset.pcpConfirmed = '1';
+                form.requestSubmit();
+            } );
             return;
         }
         if ( !window.confirm( msg ) ) {

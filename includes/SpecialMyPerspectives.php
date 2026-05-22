@@ -9,7 +9,7 @@ use MediaWiki\SpecialPage\SpecialPage;
  * objects (the consent inbox, gate 2).
  *
  * Two sections:
- *   Invite - generate an invite link (v1: an AMAAS-OR observer rating
+ *   Invite - generate an invite link (v1: an AMAAS-PCP-OR observer rating
  *            of yourself), and copy or revoke existing links.
  *   Inbox  - perspectives submitted on your objects; per item, consent
  *            to publish, withdraw consent, or delete. Nothing is public
@@ -55,18 +55,26 @@ class SpecialMyPerspectives extends SpecialPage {
         }
 
         $store = new PerspectiveStore();
-        $profile = ( new UserProfileStore() )->getOrCreateForUser( $user->getId() );
-        $profileId = (int)$profile->prof_id;
+        $profileStore = new UserProfileStore();
         $request = $this->getRequest();
 
-        // POST: act, then redirect (post-redirect-get) so a refresh does not resubmit.
+        // POST: act, then redirect (post-redirect-get) so a refresh does not
+        // resubmit. Creating the profile row on demand belongs here, on the
+        // explicit write action, not on a plain page view.
         if ( $request->wasPosted() ) {
             if ( $user->matchEditToken( $request->getVal( 'wpEditToken' ) ) ) {
+                $profileId = (int)$profileStore->getOrCreateForUser( $user->getId() )->prof_id;
                 $this->handlePost( $request, $store, $profileId, (int)$user->getId() );
             }
             $out->redirect( $this->getPageTitle()->getLocalURL() );
             return;
         }
+
+        // GET: read-only. A user who has never minted an invite has no
+        // profile row yet and no perspectives; there is nothing to create
+        // on a page view, so a missing profile renders an empty page.
+        $profile = $profileStore->getForUser( $user->getId() );
+        $profileId = $profile ? (int)$profile->prof_id : 0;
 
         $h  = '<div class="pcp-perspectives-page">';
         $h .= $this->renderInviteSection( $store, $profileId, $user );
@@ -107,7 +115,7 @@ class SpecialMyPerspectives extends SpecialPage {
         $h  = '<section class="pcp-perspectives-invite">';
         $h .= '<h2>Invite an observer</h2>';
         $h .= '<p>Generate a private link and send it to someone who knows you well, a '
-            . 'partner, a parent, a close friend. They answer the AMAAS-OR observer '
+            . 'partner, a parent, a close friend. They answer the AMAAS-PCP-OR observer '
             . 'questionnaire about you, with no account needed. Their answers come back to '
             . 'you privately; nothing is shown to anyone else unless you choose to share it.</p>';
 

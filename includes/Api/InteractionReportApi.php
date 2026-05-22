@@ -7,7 +7,7 @@ use MediaWiki\Extension\Pharmacopedia\InteractionStore;
 /**
  * POST pharmacopediainteractionreport
  *   element_id, perspective (1|2), experience ('' or 1..5),
- *   valence ('' or -3..3), note ('' or text)
+ *   valence ('' or -100..100), note ('' or text)
  * Upserts the user's report and returns fresh aggregates.
  */
 class InteractionReportApi extends ApiBase {
@@ -50,8 +50,8 @@ class InteractionReportApi extends ApiBase {
         if ( $experience !== null && ( $experience < 1 || $experience > 5 ) ) {
             $this->dieWithError( [ 'rawmessage', 'Experience must be 1-5.' ], 'badvalue' );
         }
-        if ( $valence !== null && ( $valence < -3 || $valence > 3 ) ) {
-            $this->dieWithError( [ 'rawmessage', 'Valence must be -3..+3.' ], 'badvalue' );
+        if ( $valence !== null && ( $valence < -100 || $valence > 100 ) ) {
+            $this->dieWithError( [ 'rawmessage', 'Valence must be -100..+100.' ], 'badvalue' );
         }
         // Valence requires experience >= 1.
         if ( $valence !== null && ( $experience === null || $experience < 1 ) ) {

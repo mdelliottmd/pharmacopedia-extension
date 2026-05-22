@@ -20,10 +20,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Bpns {
     public const KEY        = 'bpns';
-    public const NAME       = 'BPNS';
+    public const NAME       = 'BPNS-PCP';
     public const FULL_NAME  = 'Basic Psychological Need Satisfaction Scale';
     public const CITATION   = 'Deci & Ryan; Gagné 2003 (Motivation & Emotion 27(3):199-223)';
-    public const DESCRIPTION = 'Self-determination-theory measure of how satisfied your three basic psychological needs are in everyday life: Autonomy (acting volitionally), Competence (feeling effective), Relatedness (feeling connected). 21 items, ~5 minutes.';
+    public const DESCRIPTION = 'Self-determination-theory measure of how satisfied your three basic psychological needs are in everyday life: Autonomy (acting volitionally), Competence (feeling effective), Relatedness (feeling connected). 21 items, ~5 minutes.  (Adapted from BPNS)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 21;
 

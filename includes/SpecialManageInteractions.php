@@ -178,7 +178,8 @@ class SpecialManageInteractions extends SpecialPage {
                 'method' => 'POST',
                 'action' => $base,
                 'style' => 'display:inline; margin:0;',
-                'onsubmit' => "return confirm('Permanently delete this interaction and all its reports? Cannot be undone.');",
+                'class' => 'js-pcp-confirm-delete',
+                'data-confirm' => 'Permanently delete this interaction and all its reports? Cannot be undone.',
             ] );
             $deleteForm .= Html::hidden( 'wpEditToken', $token );
             $deleteForm .= Html::hidden( 'op', 'delete' );
@@ -240,7 +241,8 @@ class SpecialManageInteractions extends SpecialPage {
                 $html .= '<td>' . implode( ', ', $o['missing'] ) . '</td>';
                 $df = Html::openElement( 'form', [
                     'method' => 'POST', 'action' => $base, 'style' => 'display:inline;',
-                    'onsubmit' => "return confirm('Delete this orphan interaction?');",
+                    'class' => 'js-pcp-confirm-delete',
+                    'data-confirm' => 'Delete this orphan interaction?',
                 ] );
                 $df .= Html::hidden( 'wpEditToken', $token );
                 $df .= Html::hidden( 'op', 'delete' );

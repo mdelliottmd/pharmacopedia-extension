@@ -4,7 +4,7 @@ namespace MediaWiki\Extension\Pharmacopedia;
 use MediaWiki\Extension\Pharmacopedia\Assessments\Amaas;
 
 /**
- * AmaasObserverHandler: the AMAAS-OR perspective-type handler, the
+ * AmaasObserverHandler: the AMAAS-PCP-OR perspective-type handler, the
  * Observer-Report form of the Adult Multi-perspective Attentional
  * Attributes Scale. Consumer #1 of the Perspective subsystem.
  *
@@ -58,13 +58,13 @@ class AmaasObserverHandler implements PerspectiveTypeHandler {
         30 => "What percent of the time does this person lose track of where they put everyday items like their keys or phone?",
     ];
 
-    /** AMAAS-OR descriptor shown to the invitee (home-claude copy). */
+    /** AMAAS-PCP-OR descriptor shown to the invitee (home-claude copy). */
     public const DESCRIPTOR =
-        "This questionnaire, AMAAS-OR, asks about everyday attention, restlessness, and "
+        "This questionnaire, AMAAS-PCP-OR, asks about everyday attention, restlessness, and "
         . "impulsivity in adults; it is an experimental, approximate tool, not a diagnosis, "
         . "and nothing is decided from your answers alone.";
 
-    /** AMAAS-OR answering instruction (home-claude copy; {NAME} = the owner-chosen display name). */
+    /** AMAAS-PCP-OR answering instruction (home-claude copy; {NAME} = the owner-chosen display name). */
     public const ANSWER_INSTRUCTION =
         "For each question, think about how things have been for {NAME} over the past six "
         . "months and move the slider to the percent of the time that best matches what you "
@@ -76,7 +76,7 @@ class AmaasObserverHandler implements PerspectiveTypeHandler {
     }
 
     public function label(): string {
-        return 'AMAAS-OR (observer report)';
+        return 'AMAAS-PCP-OR (observer report)';
     }
 
     /**

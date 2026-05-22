@@ -55,6 +55,13 @@ class SpecialPCPCtrls extends SpecialPage {
                 [ 'SuggestTitration',      'Suggest a titration',    'Form for suggesting a new titration regimen.' ],
                 [ 'SuggestAnecdote',       'Suggest an anecdote',    'Form for submitting an anecdote.' ],
             ],
+            'Administer to others (new)' => [
+                [ 'AdministerAssessments', 'Administer assessments', 'NEW (2026-05-21): any logged-in user sends assessment scales to outside respondents (no account needed) and tracks their results over time. Managed-key encryption by default, optional zero-knowledge passphrase. The respondent take-flow is Special:RespondToAssessment/<token>, reached only by a one-time invite link.' ],
+            ],
+            'Wiki front-of-house (new)' => [
+                [ 'Category index', 'Category index', 'NEW (2026-05-21): the two-origin category diptych, the 23 pharmaceutical classes and the Pendell plant axis. A chromeless full-viewport splash.', NS_MAIN ],
+                [ 'Main Page', 'Main Page (diptych)', 'NEW (2026-05-21): rebuilt as the two-origin diptych splash, chromeless and full-bleed. Also shipped today: the sitewide edge-to-edge full-width layout and the collapsible Appearance rail (Text size control).', NS_MAIN ],
+            ],
             'Destructive' => [
                 [ 'DeletePharmaElement',   'Delete element',         'Permanently remove a Problem / effect / interaction element.' ],
             ],
@@ -125,8 +132,9 @@ class SpecialPCPCtrls extends SpecialPage {
 
         foreach ( $sections as $heading => $rows ) {
             $out->addHTML( '<h3>' . htmlspecialchars( $heading ) . '</h3><ul>' );
-            foreach ( $rows as [ $page, $label, $desc ] ) {
-                $title = Title::makeTitle( NS_SPECIAL, $page );
+            foreach ( $rows as $row ) {
+                $page = $row[0]; $label = $row[1]; $desc = $row[2];
+                $title = Title::makeTitle( $row[3] ?? NS_SPECIAL, $page );
                 $url = htmlspecialchars( $title->getLocalURL() );
                 $out->addHTML(
                     '<li>&rsaquo; <a href="' . $url . '"><strong>' . htmlspecialchars( $label ) . '</strong></a>'

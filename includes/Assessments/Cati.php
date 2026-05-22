@@ -25,10 +25,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Cati {
     public const KEY        = 'cati';
-    public const NAME       = 'CATI';
+    public const NAME       = 'CATI-PCP';
     public const FULL_NAME  = 'Comprehensive Autistic Trait Inventory';
     public const CITATION   = 'English et al. 2021 (Mol Autism 12(1):37). PMID 34593033.';
-    public const DESCRIPTION = '42-item self-report measure of six dimensions of autistic traits: Social Interactions, Communication, Social Camouflage, Cognitive (In)Flexibility, Self-regulatory Behaviours, and Sensory Sensitivity. ~5–10 minutes.';
+    public const DESCRIPTION = '42-item self-report measure of six dimensions of autistic traits: Social Interactions, Communication, Social Camouflage, Cognitive (In)Flexibility, Self-regulatory Behaviours, and Sensory Sensitivity. ~5–10 minutes.  (Adapted from CATI)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 42; // single page
 

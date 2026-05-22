@@ -1,0 +1,151 @@
+/* ====================================================================
+   Fungi sub-skin overlay (.pcp-skin-fungi).
+
+   A SUB-SKIN of the plants skin. A fungal medicine page carries BOTH
+   body classes, .pcp-skin-plants and .pcp-skin-fungi (set by
+   Hooks::onBeforePageDisplay when resolvePcpSkin returns 'fungi'), so
+   skin.plants.css applies as the base and this layer overrides only
+   the four things the fungal register earns: the palette, the
+   spore-dust grain, the mushroom mark, and the section-marker hues.
+   Type, layout, components, motion all inherit from plants unchanged.
+
+   Every rule here is scoped body.pcp-skin-plants.pcp-skin-fungi (a
+   fungus page carries BOTH classes), specificity (0,2,1), so it
+   out-specifies the plants base's own body.pcp-skin-plants rules
+   unconditionally, never relying on stylesheet load order.
+   See DESIGN_TOKENS.md, the "Fungi sub-skin" section.
+   ==================================================================== */
+
+/* ====================================================================
+   STEP 1. Fungi palette + Codex night-mode token re-tint.
+   The plants base re-tints the stock Codex tokens under
+   .pcp-skin-plants; this re-points the same set under
+   body.pcp-skin-plants.pcp-skin-fungi to the damp-forest palette. Semantic
+   colours (error / warning / success) are left to the base.
+   ==================================================================== */
+body.pcp-skin-plants.pcp-skin-fungi {
+    /* palette */
+    --fungi-substrate:      #0a0c0b;
+    --fungi-substrate-warm: #0e100f;
+    --fungi-flesh:          #181b19;
+    --fungi-flesh-raised:   #22251f;
+    --fungi-flesh-edge:     #2f332c;
+    --fungi-spore:          #d8d3c1;
+    --fungi-spore-dim:      #a6a292;
+    --fungi-veil:           #888a7d;
+    --fungi-whisper:        #4f4f48;
+    --fungi-bruise:         #6878b8;
+    --fungi-bruise-bright:  #8b9bd4;
+    --fungi-bruise-deep:    #3c4668;
+    --fungi-foxfire:        #74b89a;
+    --fungi-ochre:          #c2965a;
+    --fungi-rot:            #8a3f2b;
+    --fungi-rule:           rgba(216, 211, 193, 0.08);
+    --fungi-rule-strong:    rgba(216, 211, 193, 0.16);
+    --fungi-rule-bruise:    rgba(104, 120, 184, 0.22);
+    --fungi-mark-summary:      #2c3640;  /* damp slate */
+    --fungi-mark-pharmacy:     #364a3e;  /* mycelial green-dark */
+    --fungi-mark-pharmacology: #3a3f5e;  /* deep bruise */
+
+    /* Codex surfaces */
+    --background-color-base:                       var(--fungi-substrate);
+    --background-color-neutral:                    var(--fungi-flesh);
+    --background-color-neutral-subtle:             var(--fungi-substrate-warm);
+    --background-color-interactive:                var(--fungi-flesh);
+    --background-color-interactive--hover:         var(--fungi-flesh-raised);
+    --background-color-interactive--active:        var(--fungi-flesh-edge);
+    --background-color-interactive-subtle:         var(--fungi-substrate-warm);
+    --background-color-interactive-subtle--hover:  var(--fungi-flesh);
+    --background-color-interactive-subtle--active: var(--fungi-flesh-raised);
+    --background-color-notice-subtle:              var(--fungi-flesh);
+    --background-color-disabled:                   var(--fungi-flesh-raised);
+    --background-color-disabled-subtle:            var(--fungi-flesh);
+
+    /* Codex text */
+    --color-base:                var(--fungi-spore);
+    --color-base--hover:         var(--fungi-spore);
+    --color-base--subtle:        var(--fungi-spore-dim);
+    --color-emphasized:          var(--fungi-spore);
+    --color-subtle:              var(--fungi-spore-dim);
+    --color-neutral:             var(--fungi-spore-dim);
+    --color-notice:              var(--fungi-veil);
+    --color-placeholder:         var(--fungi-veil);
+    --color-disabled:            var(--fungi-whisper);
+    --color-disabled-emphasized: var(--fungi-veil);
+
+    /* Codex links / progressive / accent */
+    --color-progressive:                    var(--fungi-bruise-bright);
+    --color-progressive--hover:             var(--fungi-bruise-bright);
+    --color-progressive--active:            var(--fungi-bruise-bright);
+    --color-progressive--focus:             var(--fungi-bruise-bright);
+    --color-icon-progressive:               var(--fungi-bruise);
+    --color-visited:                        var(--fungi-ochre);
+    --color-visited--hover:                 var(--fungi-ochre);
+    --color-visited--active:                var(--fungi-ochre);
+    --accent-color-base:                    var(--fungi-bruise);
+    --background-color-progressive:         var(--fungi-bruise);
+    --background-color-progressive--hover:  var(--fungi-bruise-bright);
+    --background-color-progressive--active: var(--fungi-bruise-deep);
+    --background-color-progressive-subtle:  var(--fungi-flesh);
+    --border-color-progressive:             var(--fungi-bruise);
+    --border-color-progressive--hover:      var(--fungi-bruise-bright);
+
+    /* Codex borders */
+    --border-color-base:                var(--fungi-veil);
+    --border-color-subtle:              var(--fungi-flesh-edge);
+    --border-color-muted:               var(--fungi-rule-strong);
+    --border-color-interactive:         var(--fungi-veil);
+    --border-color-interactive--hover:  var(--fungi-spore-dim);
+    --border-color-interactive--active: var(--fungi-spore);
+    --border-color-emphasized:          var(--fungi-spore-dim);
+    --border-color-divider:             var(--fungi-flesh-edge);
+}
+
+/* ====================================================================
+   STEP 2. Body surface. Overrides the plants loam ground with the
+   cold fungi substrate. The html rule covers the gutter outside
+   .mw-page-container.
+   ==================================================================== */
+html:has(> body.pcp-skin-plants.pcp-skin-fungi) {
+    background-color: var(--fungi-substrate);
+}
+body.pcp-skin-plants.pcp-skin-fungi {
+    background-color: var(--fungi-substrate);
+    color: var(--fungi-spore);
+}
+
+/* ====================================================================
+   STEP 3. Texture: spore-dust. A finer, cooler grain than the plants
+   vellum, discrete turbulence speckle tinted toward spore-print buff.
+   Same fixed body::before overlay technique as the other skins.
+   ==================================================================== */
+body.pcp-skin-plants.pcp-skin-fungi::before {
+    content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    opacity: 0.35; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='s'><feTurbulence type='turbulence' baseFrequency='1.1' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.83  0 0 0 0 0.74  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23s)'/></svg>");
+}
+
+/* ====================================================================
+   STEP 4. The mark: the mushroom. Replaces the plants poppy capsule
+   in the topbar. A whole mushroom in side elevation, drawn in the
+   shared mark grammar; the spore-drop is the ochre accent.
+   ==================================================================== */
+body.pcp-skin-plants.pcp-skin-fungi .mw-logo::before {
+    background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%20fill%3D%22none%22%20stroke%3D%22%236878b8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M18%2046%20C18%2024%2082%2024%2082%2046%22%20stroke-width%3D%224%22%2F%3E%3Cpath%20d%3D%22M18%2046%20C30%2053%2070%2053%2082%2046%22%20stroke-width%3D%224%22%2F%3E%3Cpath%20d%3D%22M43%2050%20C42%2064%2042%2076%2044%2084%20C47%2088%2053%2088%2056%2084%20C58%2076%2058%2064%2057%2050%22%20stroke-width%3D%224%22%2F%3E%3Cg%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M50%2050%20L50%2053%22%2F%3E%3Cpath%20d%3D%22M40%2050%20L38%2053%22%2F%3E%3Cpath%20d%3D%22M60%2050%20L62%2053%22%2F%3E%3Cpath%20d%3D%22M30%2049%20L27%2052%22%2F%3E%3Cpath%20d%3D%22M70%2049%20L73%2052%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2264%22%20r%3D%222.6%22%20fill%3D%22%23c2965a%22%20stroke%3D%22none%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+
+/* ====================================================================
+   STEP 5. Section markers. The plants base sets the MedTemplate
+   infobox band left-bars; the fungi variant keeps the treatment and
+   shifts the three hues to the cool fungi family. Same !important as
+   the plants rule it overrides.
+   ==================================================================== */
+body.pcp-skin-plants.pcp-skin-fungi th[style*="background:#2563eb"] {
+    border-left: 5px solid var(--fungi-mark-summary) !important;
+}
+body.pcp-skin-plants.pcp-skin-fungi th[style*="background:#16a34a"] {
+    border-left: 5px solid var(--fungi-mark-pharmacy) !important;
+}
+body.pcp-skin-plants.pcp-skin-fungi th[style*="background:#7c3aed"] {
+    border-left: 5px solid var(--fungi-mark-pharmacology) !important;
+}

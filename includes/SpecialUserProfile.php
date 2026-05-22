@@ -153,7 +153,7 @@ class SpecialUserProfile extends SpecialPage {
 
         foreach ( $byNs as $ns => $rows ) {
             // These are all rendered as cards by renderAssessments below.
-            if ( in_array( $ns, [ 'ocean', 'cati', 'cati_raw', 'catq', 'catq_raw', 'pid5bf', 'pid5bf_raw', 'mbti', 'mbti_raw', 'enneagram', 'enneagram_raw', 'raadsr', 'raadsr_raw', 'bfi10', 'bfi10_raw', 'nfcs', 'nfcs_raw', 'bpns', 'bpns_raw', 'whoqolbref', 'whoqolbref_raw', 'asrs', 'asrs_raw', 'amaas', 'amaas_raw' ], true ) ) continue;
+            if ( in_array( $ns, [ 'ocean', 'cati', 'cati_raw', 'catq', 'catq_raw', 'pid5bf', 'pid5bf_raw', 'mbti', 'mbti_raw', 'enneagram', 'enneagram_raw', 'raadsr', 'raadsr_raw', 'bfi10', 'bfi10_raw', 'nfcs', 'nfcs_raw', 'bpns', 'bpns_raw', 'whoqolbref', 'whoqolbref_raw', 'asrs', 'asrs_raw', 'amaas', 'amaas_raw', 'hyd', 'hyd_raw' ], true ) ) continue;
             $label = $nsLabels[ $ns ] ?? ucfirst( $ns );
             $out->addHTML( '<h2>' . htmlspecialchars( $label ) . '</h2>' );
             $out->addHTML( '<table class="pcp-prof-readout"><tbody>' );
@@ -404,7 +404,7 @@ class SpecialUserProfile extends SpecialPage {
     /**
      * AMAAS-SR self-report: the featured card, radar face. The three
      * symptom subscales (INA, HYP, IMP) plot as percentages of each
-     * subscale's maximum. The dashed amber threshold is a fixed 66.66%
+     * subscale's maximum. The dashed amber threshold is a fixed 50%
      * triangle, captioned arbitrary and experimental, since AMAAS-SR
      * has no validated cutoff. The amaas namespace stores
      * subscale_<CODE>, complete, taken_at, and _vis; _vis is never shown.
@@ -456,7 +456,7 @@ class SpecialUserProfile extends SpecialPage {
             . '<line x1="80" y1="70" x2="80" y2="20"/>'
             . '<line x1="80" y1="70" x2="123.3" y2="95"/>'
             . '<line x1="80" y1="70" x2="36.7" y2="95"/></g>'
-            . '<polygon points="' . $tri( 0.6666 ) . '" fill="none" stroke="#c7884a" '
+            . '<polygon points="' . $tri( 0.5 ) . '" fill="none" stroke="#c7884a" '
                 . 'stroke-width="1.3" stroke-dasharray="3 3"/>'
             . '<polygon points="' . implode( ' ', $data ) . '" fill="rgba(139,92,246,0.16)" '
                 . 'stroke="#8b5cf6" stroke-width="1.8"/>'
@@ -482,12 +482,12 @@ class SpecialUserProfile extends SpecialPage {
         $out->addHTML(
             '<div class="fc fc-experimental">' .
             '<div class="fc-head">' .
-            '<span class="fc-code">AMAAS-SR &middot; experimental self-report</span>' .
+            '<span class="fc-code">AMAAS-PCP-SR &middot; experimental self-report</span>' .
             '<span class="fc-name">Self-reported attention and self-regulation</span>' .
             '</div>' .
             '<div class="fc-viz">' . $svg .
             '<p class="viz-cap">Dashed amber: an arbitrary, experimental threshold at '
-                . '66.66%, not a validated cutoff.</p>' .
+                . '50%, not a validated cutoff.</p>' .
             '</div>' .
             '<div class="fc-facts">' . $facts . '</div>' .
             '<div class="fc-foot"><a>View full report &#8594;</a>' .
@@ -528,20 +528,20 @@ class SpecialUserProfile extends SpecialPage {
                 'build'     => function ( $s ) { return $this->oceanHeadline( $s ); },
             ],
             'cati'      => [
-                'label'     => 'CATI (autistic traits)',
-                'short'     => 'CATI',
+                'label'     => 'CATI-PCP (autistic traits)',
+                'short'     => 'CATI-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->catiHeadline( $s, $this->catiGenderKey ); },
             ],
             'catq'      => [
-                'label'     => 'CAT-Q (social camouflaging)',
-                'short'     => 'CAT-Q',
+                'label'     => 'CAT-Q-PCP (social camouflaging)',
+                'short'     => 'CAT-Q-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->catqHeadline( $s ); },
             ],
             'pid5bf'    => [
-                'label'     => 'PID-5-BF (personality pathology)',
-                'short'     => 'PID-5-BF',
+                'label'     => 'PID-5-BF-PCP (personality pathology)',
+                'short'     => 'PID-5-BF-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->pid5bfHeadline( $s ); },
             ],
@@ -553,28 +553,41 @@ class SpecialUserProfile extends SpecialPage {
             ],
             'enneagram' => [
                 'label'     => 'Enneagram of Personality',
-                'short'     => 'Enneagram',
+                'short'     => 'Enneagram-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->enneagramHeadline( $s ); },
             ],
             'nfcs'      => [
                 'label'     => 'Need for Closure (brief)',
-                'short'     => 'NFCS',
+                'short'     => 'NFCS-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->nfcsHeadline( $s ); },
             ],
             'bpns'      => [
                 'label'     => 'Basic Psychological Needs',
-                'short'     => 'BPNS',
+                'short'     => 'BPNS-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->bpnsHeadline( $s ); },
             ],
             'whoqolbref' => [
                 'label'     => 'WHO Quality of Life, Brief',
                 'sublabel'  => '(higher is better)',
-                'short'     => 'WHOQOL',
+                'short'     => 'WHOQOL-BREF-PCP',
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->whoqolbrefHeadline( $s ); },
+            ],
+            'ocipcp'    => [
+                'label'     => 'OCI-PCP (Adapted from OCI-R)',
+                'short'     => 'OCI-PCP',
+                'report'    => true,
+                'build'     => function ( $s ) { return $this->ocipcpHeadline( $s ); },
+            ],
+            'hyd'       => [
+                'label'     => 'HYD-PCP (wellbeing check-in)',
+                'sublabel'  => '(higher is better)',
+                'short'     => 'HYD-PCP',
+                'report'    => true,
+                'build'     => function ( $s ) { return $this->hydHeadline( $s ); },
             ],
         ];
 
@@ -647,6 +660,94 @@ class SpecialUserProfile extends SpecialPage {
             'headline' => '<div class="pcp-up-ocean">' . implode( '', $parts ) . '</div>',
             'sub'      => '<em>Continuous trait scores, 0&ndash;100.</em>',
         ];
+    }
+
+    /**
+     * HYD-PCP read-view card: a one-line summary of a completed wellbeing
+     * check-in. The overall figure is the mean of the eight domains the
+     * person answered, on the bipolar -100 (really poorly) to +100 (really
+     * well) scale. The headline shows that mean on a bar whose midpoint is
+     * the neutral 0; the sub carries Hyd::interpret()'s gentle reading.
+     */
+    private function hydHeadline( array $s ): array {
+        $Hyd = \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class;
+        if ( !isset( $s['total'] ) || $s['total'] === null ) {
+            return [ 'headline' => '<em>Incomplete</em>', 'sub' => '' ];
+        }
+        $total = (float)$s['total'];
+        $min   = (float)$Hyd::SCALE_MIN;
+        $max   = (float)$Hyd::SCALE_MAX;
+        // Map the bipolar -100..+100 figure onto a 0..100% bar fill.
+        $pct  = max( 0.0, min( 100.0, ( ( $total - $min ) / ( $max - $min ) ) * 100.0 ) );
+        $disp = number_format( $total, $total == (int)$total ? 0 : 1 );
+
+        $headline = '<div class="pcp-up-cati">'
+            . '<span class="pcp-up-cati-trait">'
+            . '<span class="pcp-up-cati-label">Overall</span>'
+            . '<span class="pcp-up-cati-bar">'
+                . '<span class="pcp-up-cati-fill" style="width:' . number_format( $pct, 1 ) . '%"></span>'
+                . '<span class="pcp-up-cati-cutoff-mark" style="left:50%" title="Neutral midpoint: 0"></span>'
+            . '</span>'
+            . '<span class="pcp-up-cati-val">' . htmlspecialchars( $disp ) . '</span>'
+            . '</span>'
+            . '</div>';
+
+        $reading = $Hyd::interpret( $s );
+        $sub = '<em>' . htmlspecialchars( $reading['overall'] ) . '</em>';
+
+        return [ 'headline' => $headline, 'sub' => $sub ];
+    }
+
+    /** OCI-PCP read-view card: total bar + 6-axis subscale radar + verdict. */
+    private function ocipcpHeadline( array $s ): array {
+        if ( !isset( $s['total'] ) || $s['total'] === null ) {
+            return [ 'headline' => '<em>Incomplete</em>', 'sub' => '' ];
+        }
+        $Ocipcp  = \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class;
+        $total   = (float)$s['total'];
+        $cutoff  = (float)$Ocipcp::CUTOFF_TOTAL;
+        $concern = (float)$Ocipcp::SUBSCALE_CONCERN;
+        $pct       = max( 0.0, min( 100.0, ( $total / 72.0 ) * 100.0 ) );
+        $cutoffPct = ( $cutoff / 72.0 ) * 100.0;
+        $disp = number_format( $total, $total == (int)$total ? 0 : 1 );
+
+        // Total bar (0-72) with the OCI-R screening-cutoff mark at 21.
+        $headline = '<div class="pcp-up-cati">'
+            . '<span class="pcp-up-cati-trait">'
+            . '<span class="pcp-up-cati-label">TOT</span>'
+            . '<span class="pcp-up-cati-bar">'
+            . '<span class="pcp-up-cati-fill" style="width:' . number_format( $pct, 1 ) . '%"></span>'
+            . '<span class="pcp-up-cati-cutoff-mark" style="left:' . number_format( $cutoffPct, 2 ) . '%" title="OCI-R screening cutoff: 21"></span>'
+            . '</span>'
+            . '<span class="pcp-up-cati-val">' . htmlspecialchars( $disp ) . ' / 72</span>'
+            . '</span>'
+            . '</div>';
+
+        // 6-axis subscale radar (shared with the OCI-PCP report).
+        $headline .= '<div class="pcp-up-cati-radar-wrap">' . $Ocipcp::radarSvg( $s ) . '</div>';
+
+        // Caption: screening verdict + which subscales reach the concern level.
+        $elevated = [];
+        foreach ( $Ocipcp::SUBSCALES as $code => $def ) {
+            $v = $s[ 'subscale_' . $code ] ?? null;
+            if ( $v !== null && (float)$v >= $concern ) { $elevated[] = $def['label']; }
+        }
+        $above = $total >= $cutoff;
+        $level = $above ? 'At or above the OCD screening cutoff' : 'Below the OCD screening cutoff';
+        $detail = $elevated
+            ? count( $elevated ) . ' subscale' . ( count( $elevated ) === 1 ? '' : 's' )
+                . ' at the concern level (' . htmlspecialchars( implode( ', ', $elevated ) ) . ')'
+            : 'No subscale at the concern level';
+        $headline .= '<div class="pcp-up-cati-caption">'
+            . '<span class="pcp-up-' . ( $above ? 'above' : 'below' ) . '">' . htmlspecialchars( $level ) . '.</span> '
+            . '<span class="pcp-up-cati-caption-hint">' . $detail . '. Dashed ring = subscale concern level.</span>'
+            . '</div>';
+
+        $sub = $above
+            ? '<span class="pcp-up-above">at or above screening cutoff (&ge; 21)</span>'
+            : '<span class="pcp-up-below">below screening cutoff (&ge; 21)</span>';
+
+        return [ 'headline' => $headline, 'sub' => $sub ];
     }
 
     private function catiHeadline( array $s, ?string $genderKey = null ): array {

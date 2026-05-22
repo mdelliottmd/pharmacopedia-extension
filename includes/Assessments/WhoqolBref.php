@@ -34,10 +34,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class WhoqolBref {
     public const KEY        = 'whoqolbref';
-    public const NAME       = 'WHOQOL-BREF';
+    public const NAME       = 'WHOQOL-BREF-PCP';
     public const FULL_NAME  = 'World Health Organization Quality of Life, Brief';
     public const CITATION   = 'WHOQOL Group 1998 (Psychological Medicine 28(3):551-558); Skevington et al. 2004';
-    public const DESCRIPTION = 'A 26-item WHO measure of quality of life across four life domains: physical health, psychological, social relationships, and environment, plus two overall items. ~5 minutes.';
+    public const DESCRIPTION = 'A 26-item WHO measure of quality of life across four life domains: physical health, psychological, social relationships, and environment, plus two overall items. ~5 minutes.  (Adapted from WHOQOL-BREF)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 26;
 

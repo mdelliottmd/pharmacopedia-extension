@@ -22,10 +22,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Nfcs {
     public const KEY        = 'nfcs';
-    public const NAME       = 'NFCS';
+    public const NAME       = 'NFCS-PCP';
     public const FULL_NAME  = 'Need for Closure Scale (brief)';
     public const CITATION   = 'Roets & Van Hiel 2011 (PAID 50(1):90-94); original Webster & Kruglanski 1994';
-    public const DESCRIPTION = 'A 15-item measure of individual differences in the desire for definite knowledge and aversion to ambiguity. Five facets: Order, Predictability, Decisiveness, Ambiguity intolerance, Closed-mindedness.';
+    public const DESCRIPTION = 'A 15-item measure of individual differences in the desire for definite knowledge and aversion to ambiguity. Five facets: Order, Predictability, Decisiveness, Ambiguity intolerance, Closed-mindedness.  (Adapted from NFCS)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 15;
 

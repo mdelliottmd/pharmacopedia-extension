@@ -7,7 +7,7 @@
     // pcp-no-swimlanes: groups removed; items live in one stacked area.
     // Item.group is still set per-item as a TYPE TAG for filter checkbox logic
     // and per-type CSS classes, but vis-timeline does not render lanes.
-    var INITIAL_VISIBLE = { episodes: true, events: true, observations: true, derived: false };
+    var INITIAL_VISIBLE = { episodes: true, events: true, observations: false, derived: false };
 
     function isoOrNull( v ) {
         return ( typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test( v ) ) ? v : null;
@@ -47,6 +47,15 @@
         var allItems = ( data.events || [] ).map( buildItem );
         // Initial filter: hide items whose type is in the default-off set (keyframes, derived).
         var currentVisible = Object.assign( {}, INITIAL_VISIBLE );
+        // pcp-filter-sync: the rendered group-toggle checkboxes are the
+        // single source of truth for filter state. observation.js may
+        // already have restored persisted (sessionStorage) checkbox
+        // state before init() runs; seed currentVisible from the live
+        // :checked state so the timeline filter and the checkboxes can
+        // never disagree, regardless of module load order.
+        document.querySelectorAll( '.pcp-life-timeline-group-toggle' ).forEach( function ( cb ) {
+            currentVisible[ cb.value ] = cb.checked;
+        } );
         function visibleItems() {
             return allItems.filter( function ( i ) { return currentVisible[ i.group ] !== false; } );
         }
@@ -257,13 +266,9 @@
             } );
         } );
 
-        // Delete-card confirmation.
-        document.querySelectorAll( '.pcp-life-card-delete-form' ).forEach( function ( f ) {
-            f.addEventListener( 'submit', function ( e ) {
-                var msg = f.getAttribute( 'data-confirm' ) || 'Delete this event?';
-                if ( !window.confirm( msg ) ) { e.preventDefault(); }
-            } );
-        } );
+        // Delete-card confirmation is handled site-wide by the
+        // ext.pharmacopedia.confirmdelete module (the delete form
+        // carries class js-pcp-confirm-delete).
 
         // Visibility cycle on click.
         document.querySelectorAll( '.pcp-life-vis-toggle' ).forEach( function ( btn ) {

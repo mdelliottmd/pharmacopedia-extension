@@ -90,8 +90,13 @@
                         $vsl.val( v1 );
                         $vsl.next( 'output' ).val( ( v1 >= 0 ? '+' : '' ) + v1 );
                     }
+                    var gated = cur.experienced !== 1;
                     $widget.find( '.pcp-effect-valence-row' )
-                        .toggleClass( 'pcp-disabled', cur.experienced !== 1 );
+                        .toggleClass( 'pcp-disabled', gated );
+                    // Native disabled also drops a gated slider from tab
+                    // order, so a keyboard user cannot arrow it out of sync
+                    // with the (rejected) save.
+                    $vsl.prop( 'disabled', gated );
                 } else {
                     var curP = state[2];
                     // Slider reflects current frequency (or 50 if unset/Don't know).
@@ -113,8 +118,10 @@
                         $vsl2.next( 'output' ).val( ( v2 >= 0 ? '+' : '' ) + v2 );
                     }
                     // Valence disabled if frequency is 0 or unset
+                    var gatedP = curP.frequency === null || curP.frequency === -1;
                     $widget.find( '.pcp-effect-valence-row' )
-                        .toggleClass( 'pcp-disabled', curP.frequency === null || curP.frequency === -1 );
+                        .toggleClass( 'pcp-disabled', gatedP );
+                    $vsl2.prop( 'disabled', gatedP );
                 }
             }
 
@@ -325,7 +332,15 @@
                     } );
                 } );
                 $c.find( '> .pcp-c-actions .pcp-c-delete' ).on( 'click', function () {
-                    if ( !window.confirm( mw.msg( 'pharmacopedia-confirm-delete' ) ) ) { return; }
+                    var $del = $( this );
+                    if ( $del.data( 'pcpConfirmed' ) !== true ) {
+                        window.PCPConfirmDelete( mw.msg( 'pharmacopedia-confirm-delete' ), function () {
+                            $del.data( 'pcpConfirmed', true );
+                            $del.trigger( 'click' );
+                        } );
+                        return;
+                    }
+                    $del.removeData( 'pcpConfirmed' );
                     submitOp( 'delete', { comment_id: commentId }, $( this ) );
                 } );
             } );
@@ -346,14 +361,32 @@
         // Before sorting, absorb any .pcp-effect cards that ended up outside
         // their preceding <ul> (happens with multi-line <effect>body</effect> tags).
         function absorbOrphanEffects() {
+            // A loose .pcp-effect card may only be absorbed into a <ul> that
+            // is ITSELF an effect list (its <li>s hold .pcp-effect cards).
+            // Grabbing the nearest <ul> of any kind yanks loose cards into an
+            // unrelated list (e.g. the Interactions notes) and out of the
+            // Effects section entirely.
+            function isEffectUl() {
+                return $( this ).children( 'li' ).children( '.pcp-effect' ).length > 0;
+            }
             $( '.pcp-effect' ).each( function () {
                 var $card = $( this );
                 // Already inside an <li>? Skip.
                 if ( $card.closest( 'li' ).length ) { return; }
-                // Find the closest preceding <ul> in the same DOM region
-                var $ul = $card.prevAll( 'ul' ).first();
-                if ( !$ul.length ) { $ul = $card.parent().find( 'ul' ).first(); }
-                if ( !$ul.length ) { return; }
+                // Nearest sibling effect-<ul>, preferring one before the card.
+                var $ul = $card.prevAll( 'ul' ).filter( isEffectUl ).first();
+                if ( !$ul.length ) {
+                    $ul = $card.nextAll( 'ul' ).filter( isEffectUl ).first();
+                }
+                if ( !$ul.length ) {
+                    // No effect list near this card. Happens when effects are
+                    // added as loose <effect/> tags with no leading "* "
+                    // bullet (e.g. via Special:SuggestEffect). Synthesize a
+                    // <ul> in place so the card still gets sorted/bucketed
+                    // instead of being dropped or misfiled. Later loose cards
+                    // absorb into this same synthesized <ul>.
+                    $ul = $( '<ul></ul>' ).insertBefore( $card );
+                }
                 // Detach the card (and any orphan text/closing fragments
                 // immediately after it that belong to its tag body)
                 $card.wrap( '<li></li>' ).parent().appendTo( $ul );
@@ -407,6 +440,10 @@
             var nRated = buckets.common.length + buckets.uncommon.length + buckets.rare.length + buckets.rareSevere.length;
             var nTotal = nRated + buckets.unrated.length;
             if ( !nTotal ) { return; }
+            // Nothing has provider ratings yet. Bucketing would file every
+            // effect under a collapsed "Not yet rated" disclosure and hide the
+            // whole section. Leave the plain (sorted) list visible instead.
+            if ( nRated === 0 ) { return; }
 
             function mkUl( items, klass ) {
                 var $u = $( '<ul class="pcp-effect-bucket-list ' + klass + '"></ul>' );
@@ -447,13 +484,24 @@
                 }
             }
             if ( buckets.unrated.length ) {
-                $container.append( mkCollapsible( 'Not yet rated', buckets.unrated, 'pcp-effect-bucket-unrated' ) );
+                // Open by default so a freshly-added (always-unrated) effect
+                // is visible immediately rather than hidden in a closed box.
+                $container.append( mkCollapsible( 'Not yet rated', buckets.unrated, 'pcp-effect-bucket-unrated', true ) );
             }
 
             $ul.replaceWith( $container );
         }
 
+        // runEffectSort rewrites the DOM (wraps loose cards, replaces <ul>s
+        // with bucket containers) and is NOT safe to run twice; a second
+        // pass would re-bucket the bucket lists into nested containers. It is
+        // scheduled from two triggers (setTimeout + window load) as a belt-
+        // and-suspenders against either firing too early; this guard makes
+        // whichever fires first the only pass that does work.
+        var effectSortRan = false;
         function runEffectSort() {
+            if ( effectSortRan ) { return; }
+            effectSortRan = true;
             mergeAdjacentEffectUls();
             absorbOrphanEffects();
             var totalSorted = 0;
@@ -643,9 +691,14 @@
             var $b = $( this );
             var type = $b.attr( 'data-type' );
             var slug = $b.attr( 'data-slug' );
-            if ( !window.confirm( 'Delete this ' + type + '? This cannot be undone (but a sysop can restore via page history).' ) ) {
+            if ( $b.data( 'pcpConfirmed' ) !== true ) {
+                window.PCPConfirmDelete( 'Delete this ' + type + '? This cannot be undone (but a sysop can restore via page history).', function () {
+                    $b.data( 'pcpConfirmed', true );
+                    $b.trigger( 'click' );
+                } );
                 return;
             }
+            $b.removeData( 'pcpConfirmed' );
             $b.prop( 'disabled', true );
             $.ajax( {
                 method: 'POST',
@@ -1372,9 +1425,14 @@
             var authorId  = parseInt( $note.attr( 'data-author-id' ), 10 );
             var authorName = $note.attr( 'data-author-name' ) || 'this user';
             var perspective = parseInt( $note.attr( 'data-perspective' ), 10 );
-            if ( !window.confirm( 'Delete the note from ' + authorName + '? The rating itself will be preserved.' ) ) {
+            if ( $btn.data( 'pcpConfirmed' ) !== true ) {
+                window.PCPConfirmDelete( 'Delete the note from ' + authorName + '? The rating itself will be preserved.', function () {
+                    $btn.data( 'pcpConfirmed', true );
+                    $btn.trigger( 'click' );
+                } );
                 return;
             }
+            $btn.removeData( 'pcpConfirmed' );
             $btn.prop( 'disabled', true );
             api.postWithToken( 'csrf', {
                 action: 'pharmacopediainteractiondelete',
@@ -2101,7 +2159,15 @@
             e.preventDefault();
             var id = parseInt( $( this ).attr( 'data-id' ), 10 );
             if ( !id ) { return; }
-            if ( !window.confirm( 'Delete this pending submission?' ) ) { return; }
+            var $delBtn = $( this );
+            if ( $delBtn.data( 'pcpConfirmed' ) !== true ) {
+                window.PCPConfirmDelete( 'Delete this pending submission?', function () {
+                    $delBtn.data( 'pcpConfirmed', true );
+                    $delBtn.trigger( 'click' );
+                } );
+                return;
+            }
+            $delBtn.removeData( 'pcpConfirmed' );
             api.postWithToken( 'csrf', {
                 action: 'pharmacopedialiteraturedelete',
                 format: 'json',
@@ -3230,7 +3296,58 @@ $( document ).on( 'click', '.pcp-vis-toggle', function () {
                 $( this ).attr( 'aria-expanded',
                     $sec.hasClass( 'is-collapsed' ) ? 'false' : 'true' );
             } );
-        
+
+            /* ===== Assessment-picker bounce-back =====
+             * Clicking "Add" on an assessment tile submits the form and the
+             * server redirects back with ?saved=1#pcp-assessments. We want the
+             * post-reload page to land on, expand to, and flash the SPECIFIC
+             * assessment block just added, not just the section heading.
+             * Mirrors the formal-testing card flash (sessionStorage handoff). */
+            var PICK_KEY = 'pcp-assessment-scroll-to';
+            // CAPTURE: stash the picked key the instant Add is clicked.
+            $( document ).on( 'click', 'button[name="pcp_pick_add"]', function () {
+                var k = this.getAttribute( 'data-pcp-pick-key' )
+                    || this.value || '';
+                if ( k ) {
+                    try { sessionStorage.setItem( PICK_KEY, k ); } catch ( e ) {}
+                }
+            } );
+            // RESTORE: on the next load, expand the section, scroll, flash.
+            ( function restorePickedAssessment() {
+                var key;
+                try { key = sessionStorage.getItem( PICK_KEY ); } catch ( e ) { return; }
+                if ( !key ) { return; }
+                try { sessionStorage.removeItem( PICK_KEY ); } catch ( e ) {}
+                var block = document.getElementById( 'pcp-assessment-' + key );
+                if ( !block ) { return; }
+                // Un-collapse the containing profile section so the block shows.
+                var $sec = $( block ).closest( '.pcp-prof-section' );
+                if ( $sec.length ) {
+                    $sec.removeClass( 'is-collapsed' );
+                    $sec.find( '> legend' ).first().attr( 'aria-expanded', 'true' );
+                }
+                // Bounce-back's scroll-restore stands down when a URL #hash is
+                // present, so it will not fight this. Wait for layout, then
+                // scroll to and flash the specific block. The flash is the
+                // same purple glow used for the formal-test card flash
+                // (.pcp-ft-card-flash); applied inline so no extra CSS is
+                // needed.
+                requestAnimationFrame( function () {
+                    requestAnimationFrame( function () {
+                        block.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+                        block.style.transition = 'box-shadow 1.5s ease-out';
+                        block.style.boxShadow =
+                            '0 0 0 2px #c4b5fd, 0 0 16px rgba(196, 181, 253, 0.55)';
+                        setTimeout( function () {
+                            block.style.boxShadow = '';
+                        }, 1800 );
+                        setTimeout( function () {
+                            block.style.transition = '';
+                        }, 3400 );
+                    } );
+                } );
+            }() );
+
     // ===== Choice / multi voting (added with type=single|multi) =====
     $( '.pcp-vote-choice' ).each( function () {
         var $wrap = $( this );
@@ -3665,3 +3782,54 @@ $( function () {
         } );
     } );
 } );
+
+/* pcp-effect-valence-tint: the Rate-panel valence slider's colour
+   tracks its value - purple at 0, fading to red at -100 and green at
+   +100 - the same valenceColor scale the keyframe valence slider uses.
+   Native <input type="range"> + accent-color, so the whole slider
+   tints. Self-contained; appended by interface-claude (slider visuals).
+   */
+( function () {
+    'use strict';
+    function pcpValenceColor( v ) {
+        var n = parseFloat( v );
+        if ( isNaN( n ) ) { n = 0; }
+        var pR = 93, pG = 59, pB = 142;
+        var gR = 21, gG = 128, gB = 61;
+        var rR = 153, rG = 27, rB = 27;
+        var t, r, g, b;
+        if ( n >= 0 ) {
+            t = Math.min( 1, n / 100 );
+            r = Math.round( pR + ( gR - pR ) * t );
+            g = Math.round( pG + ( gG - pG ) * t );
+            b = Math.round( pB + ( gB - pB ) * t );
+        } else {
+            t = Math.min( 1, -n / 100 );
+            r = Math.round( pR + ( rR - pR ) * t );
+            g = Math.round( pG + ( rG - pG ) * t );
+            b = Math.round( pB + ( rB - pB ) * t );
+        }
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+    function tint( el ) {
+        el.style.accentColor = pcpValenceColor( el.value );
+    }
+    document.addEventListener( 'input', function ( e ) {
+        var el = e.target;
+        if ( el && el.classList &&
+             ( el.classList.contains( 'pcp-effect-vslider' ) ||
+               el.classList.contains( 'pcp-ix-vslider' ) ) ) {
+            tint( el );
+        }
+    }, true );
+    function tintAll() {
+        var sl = document.querySelectorAll( '.pcp-effect-vslider, .pcp-ix-vslider' );
+        for ( var i = 0; i < sl.length; i++ ) { tint( sl[ i ] ); }
+    }
+    if ( document.readyState === 'loading' ) {
+        document.addEventListener( 'DOMContentLoaded', tintAll );
+    } else {
+        tintAll();
+    }
+}() );
+

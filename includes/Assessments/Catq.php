@@ -15,10 +15,10 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  */
 class Catq {
     public const KEY        = 'catq';
-    public const NAME       = 'CAT-Q';
+    public const NAME       = 'CAT-Q-PCP';
     public const FULL_NAME  = 'Camouflaging Autistic Traits Questionnaire';
     public const CITATION   = 'Hull et al. 2019 (J Autism Dev Disord 49(3):819-833)';
-    public const DESCRIPTION = 'Measures social camouflaging strategies often used by autistic adults: Compensation, Masking, and Assimilation. 25 items, ~5–10 minutes.';
+    public const DESCRIPTION = 'Measures social camouflaging strategies often used by autistic adults: Compensation, Masking, and Assimilation. 25 items, ~5–10 minutes.  (Adapted from CAT-Q)';
     public const WARNING    = '';
     public const PAGE_SIZE  = 25; // single page
 

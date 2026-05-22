@@ -133,7 +133,7 @@ class SpecialLiteratureQueue extends SpecialPage {
                      'style="background:#dc2626; color:#fff; padding:6px 14px; border:none; border-radius:4px; margin-right:0.5em;">Reject</button>';
             $html .= '<button type="submit" name="action_decision" value="delete" ' .
                      'style="background:#6b7280; color:#fff; padding:6px 14px; border:none; border-radius:4px;" ' .
-                     'onclick="return confirm(\'Hard-delete this entry?\');">Delete</button>';
+                     'class="js-pcp-confirm-delete" data-pcp-confirm="Hard-delete this entry?">Delete</button>';
             $html .= '</form>';
             $out->addHTML( $html );
         } else {

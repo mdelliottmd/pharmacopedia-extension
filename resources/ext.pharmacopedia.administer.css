@@ -1,0 +1,325 @@
+/*!
+ * Administer to others - the four-surface visual system: the entry-point
+ * control, the owner hub (Special:AdministerAssessments), the respondent
+ * take-flow (Special:TakeAssessment), and key setup. Every rule is scoped
+ * under .pcp-adm so designer's generic class names cannot collide with
+ * site CSS. Palette tokens are local (--a-*) so the module is self-
+ * contained - the take-flow is viewed by people with no skin loaded.
+ * Built from /design/admin_assessments_surfaces.html (designer-claude).
+ */
+.pcp-adm {
+    --a-bg: #0e0d0f; --a-bg-2: #131216; --a-bg-3: #18171c;
+    --a-ink: #ece9f2; --a-ink-dim: #a29eae; --a-ink-mute: #94909c;
+    --a-violet: #8b5cf6; --a-violet-bright: #a78bfa; --a-violet-ink: #b9a4f0;
+    --a-amber: #c7884a; --a-danger: #c25a52; --a-green: #6f9c6a;
+    --a-line: #232230; --a-line-faint: #1a1922;
+    color: var(--a-ink);
+    font-family: 'Geist', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+.pcp-adm *, .pcp-adm *::before, .pcp-adm *::after { box-sizing: border-box; }
+.pcp-adm a { color: inherit; text-decoration: none; }
+.pcp-adm .serif { font-family: 'Newsreader', Georgia, serif; }
+.pcp-adm em, .pcp-adm i { font-style: normal; }
+
+/* ===== generic buttons ===== */
+.pcp-adm .btn {
+    font-family: 'Geist', sans-serif; font-size: 12px; letter-spacing: 0.02em;
+    border: 1px solid var(--a-violet); background: rgba(139,92,246,0.14);
+    color: var(--a-violet-ink); padding: 8px 16px; cursor: pointer;
+    display: inline-block;
+}
+.pcp-adm .btn-primary { background: var(--a-violet); color: #160d28; border-color: var(--a-violet); font-weight: 500; }
+.pcp-adm .btn-ghost { background: transparent; border-color: var(--a-line); color: var(--a-ink-dim); }
+.pcp-adm .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+
+/* ===== surface 1: entry-point control ===== */
+.pcp-adm .ep-control {
+    font-size: 11.5px; color: var(--a-violet-ink); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.pcp-adm .ec-mark {
+    width: 12px; height: 12px; border: 1px solid var(--a-violet);
+    display: inline-block; position: relative;
+}
+.pcp-adm .ec-mark::before,
+.pcp-adm .ec-mark::after { content: ''; position: absolute; background: var(--a-violet-bright); }
+.pcp-adm .ec-mark::before { left: 5px; top: 2.5px; width: 1px; height: 6.5px; }
+.pcp-adm .ec-mark::after { left: 2.5px; top: 5px; width: 6.5px; height: 1px; }
+
+/* ===== surface 2: the owner hub ===== */
+.pcp-adm .hub-h { font-family: 'Newsreader', Georgia, serif; font-size: 24px; margin: 0 0 5px; }
+.pcp-adm .hub-intro { color: var(--a-ink-dim); font-size: 12.5px; margin: 0 0 22px; max-width: 560px; }
+.pcp-adm .block { margin-bottom: 26px; }
+.pcp-adm .block-h {
+    display: flex; align-items: baseline; gap: 9px; margin: 0 0 4px;
+    border-bottom: 1px solid var(--a-line-faint); padding-bottom: 7px;
+}
+.pcp-adm .block-h .bh-name { font-family: 'Newsreader', Georgia, serif; font-size: 15px; }
+.pcp-adm .block-h .bh-more { margin-left: auto; font-size: 11px; color: var(--a-violet-ink); }
+.pcp-adm .block-copy { font-size: 11.5px; color: var(--a-ink-mute); margin: 9px 0 13px; max-width: 540px; }
+
+/* compose-and-send */
+.pcp-adm .compose { background: var(--a-bg-3); border: 1px solid var(--a-line-faint); padding: 16px 17px; }
+.pcp-adm .field-label { font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--a-ink-mute); margin: 0 0 6px; }
+.pcp-adm .select-box {
+    background: var(--a-bg-2); border: 1px solid var(--a-line); color: var(--a-ink);
+    padding: 7px 11px; font-size: 12.5px; font-family: 'Newsreader', Georgia, serif;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.pcp-adm .select-box .chev { color: var(--a-ink-mute); }
+.pcp-adm .scale-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px; }
+.pcp-adm .scale-opt {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    border: 1px solid var(--a-line); padding: 6px 10px; font-size: 12px; color: var(--a-ink-dim);
+}
+.pcp-adm .scale-opt .chk { width: 13px; height: 13px; border: 1px solid var(--a-line); flex-shrink: 0; }
+.pcp-adm .scale-opt.on { border-color: var(--a-violet); color: var(--a-ink); }
+.pcp-adm .scale-opt.on .chk { background: var(--a-violet); border-color: var(--a-violet); position: relative; }
+.pcp-adm .scale-opt.on .chk::after {
+    content: ''; position: absolute; left: 3.5px; top: 1px; width: 4px; height: 7px;
+    border: solid #160d28; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.pcp-adm .link-out {
+    margin-top: 14px; background: var(--a-bg-2); border: 1px dashed var(--a-violet);
+    padding: 9px 12px; display: flex; align-items: center; gap: 10px; font-size: 11.5px;
+}
+.pcp-adm .link-out .lo-url {
+    color: var(--a-violet-ink); font-family: 'Geist', monospace;
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pcp-adm .link-out .lo-copy { color: var(--a-ink-dim); border: 1px solid var(--a-line); padding: 3px 9px; cursor: pointer; }
+
+/* respondent panel + results-over-time dashboard */
+.pcp-adm .resp { border: 1px solid var(--a-line); background: var(--a-bg-2); margin-bottom: 12px; }
+.pcp-adm .resp-head {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 12px 16px 11px; border-bottom: 1px solid var(--a-line-faint);
+}
+.pcp-adm .resp-name { font-family: 'Newsreader', Georgia, serif; font-size: 17px; }
+.pcp-adm .resp-meta { font-size: 10.5px; color: var(--a-ink-mute); }
+.pcp-adm .resp-status { margin-left: auto; font-size: 10.5px; color: var(--a-ink-mute); }
+.pcp-adm .trend-row {
+    display: grid; grid-template-columns: 150px 220px 1fr 70px; align-items: center;
+    gap: 14px; padding: 10px 16px; border-top: 1px solid var(--a-line-faint);
+}
+.pcp-adm .trend-row:first-child { border-top: 0; }
+.pcp-adm .tr-scale { font-family: 'Newsreader', Georgia, serif; font-size: 13.5px; color: var(--a-ink); }
+.pcp-adm .tr-scale .tr-n { font-size: 10px; color: var(--a-ink-mute); }
+.pcp-adm .tr-spark svg { display: block; width: 210px; height: 40px; }
+.pcp-adm .tr-latest { font-family: 'Newsreader', Georgia, serif; font-size: 17px; text-align: right; font-variant-numeric: tabular-nums; }
+.pcp-adm .tr-delta { font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+.pcp-adm .tr-delta.up { color: var(--a-amber); }
+.pcp-adm .tr-delta.down { color: var(--a-green); }
+.pcp-adm .tr-delta.flat { color: var(--a-ink-mute); }
+.pcp-adm .tr-delta.first { color: var(--a-ink-mute); }
+.pcp-adm .resp-add {
+    border: 1px dashed var(--a-line); color: var(--a-ink-mute); font-size: 12px;
+    padding: 11px 16px; display: flex; align-items: center; gap: 9px; cursor: pointer;
+}
+.pcp-adm .resp-add .ra-plus { color: var(--a-violet-bright); font-size: 15px; }
+
+/* sent-invites list */
+.pcp-adm .sent-row {
+    display: grid; grid-template-columns: 120px 1fr 92px 84px; gap: 14px; align-items: center;
+    padding: 8px 16px; border-top: 1px solid var(--a-line-faint); font-size: 12px;
+}
+.pcp-adm .sent-row:first-child { border-top: 0; }
+.pcp-adm .sent-row .sr-resp { font-family: 'Newsreader', Georgia, serif; font-size: 13px; }
+.pcp-adm .sent-row .sr-scales { color: var(--a-ink-mute); font-size: 11px; }
+.pcp-adm .sent-row .sr-when { color: var(--a-ink-mute); font-size: 10.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.pcp-adm .pill {
+    font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase;
+    border: 1px solid var(--a-line); padding: 2px 7px; justify-self: start;
+}
+.pcp-adm .pill.pending { color: var(--a-amber); border-color: rgba(199,136,74,0.4); }
+.pcp-adm .pill.completed { color: var(--a-green); border-color: rgba(111,156,106,0.45); }
+.pcp-adm .pill.expired { color: var(--a-ink-mute); }
+
+/* ===== surface 3: the respondent take-flow ===== */
+.pcp-adm .consent-h { font-family: 'Newsreader', Georgia, serif; font-size: 21px; margin: 0 0 14px; }
+.pcp-adm .consent p { color: var(--a-ink-dim); font-size: 12.5px; line-height: 1.66; margin: 0 0 12px; }
+.pcp-adm .consent .enc {
+    border: 1px solid var(--a-line); border-left: 2px solid var(--a-violet);
+    background: var(--a-bg-3); padding: 12px 15px; margin: 0 0 12px;
+}
+.pcp-adm .consent .enc p { margin: 0; color: var(--a-ink); }
+.pcp-adm .consent .enc.modeb { border-left-color: var(--a-amber); }
+/* the mode label keeps its quiet uppercase treatment; this needs to out-
+   specify the .consent .enc p rule above, so it carries the full path. */
+.pcp-adm .consent .enc .mode-tag {
+    font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--a-ink-mute); margin: 0 0 6px;
+}
+
+/* the done page */
+.pcp-adm .done { text-align: center; padding: 14px 10px 6px; }
+.pcp-adm .done-mark {
+    width: 38px; height: 38px; border: 1.5px solid var(--a-green); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+}
+.pcp-adm .done-mark span {
+    width: 9px; height: 16px; border: solid var(--a-green); border-width: 0 2px 2px 0;
+    transform: rotate(45deg); margin-top: -3px;
+}
+.pcp-adm .done h3 { font-family: 'Newsreader', Georgia, serif; font-size: 19px; margin: 0 0 9px; }
+.pcp-adm .done p { color: var(--a-ink-dim); font-size: 12.5px; margin: 0 auto; max-width: 380px; }
+
+/* ===== surface 4: key setup ===== */
+.pcp-adm .keyhead { font-family: 'Newsreader', Georgia, serif; font-size: 19px; margin: 0 0 13px; }
+.pcp-adm .caution {
+    border: 1px solid var(--a-line); border-left: 3px solid var(--a-amber);
+    background: var(--a-bg-3); padding: 13px 16px; margin: 0 0 15px;
+}
+.pcp-adm .caution.severe { border-left-color: var(--a-danger); }
+.pcp-adm .caution p { font-size: 12px; color: var(--a-ink-dim); line-height: 1.62; margin: 0 0 8px; }
+.pcp-adm .caution p:last-child { margin: 0; }
+.pcp-adm .caution p strong { color: var(--a-ink); font-weight: 600; }
+.pcp-adm .field-input {
+    background: var(--a-bg-3); border: 1px solid var(--a-line); color: var(--a-ink);
+    padding: 9px 12px; font-size: 13px; width: 100%; font-family: 'Geist', sans-serif;
+}
+.pcp-adm .mode-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.pcp-adm .mode-card { border: 1px solid var(--a-line); padding: 13px 14px; cursor: pointer; }
+.pcp-adm .mode-card.rec { border-color: var(--a-violet); }
+.pcp-adm .mode-card .mc-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 5px; }
+.pcp-adm .mode-card.rec .mc-tag { color: var(--a-violet-bright); }
+.pcp-adm .mode-card.warn .mc-tag { color: var(--a-amber); }
+.pcp-adm .mode-card .mc-name { font-family: 'Newsreader', Georgia, serif; font-size: 15px; margin: 0 0 5px; }
+.pcp-adm .mode-card .mc-desc { font-size: 11px; color: var(--a-ink-mute); line-height: 1.5; }
+
+/* ===== take-flow: model-aware items (radio / slider / bipolar) ===== */
+.pcp-adm .rp-note { font-size: 11px; color: var(--a-ink-mute); margin: 0 0 12px; }
+.pcp-adm .pcp-adm-take { margin-top: 4px; }
+.pcp-adm .pcp-assess-item {
+    border: 1px solid var(--a-line-faint); background: var(--a-bg-2);
+    padding: 13px 16px 14px; margin: 0 0 9px; min-width: 0;
+}
+.pcp-adm .pcp-assess-item legend {
+    font-family: 'Newsreader', Georgia, serif; font-size: 14.5px;
+    color: var(--a-ink); padding: 0; line-height: 1.5;
+}
+/* the "Not sure" dim covers only the answer content, never the
+   "Not sure" control itself - so the control stays re-toggleable. */
+.pcp-adm .pcp-adm-item-unsure > legend,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-opts,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-slider-row { opacity: 0.5; }
+
+/* discrete radio options */
+.pcp-adm .pcp-adm-opts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.pcp-adm .pcp-adm-opt {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--a-ink-dim); cursor: pointer;
+}
+.pcp-adm .pcp-adm-opt input { accent-color: var(--a-violet); }
+.pcp-adm .pcp-adm-opt:has(input:checked) { color: var(--a-ink); }
+
+/* one slider per item */
+.pcp-adm .pcp-adm-slider-row { display: flex; align-items: center; gap: 11px; margin-top: 10px; }
+.pcp-adm .pcp-adm-anchor {
+    font-size: 10.5px; color: var(--a-ink-mute);
+    flex: 0 0 auto; max-width: 32%; line-height: 1.4;
+}
+.pcp-adm .pcp-adm-anchor-hi { text-align: right; }
+.pcp-adm .pcp-adm-slider {
+    flex: 1 1 auto; min-width: 90px; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    height: 18px; background: transparent;
+}
+.pcp-adm .pcp-adm-slider::-webkit-slider-runnable-track {
+    height: 4px; background: var(--a-line); border-radius: 2px;
+}
+.pcp-adm .pcp-adm-slider::-moz-range-track {
+    height: 4px; background: var(--a-line); border-radius: 2px;
+}
+.pcp-adm .pcp-adm-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; margin-top: -5px;
+    background: var(--a-violet); border: 0; border-radius: 2px;
+}
+.pcp-adm .pcp-adm-slider::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--a-violet); border: 0; border-radius: 2px;
+}
+.pcp-adm .pcp-adm-sliderval {
+    font-family: 'Newsreader', Georgia, serif; font-size: 14px;
+    color: var(--a-violet-ink); font-variant-numeric: tabular-nums;
+    flex: 0 0 auto; min-width: 34px; text-align: center;
+}
+
+/* the uniform "Not sure" control */
+.pcp-adm .pcp-adm-unsure {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    font-size: 10.5px; color: var(--a-ink-mute); cursor: pointer;
+}
+.pcp-adm .pcp-adm-unsure input { accent-color: var(--a-ink-mute); }
+
+.pcp-adm .btn-danger {
+    border-color: var(--a-danger); background: rgba(194,90,82,0.14); color: #e7a59f;
+}
+
+/* ===== respondent dashboard: scored results ===== */
+.pcp-adm .block-h .bh-meta {
+    margin-left: auto; font-size: 10.5px; color: var(--a-ink-mute);
+    font-variant-numeric: tabular-nums;
+}
+.pcp-adm .rep-scores { margin: 10px 0 4px; }
+.pcp-adm .rep-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 14px; padding: 6px 2px; border-top: 1px solid var(--a-line-faint);
+}
+.pcp-adm .rep-row:first-child { border-top: 0; }
+.pcp-adm .rep-label { font-size: 12px; color: var(--a-ink-dim); }
+.pcp-adm .rep-val {
+    font-family: 'Newsreader', Georgia, serif; font-size: 15px;
+    color: var(--a-ink); font-variant-numeric: tabular-nums;
+}
+.pcp-adm .rep-row-total .rep-label { color: var(--a-ink); font-weight: 500; }
+.pcp-adm .rep-row-total .rep-val { color: var(--a-violet-ink); font-size: 18px; }
+
+/* owner hub: a completed multi-part scale, and the per-invite delete */
+.pcp-adm .trend-row-flat { grid-template-columns: 150px 1fr; }
+.pcp-adm .tr-flat-note { font-size: 11px; color: var(--a-ink-mute); }
+.pcp-adm .sr-del { justify-self: end; }
+/* the per-invite delete is a quiet inline trigger (the submit button
+   inside the .sr-del form); the filled .btn-danger stays reserved for
+   confirm-step actions. */
+.pcp-adm .sr-del button {
+    background: none; border: 0; padding: 2px 4px;
+    font-size: 11px; color: var(--a-ink-mute); cursor: pointer;
+}
+.pcp-adm .sr-del button:hover { color: var(--a-danger); }
+
+/* ===== hover + focus states (motion spec: hover shifts colour or
+   border only; focus is a 2px violet outline, never suppressed) ===== */
+.pcp-adm .pcp-adm-opt:hover { color: var(--a-ink); }
+.pcp-adm .pcp-adm-unsure:hover { color: var(--a-ink-dim); }
+.pcp-adm .btn:hover { border-color: var(--a-violet-bright); }
+.pcp-adm .btn-danger:hover { background: rgba(194,90,82,0.22); }
+/* the two thumb pseudo-elements stay in separate rules: a selector
+   list with one unknown pseudo-element is dropped whole by the browser. */
+.pcp-adm .pcp-adm-slider:hover::-webkit-slider-thumb { background: var(--a-violet-bright); }
+.pcp-adm .pcp-adm-slider:hover::-moz-range-thumb { background: var(--a-violet-bright); }
+
+.pcp-adm .pcp-adm-opt input:focus-visible,
+.pcp-adm .pcp-adm-unsure input:focus-visible,
+.pcp-adm .pcp-adm-slider:focus-visible,
+.pcp-adm .btn:focus-visible,
+.pcp-adm .scale-opt input:focus-visible,
+.pcp-adm .lo-copy:focus-visible,
+.pcp-adm .sr-del button:focus-visible {
+    outline: 2px solid var(--a-violet); outline-offset: 2px;
+}
+
+/* ===== narrow viewport: the slider row wraps - both anchors on the
+   top line, the slider on its own full-width line, the readout below ===== */
+@media (max-width: 480px) {
+    .pcp-adm .pcp-adm-slider-row { flex-wrap: wrap; justify-content: space-between; }
+    .pcp-adm .pcp-adm-anchor { max-width: 46%; }
+    .pcp-adm .pcp-adm-anchor-lo { order: 1; }
+    .pcp-adm .pcp-adm-anchor-hi { order: 2; }
+    .pcp-adm .pcp-adm-slider { order: 3; flex-basis: 100%; }
+    .pcp-adm .pcp-adm-sliderval { order: 4; }
+}

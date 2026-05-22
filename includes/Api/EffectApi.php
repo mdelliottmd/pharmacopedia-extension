@@ -30,7 +30,7 @@ class EffectApi extends ApiBase {
 
         $valRaw = $params['valence'];
         $valence = ( $valRaw === '' || $valRaw === null ) ? null : (int)$valRaw;
-        if ( $valence !== null && ( $valence < -3 || $valence > 3 ) ) {
+        if ( $valence !== null && ( $valence < -100 || $valence > 100 ) ) {
             $this->dieWithError( 'pharmacopedia-invalid-valence', 'badvalue' );
         }
 

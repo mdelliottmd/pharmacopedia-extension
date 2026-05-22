@@ -170,16 +170,16 @@ class SpecialMyAssessment extends SpecialPage {
         if ( $key === '' ) {
             $out->setPageTitle( 'My assessments' );
             $out->addWikiTextAsInterface(
-                "Choose an assessment: [[Special:MyAssessment/cati|CATI]]" .
+                "Choose an assessment: [[Special:MyAssessment/cati|CATI-PCP]]" .
                 "[[Special:MyAssessment/mbti|MBTI]] · " .
-                "[[Special:MyAssessment/enneagram|Enneagram]] · " .
-                "[[Special:MyAssessment/pid5bf|PID-5-BF]] · " .
-                "[[Special:MyAssessment/catq|CAT-Q]] &middot; [[Special:MyAssessment/ocean|OCEAN]]"
+                "[[Special:MyAssessment/enneagram|Enneagram-PCP]] · " .
+                "[[Special:MyAssessment/pid5bf|PID-5-BF-PCP]] · " .
+                "[[Special:MyAssessment/catq|CAT-Q-PCP]] &middot; [[Special:MyAssessment/ocean|OCEAN]]"
             );
             return;
         }
-        $tests = [ 'cati' => 'CATI', 'mbti' => 'MBTI', 'enneagram' => 'Enneagram',
-                   'catq' => 'CAT-Q', 'pid5bf' => 'PID-5-BF', 'ocean' => 'OCEAN' ];
+        $tests = [ 'cati' => 'CATI-PCP', 'mbti' => 'MBTI', 'enneagram' => 'Enneagram-PCP',
+                   'catq' => 'CAT-Q-PCP', 'pid5bf' => 'PID-5-BF-PCP', 'ocean' => 'OCEAN' ];
         if ( isset( $tests[$key] ) && $this->isOwner ) {
             $out->setSubtitle( $this->renderShareChip( $key, $tests[$key] ) );
         }
@@ -231,8 +231,16 @@ class SpecialMyAssessment extends SpecialPage {
             $this->renderAmaasReport( $user );
             return;
         }
+        if ( $key === 'hyd' ) {
+            $this->renderHydReport( $user );
+            return;
+        }
         if ( $key === 'asrs' ) {
             $this->renderAsrsReport( $user );
+            return;
+        }
+        if ( $key === 'ocipcp' ) {
+            $this->renderOcipcpReport( $user );
             return;
         }
         $out->setPageTitle( 'Assessment report: ' . $key );
@@ -272,11 +280,11 @@ class SpecialMyAssessment extends SpecialPage {
             if ( $k === 'gender_identity' )  $genderIdentity = $f->pf_value_text;
         }
 
-        $out->setPageTitle( 'My CATI report' );
+        $out->setPageTitle( 'My CATI-PCP report' );
 
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No CATI scores on file. Take the test on [[Special:MyProfile]] under '''Personality and autism assessments''' to see your report here."
+                "No CATI-PCP scores on file. Take the test on [[Special:MyProfile]] under '''Personality and autism assessments''' to see your report here."
             );
             return;
         }
@@ -300,7 +308,7 @@ class SpecialMyAssessment extends SpecialPage {
         $h  = '<div class="pcp-cati-modern">';
         $h .= '<div class="pcp-cati-modern-head">';
         $h .= '<div class="pcp-cati-modern-head-text">';
-        $h .= '<span class="pcp-cati-modern-name">CATI</span>';
+        $h .= '<span class="pcp-cati-modern-name">CATI-PCP</span>';
         $h .= '<span class="pcp-cati-modern-full">Comprehensive Autistic Trait Inventory</span>';
         $h .= '</div>';
         $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
@@ -621,11 +629,11 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My CAT-Q report' );
+        $out->setPageTitle( 'My CAT-Q-PCP report' );
 
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No CAT-Q scores on file. Take the test on [[Special:MyProfile]] under '''Personality &amp; autism assessments''' to see your report here."
+                "No CAT-Q-PCP scores on file. Take the test on [[Special:MyProfile]] under '''Personality &amp; autism assessments''' to see your report here."
             );
             return;
         }
@@ -640,7 +648,7 @@ class SpecialMyAssessment extends SpecialPage {
         $h  = '<div class="pcp-cati-modern">';
         $h .= '<div class="pcp-cati-modern-head">';
         $h .= '<div class="pcp-cati-modern-head-text">';
-        $h .= '<span class="pcp-cati-modern-name">CAT-Q</span>';
+        $h .= '<span class="pcp-cati-modern-name">CAT-Q-PCP</span>';
         $h .= '<span class="pcp-cati-modern-full">Camouflaging Autistic Traits Questionnaire</span>';
         $h .= '</div>';
         $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
@@ -884,6 +892,178 @@ class SpecialMyAssessment extends SpecialPage {
 
     // ===== End CAT-Q report =====
 
+    // ===== OCI-PCP report =====
+
+    private function renderOcipcpReport( $user ) {
+        $out = $this->getOutput();
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( $user->getId() );
+        $profileId = (int)$profile->prof_id;
+        $Ocipcp = \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class;
+
+        $scores = []; $takenAt = null; $vis = 0;
+        foreach ( $store->getFields( $profileId, 'ocipcp', $this->visMin() ) as $f ) {
+            $fk = (string)$f->pf_key;
+            if ( $fk === '_vis' )     { $vis = (int)( $f->pf_value_num ?? 0 ); continue; }
+            if ( $fk === 'taken_at' ) { $takenAt = (string)$f->pf_value_text; continue; }
+            $scores[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
+        }
+        $rawByN = [];
+        foreach ( $store->getFields( $profileId, 'ocipcp_raw', $this->visMin() ) as $f ) {
+            $k = (string)$f->pf_key;
+            if ( strpos( $k, 'item_' ) !== 0 ) continue;
+            $rawByN[ (int)substr( $k, 5 ) ] = [ 'num' => $f->pf_value_num, 'text' => $f->pf_value_text ];
+        }
+
+        $out->setPageTitle( 'My OCI-PCP report' );
+
+        if ( !$scores || !isset( $scores['total'] ) ) {
+            $out->addWikiTextAsInterface(
+                "No OCI-PCP scores on file. Take the assessment on [[Special:MyProfile]] under '''Personality/Assessments''' to see your report here."
+            );
+            return;
+        }
+
+        $isOwner = $this->isOwner ?? true;
+        $canRaw  = $this->canViewRaw( $store, $profile, 'ocipcp', $isOwner );
+        $retakeUrl = SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL();
+
+        $total   = (float)$scores['total'];
+        $cutoff  = (float)$Ocipcp::CUTOFF_TOTAL;
+        $concern = (float)$Ocipcp::SUBSCALE_CONCERN;
+        $above   = $total >= $cutoff;
+        $fmt = static function ( $v ) {
+            $v = (float)$v;
+            return number_format( $v, $v == (int)$v ? 0 : 1 );
+        };
+
+        $h  = '<div class="pcp-cati-modern">';
+
+        // ---- Header ----
+        $h .= '<div class="pcp-cati-modern-head"><div class="pcp-cati-modern-head-text">';
+        $h .= '<span class="pcp-cati-modern-name">OCI-PCP</span>';
+        $h .= '<span class="pcp-cati-modern-full">Obsessive-Compulsive Inventory, adapted from OCI-R</span>';
+        $h .= '</div>';
+        $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $this->catiVisIcon( $vis ) . '</span>';
+        $h .= '</div>';
+        $h .= '<div class="pcp-cati-modern-meta">Self-report screen for obsessive-compulsive symptoms across six domains';
+        if ( $takenAt ) {
+            $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
+        }
+        $h .= ' &middot; <a href="' . htmlspecialchars( $retakeUrl ) . '#ocipcp-take">Retake</a></div>';
+
+        // ---- Section 1: radar + total verdict ----
+        $h .= '<h3 class="pcp-cati-modern-h">Symptom profile</h3>';
+        $h .= '<div class="pcp-up-cati-radar-wrap pcp-ocipcp-report-radar">' . $Ocipcp::radarSvg( $scores ) . '</div>';
+        $h .= '<p class="pcp-cati-modern-caption"><strong>Total ' . htmlspecialchars( $fmt( $total ) ) . ' / 72.</strong> '
+            . '<span class="' . ( $above ? 'pcp-up-above' : 'pcp-up-below' ) . '">'
+            . ( $above ? 'At or above' : 'Below' ) . ' the OCI-R screening cutoff (&ge; 21).</span> '
+            . 'The dashed ring marks the subscale concern level (the OCI-R manual mean of 2.5, a 3-item sum of 7.5).</p>';
+        $h .= '<p class="pcp-cati-modern-caption pcp-cati-modern-caption-note"><em>This is a screen, not a diagnosis. The cutoff is the OCI-R recommended screening threshold (Foa et al. 2002); because the OCI-PCP adapts the response format, the cutoff and subscale guides are inherited and approximate.</em></p>';
+
+        // ---- Section 2: score bars ----
+        $h .= '<h3 class="pcp-cati-modern-h">Scores</h3>';
+        $h .= '<div class="pcp-cati-modern-bars">';
+        $rows = [ [ 'total', 'Total', 72.0, $cutoff ] ];
+        foreach ( $Ocipcp::SUBSCALES as $code => $def ) {
+            $rows[] = [ 'subscale_' . $code, $def['label'], 12.0, $concern ];
+        }
+        foreach ( $rows as [ $key, $label, $max, $thresh ] ) {
+            $score = isset( $scores[ $key ] ) ? (float)$scores[ $key ] : null;
+            if ( $score === null ) {
+                $h .= '<div class="pcp-cati-modern-row pcp-cati-modern-row-incomplete">'
+                    . '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>'
+                    . '<span class="pcp-cati-modern-row-incomplete-msg">incomplete</span></div>';
+                continue;
+            }
+            $pct = max( 0.0, min( 100.0, ( $score / $max ) * 100.0 ) );
+            $isOver = $score >= $thresh;
+            $isTotal = ( $key === 'total' );
+            $h .= '<div class="pcp-cati-modern-row"><div class="pcp-cati-modern-row-main">'
+                . '<span class="pcp-cati-modern-row-label">' . htmlspecialchars( $label ) . '</span>'
+                . '<span class="pcp-up-ocean-bar"><span class="pcp-up-ocean-fill" style="width:' . number_format( $pct, 2 ) . '%"></span></span>'
+                . '<span class="pcp-cati-modern-row-val">' . htmlspecialchars( $fmt( $score ) )
+                . ' <span class="pcp-cati-modern-row-of">/ ' . (int)$max . '</span></span></div>'
+                . '<div class="pcp-cati-modern-row-meta">'
+                . ( $isOver
+                    ? '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-pronounced">' . ( $isTotal ? 'above screening cutoff' : 'at concern level' ) . '</span>'
+                    : '<span class="pcp-cati-modern-chip pcp-cati-modern-chip-below">' . ( $isTotal ? 'below screening cutoff' : 'below concern level' ) . '</span>' )
+                . '</div></div>';
+        }
+        $h .= '</div>';
+        $h .= '<p class="pcp-cati-modern-caption">Raw sums. Total 0 to 72 (screening cutoff 21). Each subscale 0 to 12 (concern level 7.5).</p>';
+
+        // ---- Section 3: subscale narratives ----
+        $blurbs = [
+            'WSH' => 'Contamination concerns and washing or cleaning compulsions: discomfort touching objects, feeling contaminated, washing more often or longer than necessary.',
+            'OBS' => 'Intrusive, unwanted thoughts that are difficult to control or dismiss. This is the cognitive core of obsessive-compulsive symptoms.',
+            'HRD' => 'Difficulty discarding possessions and saving items that are not needed. Note: this subscale predates the DSM-5 reclassification of hoarding as a separate disorder, and does not validly screen for Hoarding Disorder.',
+            'ORD' => 'Need for symmetry, order, and exactness: distress when objects are not arranged properly, or when an existing arrangement is changed.',
+            'CHK' => 'Repeated checking to prevent harm or mistakes: doors, windows, taps, switches, checking more often than necessary.',
+            'NEU' => 'Mental neutralizing rituals: feeling compelled to count, to repeat certain numbers, or that some numbers are good and others bad.',
+        ];
+        $h .= '<h3 class="pcp-cati-modern-h">Subscale interpretation</h3>';
+        $h .= '<div class="pcp-cati-modern-narratives">';
+        foreach ( $Ocipcp::SUBSCALES as $code => $def ) {
+            $key = 'subscale_' . $code;
+            if ( !isset( $scores[ $key ] ) || $scores[ $key ] === null ) {
+                continue;
+            }
+            $sv = (float)$scores[ $key ];
+            $over = $sv >= $concern;
+            $h .= '<details class="pcp-cati-modern-narrative"><summary>'
+                . '<strong>' . htmlspecialchars( $def['label'] ) . '</strong> '
+                . '<span class="pcp-cati-modern-narrative-meta">' . htmlspecialchars( $fmt( $sv ) ) . ' / 12'
+                . ( $over ? ' &middot; at concern level' : ' &middot; below concern level' )
+                . '</span></summary>'
+                . '<p>' . htmlspecialchars( $blurbs[ $code ] ?? '' ) . '</p></details>';
+        }
+        $h .= '</div>';
+
+        // ---- Section 4: full 18-item responses (gated) ----
+        $h .= '<h3 class="pcp-cati-modern-h">Your responses</h3>';
+        if ( $canRaw ) {
+            $h .= '<details class="pcp-cati-modern-responses"><summary><strong>Show all 18 responses</strong></summary>';
+            $h .= '<table class="wikitable pcp-cati-modern-resptable" style="width:100%; font-size:0.9em;">';
+            $h .= '<thead><tr><th>#</th><th>Item</th><th style="width:11em; text-align:center;">Your response</th></tr></thead><tbody>';
+            foreach ( $Ocipcp::ITEMS as $n => $text ) {
+                $entry = $rawByN[ $n ] ?? null;
+                $isUnsure = $entry && (string)( $entry['text'] ?? '' ) === 'unsure';
+                $rawNum = $entry && $entry['num'] !== null ? (float)$entry['num'] : null;
+                $resp = '<span style="opacity:0.5;">-</span>';
+                if ( $isUnsure ) {
+                    $resp = '<em style="opacity:0.6;">don&rsquo;t know</em>';
+                } elseif ( $rawNum !== null ) {
+                    $near = max( 0, min( 4, (int)round( $rawNum ) ) );
+                    $lab = $Ocipcp::RESPONSE_LABELS[ $near ] ?? '';
+                    $resp = htmlspecialchars( number_format( $rawNum, 2 ) )
+                        . ' <span style="opacity:0.7;">(' . htmlspecialchars( $lab ) . ')</span>';
+                }
+                $h .= '<tr><th style="text-align:center;">' . $n . '</th><td>' . htmlspecialchars( $text ) . '</td>'
+                    . '<td style="text-align:center;">' . $resp . '</td></tr>';
+            }
+            $h .= '</tbody></table>';
+            $h .= '<p style="font-size:0.85em; opacity:0.7; margin-top:0.4em;">Response scale: 0 = Not at all, 1 = A little, 2 = Moderately, 3 = A lot, 4 = Extremely. Values are continuous; the label shown is the nearest anchor.</p>';
+            $h .= '</details>';
+        } else {
+            $h .= $this->renderRawPrivate();
+        }
+
+        // ---- Section 5: methodology ----
+        $h .= '<div class="pcp-cati-modern-method">';
+        $h .= '<div class="pcp-cati-modern-method-head">About the OCI-PCP</div>';
+        $h .= '<p>The OCI-PCP is the Pharmacopedia adaptation of the <strong>OCI-R</strong> (Obsessive-Compulsive Inventory, Revised), an 18-item self-report screen for obsessive-compulsive symptoms developed by Edna Foa and colleagues. It keeps the 18 OCI-R items verbatim and the six subscales (Washing, Obsessing, Hoarding, Ordering, Checking, Neutralizing), and adapts only the response format: continuous 0 to 4 sliders with a per-item don&rsquo;t-know option, in place of the original discrete 0 to 4 ratings.</p>';
+        $h .= '<p>The screening cutoff (total &ge; 21) is the OCI-R recommended threshold from the original validation study. Because the OCI-PCP changes the response format, that cutoff and the subscale concern level are <em>inherited</em> from the OCI-R and should be read as approximate; they were not independently validated for the adapted form.</p>';
+        $h .= '<p><strong>Hoarding subscale caveat:</strong> the OCI-R predates the DSM-5 (2013), which reclassified hoarding as a distinct disorder separate from OCD. The Hoarding subscale measures hoarding-related obsessive-compulsive symptoms but does not validly screen for Hoarding Disorder.</p>';
+        $h .= '<p>Source: adapted from the OCI-R. Foa EB, Huppert JD, Leiberman S, Langner R, Kichic R, Hajcak G, Salkovskis PM. The Obsessive-Compulsive Inventory: development and validation of a short version. <em>Psychological Assessment</em>. 2002;14(4):485-496. OCI-R items copyright Edna B. Foa 2002.</p>';
+        $h .= '</div>';
+
+        $h .= '</div>'; // /pcp-cati-modern
+        $out->addHTML( $h );
+    }
+
+    // ===== End OCI-PCP report =====
+
     // ===== PID-5-BF report (modernized 2026-05-18) =====
 
     private function renderPid5bfReport( $user ) {
@@ -909,11 +1089,11 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My PID-5-BF report' );
+        $out->setPageTitle( 'My PID-5-BF-PCP report' );
 
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No PID-5-BF scores on file. Take the test on [[Special:MyProfile]] under '''Personality &amp; autism assessments''' to see your report here."
+                "No PID-5-BF-PCP scores on file. Take the test on [[Special:MyProfile]] under '''Personality &amp; autism assessments''' to see your report here."
             );
             return;
         }
@@ -928,7 +1108,7 @@ class SpecialMyAssessment extends SpecialPage {
         $h  = '<div class="pcp-cati-modern">';
         $h .= '<div class="pcp-cati-modern-head">';
         $h .= '<div class="pcp-cati-modern-head-text">';
-        $h .= '<span class="pcp-cati-modern-name">PID-5-BF</span>';
+        $h .= '<span class="pcp-cati-modern-name">PID-5-BF-PCP</span>';
         $h .= '<span class="pcp-cati-modern-full">Personality Inventory for DSM-5, Brief Form</span>';
         $h .= '</div>';
         $h .= '<span class="pcp-cati-modern-visbadge" title="Sharing: ' . htmlspecialchars( $this->catiVisLabel( $vis ) ) . '">' . $visIcon . '</span>';
@@ -1184,10 +1364,10 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My NFCS report' );
+        $out->setPageTitle( 'My NFCS-PCP report' );
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No NFCS scores on file. Take the test on [[Special:MyProfile]] to see your report here."
+                "No NFCS-PCP scores on file. Take the test on [[Special:MyProfile]] to see your report here."
             );
             return;
         }
@@ -1199,7 +1379,7 @@ class SpecialMyAssessment extends SpecialPage {
         }
         $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#nfcs-take">Retake</a></p>';
 
-        $h .= '<h2>NFCS Results</h2>';
+        $h .= '<h2>NFCS-PCP Results</h2>';
         $h .= $this->renderNfcsScoreTable( $scores );
 
         $h .= '<h2>What your scores mean</h2>';
@@ -1281,6 +1461,192 @@ class SpecialMyAssessment extends SpecialPage {
     // ===== End NFCS report =====
 
 
+    // ===== HYD-PCP report =====
+
+    /**
+     * Special:MyAssessment/hyd: the full report for a HYD-PCP wellbeing
+     * check-in. HYD-PCP is an informal, locally brewed check-in, not a
+     * clinical or diagnostic instrument, so the report stays gentle and
+     * plain-spoken throughout.
+     *
+     * Like the AMAAS report, this RECOMPUTES from raw responses: it reads
+     * hyd_raw/item_N, separates answered items from "Not sure" items, and
+     * calls Hyd::scoreResponses(). It does not depend on which aggregate
+     * keys the save path persisted.
+     */
+    private function renderHydReport( $user ) {
+        $Hyd = \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class;
+        $out = $this->getOutput();
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( $user->getId() );
+        $profileId = (int)$profile->prof_id;
+
+        $takenAt = null;
+        foreach ( $store->getFields( $profileId, 'hyd', 0 ) as $f ) {
+            if ( (string)$f->pf_key === 'taken_at' ) {
+                $takenAt = (string)$f->pf_value_text;
+                break;
+            }
+        }
+        $rawByN = [];
+        foreach ( $store->getFields( $profileId, 'hyd_raw', 0 ) as $f ) {
+            $k = (string)$f->pf_key;
+            if ( strpos( $k, 'item_' ) !== 0 ) {
+                continue;
+            }
+            $rawByN[ (int)substr( $k, 5 ) ] = [
+                'num'  => $f->pf_value_num,
+                'text' => $f->pf_value_text,
+            ];
+        }
+
+        $out->setPageTitle( 'My HYD-PCP report' );
+        if ( !$rawByN ) {
+            $out->addWikiTextAsInterface(
+                "No HYD-PCP responses on file. Take the check-in on [[Special:MyProfile]] to see your report here."
+            );
+            return;
+        }
+
+        // Separate answered items from "Not sure" items, then recompute.
+        $responses = [];
+        $idkItems  = [];
+        foreach ( $rawByN as $n => $entry ) {
+            if ( (string)( $entry['text'] ?? '' ) === 'unsure' ) {
+                $idkItems[] = (int)$n;
+            } elseif ( $entry['num'] !== null ) {
+                $responses[ (int)$n ] = (float)$entry['num'];
+            }
+        }
+        $scores = $Hyd::scoreResponses( $responses, $idkItems );
+        $reading = $Hyd::interpret( $scores );
+
+        $h = '<div class="pcp-cati-report pcp-hyd-report">';
+
+        $h .= '<div class="pcp-cati-cutoff-box" style="border-left:4px solid #d97757;">';
+        $h .= '<p style="margin:0;"><strong>An informal check-in.</strong> '
+            . htmlspecialchars( $Hyd::WARNING ) . '</p>';
+        $h .= '</div>';
+
+        $h .= '<p style="opacity:0.75;">' . htmlspecialchars( $Hyd::FULL_NAME );
+        if ( $takenAt ) {
+            $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
+        }
+        $h .= ' &middot; <a href="'
+            . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() )
+            . '#hyd-take">Take it again</a></p>';
+
+        $h .= '<h2>How you have been doing, overall</h2>';
+        $h .= $this->renderHydOverall( $scores, $reading );
+
+        $h .= '<h2>The eight domains</h2>';
+        $h .= $this->renderHydDomainProfile( $scores );
+
+        $h .= '<h2>About HYD-PCP</h2>';
+        $h .= $this->renderHydMethodology();
+
+        $h .= '</div>';
+        $out->addHTML( $h );
+    }
+
+    /**
+     * The headline panel: the overall mean shown prominently, plus
+     * Hyd::interpret()'s gentle one-line reading and, if any, the domains
+     * that came in low.
+     */
+    private function renderHydOverall( array $scores, array $reading ): string {
+        $Hyd = \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class;
+        $total    = $scores['total'] ?? null;
+        $answered = (int)( $scores['answered'] ?? 0 );
+
+        $h = '<div class="pcp-cati-cutoff-box">';
+        if ( $total === null ) {
+            $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+            $h .= '</div>';
+            return $h;
+        }
+        $disp = number_format( (float)$total, $total == (int)$total ? 0 : 1 );
+        $h .= '<p>Your overall figure, the mean of the '
+            . $answered . ' domain' . ( $answered === 1 ? '' : 's' ) . ' you answered: '
+            . '<strong style="color:#7c3aed; font-size:1.25em;">' . htmlspecialchars( $disp ) . '</strong> '
+            . '<span style="opacity:0.7;">on a scale from ' . (int)$Hyd::SCALE_MIN . ' ('
+            . htmlspecialchars( strtolower( $Hyd::ANCHOR_LOW ) ) . ') through 0 (so-so) to '
+            . (int)$Hyd::SCALE_MAX . ' (' . htmlspecialchars( strtolower( $Hyd::ANCHOR_HIGH ) ) . ').</span></p>';
+        $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+        if ( !empty( $reading['low_domains'] ) ) {
+            $names = array_map( 'htmlspecialchars', $reading['low_domains'] );
+            $h .= '<p>The domain' . ( count( $names ) === 1 ? '' : 's' ) . ' that came in low: <strong>'
+                . implode( ', ', $names ) . '</strong>. '
+                . 'That is just where this snapshot sits today, not a verdict; it can be a useful place to look.</p>';
+        }
+        $h .= '</div>';
+        return $h;
+    }
+
+    /**
+     * The per-domain profile: each of the eight domains as its own row,
+     * labeled via Hyd::DOMAINS, with its -100..+100 value drawn on a bar
+     * whose midpoint is the neutral 0.
+     */
+    private function renderHydDomainProfile( array $scores ): string {
+        $Hyd = \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class;
+        $min = (float)$Hyd::SCALE_MIN;
+        $max = (float)$Hyd::SCALE_MAX;
+
+        $h  = '<div class="pcp-cati-scores-wrap">';
+        $h .= '<table class="wikitable pcp-cati-scores"><thead><tr>';
+        $h .= '<th>Domain</th><th>Where it sits</th><th>Value</th>';
+        $h .= '</tr></thead><tbody>';
+
+        foreach ( $Hyd::DOMAIN_SLUGS as $itemNum => $slug ) {
+            $label = $Hyd::DOMAINS[ $itemNum ] ?? ucfirst( $slug );
+            $v = $scores[ $slug ] ?? null;
+            $h .= '<tr><th style="text-align:left;">' . htmlspecialchars( $label ) . '</th>';
+            if ( $v === null ) {
+                $h .= '<td colspan="2" style="opacity:0.5;">not answered</td></tr>';
+                continue;
+            }
+            // Map the bipolar -100..+100 value onto a 0..100% bar fill;
+            // the midpoint marker at 50% is the neutral 0.
+            $pct  = max( 0.0, min( 100.0, ( ( (float)$v - $min ) / ( $max - $min ) ) * 100.0 ) );
+            $disp = number_format( (float)$v, $v == (int)$v ? 0 : 1 );
+            $h .= '<td>';
+            $h .= '<span class="pcp-up-cati-bar">'
+                . '<span class="pcp-up-cati-fill" style="width:' . number_format( $pct, 1 ) . '%"></span>'
+                . '<span class="pcp-up-cati-cutoff-mark" style="left:50%" title="Neutral midpoint: 0"></span>'
+                . '</span>';
+            $h .= '</td>';
+            $h .= '<td style="text-align:center; font-weight:bold;">' . htmlspecialchars( $disp ) . '</td>';
+            $h .= '</tr>';
+        }
+
+        $h .= '</tbody></table></div>';
+        $h .= '<p style="opacity:0.7; font-size:0.9em;">Each domain runs from '
+            . (int)$Hyd::SCALE_MIN . ' (' . htmlspecialchars( strtolower( $Hyd::ANCHOR_LOW ) ) . ') to '
+            . (int)$Hyd::SCALE_MAX . ' (' . htmlspecialchars( strtolower( $Hyd::ANCHOR_HIGH ) ) . '), '
+            . 'with the bar midpoint marking the neutral middle. Domains you marked "Not sure" are '
+            . 'left out. There are no cutoffs and nothing here is diagnostic.</p>';
+        return $h;
+    }
+
+    private function renderHydMethodology(): string {
+        $h  = '<p>HYD-PCP ("How Ya Doin?") is a brief wellbeing check-in across eight everyday '
+            . 'domains: mood, functioning, sleep, movement, social connection, eating, energy, and '
+            . 'stress. Each domain is a single bipolar slider, from really poorly through a so-so '
+            . 'middle to really well, and each item carries its own time window, tuned to how fast '
+            . 'that part of life tends to move.</p>';
+        $h .= '<p><strong>It is locally brewed and not validated.</strong> HYD-PCP is an original '
+            . 'instrument written for this wiki. It has no norms, no validated cutoffs, and is not '
+            . 'a clinical or diagnostic measure. Scoring is deliberately simple: every item is its '
+            . 'own domain, and the overall figure is just the mean of the domains you answered. It '
+            . 'is built to be taken again and again and watched over time, so the most useful '
+            . 'reading is usually the trend across check-ins, not any single snapshot.</p>';
+        return $h;
+    }
+
+    // ===== End HYD-PCP report =====
+
+
     // ===== BPNS report =====
 
     private function renderBpnsReport( $user ) {
@@ -1306,10 +1672,10 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My BPNS report' );
+        $out->setPageTitle( 'My BPNS-PCP report' );
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No BPNS scores on file. Take the test on [[Special:MyProfile]] to see your report here."
+                "No BPNS-PCP scores on file. Take the test on [[Special:MyProfile]] to see your report here."
             );
             return;
         }
@@ -1321,7 +1687,7 @@ class SpecialMyAssessment extends SpecialPage {
         }
         $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#bpns-take">Retake</a></p>';
 
-        $h .= '<h2>BPNS Results</h2>';
+        $h .= '<h2>BPNS-PCP Results</h2>';
         $h .= $this->renderBpnsScoreTable( $scores );
 
         $h .= '<h2>What your scores mean</h2>';
@@ -1429,10 +1795,10 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My WHOQOL-BREF report' );
+        $out->setPageTitle( 'My WHOQOL-BREF-PCP report' );
         if ( !$scores || !isset( $scores['total'] ) ) {
             $out->addWikiTextAsInterface(
-                "No WHOQOL-BREF scores on file. Take the test on [[Special:MyProfile]] to see your report here."
+                "No WHOQOL-BREF-PCP scores on file. Take the test on [[Special:MyProfile]] to see your report here."
             );
             return;
         }
@@ -1444,7 +1810,7 @@ class SpecialMyAssessment extends SpecialPage {
         }
         $h .= ' &middot; <a href="' . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() ) . '#whoqolbref-take">Retake</a></p>';
 
-        $h .= '<h2>WHOQOL-BREF Results</h2>';
+        $h .= '<h2>WHOQOL-BREF-PCP Results</h2>';
         $h .= $this->renderWhoqolScoreTable( $scores );
 
         $h .= '<h2>What your scores mean</h2>';
@@ -2024,11 +2390,11 @@ class SpecialMyAssessment extends SpecialPage {
             ];
         }
 
-        $out->setPageTitle( 'My Enneagram report' );
+        $out->setPageTitle( 'My Enneagram-PCP report' );
 
         if ( !$scores || !isset( $scores['type_1'] ) ) {
             $out->addWikiTextAsInterface(
-                "No Enneagram scores on file. Set them on [[Special:MyProfile]] under '''Enneagram''' to see your report here."
+                "No Enneagram-PCP scores on file. Set them on [[Special:MyProfile]] under '''Enneagram-PCP''' to see your report here."
             );
             return;
         }

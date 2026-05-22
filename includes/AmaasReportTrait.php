@@ -2,7 +2,7 @@
 namespace MediaWiki\Extension\Pharmacopedia;
 
 /**
- * AMAAS-SR report renderer, pre-built for step 3.
+ * AMAAS-PCP-SR report renderer, pre-built for step 3.
  *
  * These are private methods of SpecialMyAssessment. At step 3, splice
  * the six methods below into SpecialMyAssessment.php, and apply the
@@ -24,12 +24,12 @@ use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Extension\Pharmacopedia\Assessments\Amaas;
 
 /**
- * AMAAS-SR report methods, mixed into SpecialMyAssessment via `use`.
+ * AMAAS-PCP-SR report methods, mixed into SpecialMyAssessment via `use`.
  * Dispatch: Special:MyAssessment/amaas -> renderAmaasReport().
  */
 trait AmaasReportTrait {
 
-    // ===== AMAAS-SR report =====
+    // ===== AMAAS-PCP-SR report =====
 
     private function renderAmaasReport( $user ) {
         $out = $this->getOutput();
@@ -56,10 +56,10 @@ trait AmaasReportTrait {
             ];
         }
 
-        $out->setPageTitle( 'My AMAAS-SR report' );
+        $out->setPageTitle( 'My AMAAS-PCP-SR report' );
         if ( !$rawByN ) {
             $out->addWikiTextAsInterface(
-                "No AMAAS-SR responses on file. Take it on [[Special:MyProfile]] to see your report here."
+                "No AMAAS-PCP-SR responses on file. Take it on [[Special:MyProfile]] to see your report here."
             );
             return;
         }
@@ -94,7 +94,7 @@ trait AmaasReportTrait {
             . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() )
             . '#amaas-take">Retake</a></p>';
 
-        $h .= '<h2>AMAAS-SR results</h2>';
+        $h .= '<h2>AMAAS-PCP-SR results</h2>';
         $h .= $this->renderAmaasScoreTable( $scores );
 
         $h .= '<h2>What your scores mean</h2>';
@@ -123,7 +123,7 @@ trait AmaasReportTrait {
             $h .= $this->renderRawPrivate();
         }
 
-        $h .= '<h2>About AMAAS-SR</h2>';
+        $h .= '<h2>About AMAAS-PCP-SR</h2>';
         $h .= $this->renderAmaasMethodology();
 
         $h .= '</div>';
@@ -195,12 +195,12 @@ trait AmaasReportTrait {
         }
 
         $h .= '<p>For conceptual reference, DSM-5 describes an adult symptom-count landmark of '
-            . 'about 5 endorsed symptoms within a dimension. AMAAS-SR uses more items per '
+            . 'about 5 endorsed symptoms within a dimension. AMAAS-PCP-SR uses more items per '
             . 'dimension than DSM lists symptoms, and every answer here is an approximate '
             . 'estimate, so this is a way of thinking about the pattern, <strong>not a direct '
             . 'score comparison and not a threshold</strong>.</p>';
 
-        $h .= '<p><em>AMAAS-SR is experimental, approximate, and not a diagnostic instrument.</em> '
+        $h .= '<p><em>AMAAS-PCP-SR is experimental, approximate, and not a diagnostic instrument.</em> '
             . 'Every answer is a rough self-estimate, so every figure above is approximate. A '
             . 'diagnosis of ADHD is made by a clinician and requires evidence of childhood onset, '
             . 'difficulty in more than one setting, real functional impairment, and ruling out '
@@ -310,7 +310,7 @@ trait AmaasReportTrait {
     }
 
     private function renderAmaasMethodology(): string {
-        $h  = '<p>AMAAS-SR is the self-report form of the Adult Multi-perspective Attentional '
+        $h  = '<p>AMAAS-PCP-SR is the self-report form of the Adult Multi-perspective Attentional '
             . 'Attributes Scale, an instrument developed for this wiki. It is original, written '
             . 'from the DSM-5 ADHD construct rather than adapted from any existing rating scale. '
             . 'Each item asks, on a 0 to 100 slider, what percent of the time an experience '
@@ -322,7 +322,7 @@ trait AmaasReportTrait {
             . 'clinical thresholds. The instrument is on a validation roadmap (expert review, '
             . 'pilot testing, factor analysis, reliability and criterion-validity studies, '
             . 'norming); the experimental label is removed only when that work supports it.</p>';
-        $h .= '<p>A planned observer-report form (AMAAS-OR) will let someone who knows the '
+        $h .= '<p>A planned observer-report form (AMAAS-PCP-OR) will let someone who knows the '
             . 'respondent well rate the same domains, producing a self-versus-observer concordance '
             . 'report. That form is not yet built.</p>';
         $h .= '<p>References: American Psychiatric Association, DSM-5 (ADHD diagnostic criteria); '
@@ -335,8 +335,8 @@ trait AmaasReportTrait {
     }
 
     /**
-     * Self-vs-observer concordance: the subject's own AMAAS-SR domain
-     * scores beside each AMAAS-OR observer rating of them, pulled from
+     * Self-vs-observer concordance: the subject's own AMAAS-PCP-SR domain
+     * scores beside each AMAAS-PCP-OR observer rating of them, pulled from
      * the Perspective subsystem. The owner sees every observer
      * perspective; a non-owner viewing a shared report sees only those
      * the owner consented to publish. Returns '' when there is nothing
@@ -407,5 +407,5 @@ trait AmaasReportTrait {
         return $h;
     }
 
-    // ===== End AMAAS-SR report =====
+    // ===== End AMAAS-PCP-SR report =====
 }

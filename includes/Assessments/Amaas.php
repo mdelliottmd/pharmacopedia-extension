@@ -2,7 +2,7 @@
 namespace MediaWiki\Extension\Pharmacopedia\Assessments;
 
 /**
- * AMAAS-SR, the Self-Report form of the Adult Multi-perspective
+ * AMAAS-PCP-SR, the Self-Report form of the Adult Multi-perspective
  * Attentional Attributes Scale (AMAAS).
  *
  * AMAAS is an ORIGINAL instrument, authored from the public DSM-5 ADHD
@@ -27,17 +27,17 @@ namespace MediaWiki\Extension\Pharmacopedia\Assessments;
  * is prorated: prorated raw = (sum of answered / answered count) * item
  * count. A subscale with zero answered items is null (reported NA).
  *
- * v1 = AMAAS-SR, self-report, 30 items. v2 will add AMAAS-OR (a
+ * v1 = AMAAS-PCP-SR, self-report, 30 items. v2 will add AMAAS-PCP-OR (a
  * collateral observer form) and the deferred EXM / EMO / childhood-onset
  * content.
  */
 class Amaas {
     public const KEY         = 'amaas';
-    public const NAME        = 'AMAAS-SR';
+    public const NAME        = 'AMAAS-PCP-SR';
     public const FULL_NAME   = 'Adult Multi-perspective Attentional Attributes Scale (Self-Report form)';
     public const CITATION    = 'Original instrument, Pharmacopedia 2026. Experimental, not yet validated.';
-    public const DESCRIPTION = 'An experimental 30-item self-report on adult attention, activity, and impulse experiences over the past 6 months. Every answer is a rough self-estimate: move each slider to roughly the percent of the time that fits. If you genuinely cannot estimate an item, tick "Not sure" and it is left out of your results. Not a diagnostic instrument.';
-    public const WARNING     = 'AMAAS-SR is an experimental instrument in development. It has not been validated: no norms, no validated cutoffs, no established accuracy. Every answer is an approximate self-estimate, so every score here is approximate. Results are a structured self-reflection, not a screening result and not a diagnosis. A diagnosis of ADHD requires a clinician, evidence of childhood onset, symptoms across more than one setting, functional impairment, and exclusion of other explanations. For a validated free self-report, see the ASRS-v1.1.';
+    public const DESCRIPTION = 'An experimental 30-item self-report on adult attention, activity, and impulse experiences over the past 6 months. Every answer is a rough self-estimate: move each slider to roughly the percent of the time that fits. If you genuinely cannot estimate an item, tick "Not sure" and it is left out of your results. Not a diagnostic instrument.  (locally brewed. not [yet] validated)';
+    public const WARNING     = 'AMAAS-PCP-SR is an experimental instrument in development. It has not been validated: no norms, no validated cutoffs, no established accuracy. Every answer is an approximate self-estimate, so every score here is approximate. Results are a structured self-reflection, not a screening result and not a diagnosis. A diagnosis of ADHD requires a clinician, evidence of childhood onset, symptoms across more than one setting, functional impairment, and exclusion of other explanations. For a validated free self-report, see the ASRS-v1.1.';
     public const PAGE_SIZE   = 10;
 
     /** The 0-100 percent scale. The slider is continuous; these bound it. */
@@ -67,7 +67,7 @@ class Amaas {
     ];
 
     /** Instrument-wide approximation note, surfaced on the form and in the report. */
-    public const APPROX_NOTE = 'Every answer on AMAAS-SR is a rough self-estimate, not a precise count. Treat all scores here as approximate.';
+    public const APPROX_NOTE = 'Every answer on AMAAS-PCP-SR is a rough self-estimate, not a precise count. Treat all scores here as approximate.';
 
     /** The 30 item stems. Authored by home-claude from the DSM-5 ADHD construct (original wording). */
     public const ITEMS = [

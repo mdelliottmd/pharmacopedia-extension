@@ -138,6 +138,10 @@ class SpecialSuggestEffect extends SpecialPage {
 
         $globalStore = new \MediaWiki\Extension\Pharmacopedia\GlobalEffectStore();
         $newSlug = \MediaWiki\Extension\Pharmacopedia\GlobalEffectStore::normalizeSlug( $label );
+        if ( self::pageAlreadyHasEffectRef( $wt, $newSlug ) ) {
+            $this->finishError( 'That effect is already listed on this page.', $wantsJson );
+            return;
+        }
         $aliasField = trim( (string)$this->getRequest()->getText( 'effect_aliases', '' ) );
         $globalStore->create( $newSlug, $label, $description, $aliasField, $this->getUser()->getId() );
         $slug = $newSlug;
@@ -145,10 +149,12 @@ class SpecialSuggestEffect extends SpecialPage {
         $author = $this->getUser()->getName();
         $safeAuthor = htmlspecialchars( $author, ENT_QUOTES );
         $bodyInner = trim( $description );
+        // Insert as a bulleted list item so MediaWiki emits <ul><li>, matching
+        // the hand-authored convention and the JS effect-bucketing pipeline.
         if ( $bodyInner === '' ) {
-            $block = "<effect ref=\"$slug\" author=\"$safeAuthor\"/>";
+            $block = "* <effect ref=\"$slug\" author=\"$safeAuthor\"/>";
         } else {
-            $block = "<effect ref=\"$slug\" author=\"$safeAuthor\">\n" . $bodyInner . "\n</effect>";
+            $block = "* <effect ref=\"$slug\" author=\"$safeAuthor\">\n" . $bodyInner . "\n</effect>";
         }
 
         $newWt = TemplateParamEditor::insertIntoMedTemplateParam( $wt, 'effects', $block );
@@ -196,6 +202,18 @@ class SpecialSuggestEffect extends SpecialPage {
         return $candidate;
     }
 
+    /**
+     * True if the wikitext already carries an <effect> tag whose ref attribute
+     * matches this slug. Used to stop the same global effect being added to a
+     * page more than once via the add-an-effect flow.
+     */
+    private static function pageAlreadyHasEffectRef( $wt, $slug ) {
+        return (bool)preg_match(
+            '/<effect\b[^>]*\bref\s*=\s*"' . preg_quote( $slug, '/' ) . '"/i',
+            $wt
+        );
+    }
+
     private function renderError( $msg ) {
         $this->getOutput()->addHTML(
             Html::element( 'div', [ 'class' => 'errorbox' ], $msg )
@@ -224,13 +242,20 @@ class SpecialSuggestEffect extends SpecialPage {
         if ( !$content ) { $this->finishError( 'Could not load page content.', $wantsJson ); return; }
         $wt = method_exists( $content, 'getText' ) ? $content->getText() : (string)$content;
 
+        if ( self::pageAlreadyHasEffectRef( $wt, $refSlug ) ) {
+            $this->finishError( 'That effect is already listed on this page.', $wantsJson );
+            return;
+        }
+
         $author = $this->getUser()->getName();
         $safeAuthor = htmlspecialchars( $author, ENT_QUOTES );
         $bodyInner = trim( $description );
+        // Insert as a bulleted list item so MediaWiki emits <ul><li>, matching
+        // the hand-authored convention and the JS effect-bucketing pipeline.
         if ( $bodyInner === '' ) {
-            $block = "<effect ref=\"$refSlug\" author=\"$safeAuthor\"/>";
+            $block = "* <effect ref=\"$refSlug\" author=\"$safeAuthor\"/>";
         } else {
-            $block = "<effect ref=\"$refSlug\" author=\"$safeAuthor\">\n" . $bodyInner . "\n</effect>";
+            $block = "* <effect ref=\"$refSlug\" author=\"$safeAuthor\">\n" . $bodyInner . "\n</effect>";
         }
         $newWt = \MediaWiki\Extension\Pharmacopedia\TemplateParamEditor::insertIntoMedTemplateParam( $wt, 'effects', $block );
         $newContent = \ContentHandler::makeContent( $newWt, $target );

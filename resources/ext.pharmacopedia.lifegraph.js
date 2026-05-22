@@ -9,6 +9,7 @@
 ( function () {
     'use strict';
     var timelineRef = null;
+    var hiddenGids = {};
 
     var H_DEFAULT = 360;
     var ML = 44, MR = 16, MT = 12, MB = 28; // margins inside the SVG viewport
@@ -25,6 +26,31 @@
         return String( s ).replace( /&/g, '&amp;' )
             .replace( /</g, '&lt;' ).replace( />/g, '&gt;' )
             .replace( /"/g, '&quot;' ).replace( /'/g, '&apos;' );
+    }
+
+    // valenceColor: maps a valence value to an RGB colour. Lifted from
+    // ext.pharmacopedia.observation.js verbatim, because each module IIFE
+    // is self-contained, the trait dots are filled by their valence.
+    function valenceColor( v ) {
+        var n = parseFloat( v );
+        if ( isNaN( n ) ) n = 0;
+        // Anchors: purple #5d3b8e at 0, deep green #15803d at +100, deep red #991b1b at -100.
+        var pR = 93, pG = 59, pB = 142;
+        var gR = 21, gG = 128, gB = 61;
+        var rR = 153, rG = 27, rB = 27;
+        var t, r, g, b;
+        if ( n >= 0 ) {
+            t = Math.min( 1, n / 100 );
+            r = Math.round( pR + ( gR - pR ) * t );
+            g = Math.round( pG + ( gG - pG ) * t );
+            b = Math.round( pB + ( gB - pB ) * t );
+        } else {
+            t = Math.min( 1, -n / 100 );
+            r = Math.round( pR + ( rR - pR ) * t );
+            g = Math.round( pG + ( rG - pG ) * t );
+            b = Math.round( pB + ( rB - pB ) * t );
+        }
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
     }
 
     function render( mount, data ) {
@@ -155,6 +181,7 @@
 
         // One polyline + dots per group.
         ( data.groups || [] ).forEach( function ( g ) {
+            if ( hiddenGids[ g.id ] ) return;
             var color = colorOf( g );
             var pts = items.filter( function ( it ) { return it.group === g.id; } );
             pts.sort( function ( a, b ) { return new Date( a.x ) - new Date( b.x ); } );
@@ -226,11 +253,13 @@
             chipWrap.appendChild( chip );
         } );
         legend.addEventListener( 'change', function ( e ) {
-            if ( e.target.tagName !== 'INPUT' || !graph ) return;
+            if ( !e.target || e.target.tagName !== 'INPUT' ) return;
             var gid = e.target.getAttribute( 'data-gid' );
-            var grp = graph.groupsData.get( gid );
-            grp.visible = e.target.checked;
-            graph.groupsData.update( grp );
+            if ( gid === null ) return;
+            if ( e.target.checked ) { delete hiddenGids[ gid ]; }
+            else { hiddenGids[ gid ] = true; }
+            var m = document.getElementById( 'pcp-life-graph-mount' );
+            if ( m && window.PCP_LIFE_GRAPH_DATA ) render( m, window.PCP_LIFE_GRAPH_DATA );
         } );
     }
 

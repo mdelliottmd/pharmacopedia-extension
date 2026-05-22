@@ -16,7 +16,7 @@ class SpecialMyProfile extends SpecialPage {
         $out->setSubtitle(
             '<a href="#" class="pcp-obs-trigger pcp-share-trigger">📝 Quick observation</a>'
         );
-        $out->addModuleStyles( [ 'ext.pharmacopedia.styles', 'ext.pharmacopedia.datepicker.styles', 'ext.pharmacopedia.timepicker.styles', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation' ] );
+        $out->addModuleStyles( [ 'ext.pharmacopedia.styles', 'ext.pharmacopedia.datepicker.styles', 'ext.pharmacopedia.timepicker.styles', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation', 'ext.pharmacopedia.administer' ] );
         $out->addModules( [ 'ext.pharmacopedia', 'ext.pharmacopedia.datepicker', 'ext.pharmacopedia.timepicker', 'ext.pharmacopedia.kitsync', 'ext.pharmacopedia.share', 'ext.pharmacopedia.observation', 'ext.pharmacopedia.blocksave' ] );
 
         $user = $this->getUser();
@@ -34,7 +34,10 @@ class SpecialMyProfile extends SpecialPage {
         // Handle POST
         if ( $request->wasPosted() && $user->matchEditToken( $request->getVal( 'wpEditToken' ) ) ) {
             $this->save( $store, $profile, $request );
-            $out->redirect( $this->getPageTitle()->getLocalURL( [ 'saved' => 1 ] ) );
+            $pickTouched = $request->getVal( 'pcp_pick_add', '' ) !== ''
+                || $request->getVal( 'pcp_pick_remove', '' ) !== '';
+            $out->redirect( $this->getPageTitle()->getLocalURL( [ 'saved' => 1 ] )
+                . ( $pickTouched ? '#pcp-assessments' : '' ) );
             return;
         }
 
@@ -241,7 +244,7 @@ class SpecialMyProfile extends SpecialPage {
         echo '<p class="pcp-prof-help"><small>' . htmlspecialchars( $cls::DESCRIPTION )
              . ' <em>Source: ' . htmlspecialchars( $cls::CITATION ) . '</em>';
         // Rich-report link + share chip folded into the description paragraph (mirrors Enneagram/MBTI style).
-        if ( in_array( $cls::KEY, [ 'cati', 'catq', 'pid5bf', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs' ], true ) ) {
+        if ( in_array( $cls::KEY, [ 'cati', 'catq', 'pid5bf', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs', 'ocipcp', 'hyd' ], true ) ) {
             $reportUrl = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getLocalURL();
             $shareUrl  = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getFullURL( [ 'user' => $this->getUser()->getName() ] );
             echo ' <a class="pcp-cati-report-link" href="' . htmlspecialchars( $reportUrl ) . '">View full ' . htmlspecialchars( $cls::NAME ) . ' report →</a>';
@@ -327,6 +330,17 @@ class SpecialMyProfile extends SpecialPage {
             \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class => [
                 'min' => 0, 'max' => 100, 'step' => 1, 'default' => 50,
                 'lo' => 'Never (0%)', 'hi' => 'Always (100%)',
+            ],
+            \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class => [
+                'min' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::SCALE_MIN,
+                'max' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::SCALE_MAX,
+                'step' => 1, 'default' => 0,
+                'lo' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ANCHOR_LOW,
+                'hi' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ANCHOR_HIGH,
+            ],
+            \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class => [
+                'min' => 0, 'max' => 4, 'step' => 0.01, 'default' => 2,
+                'lo' => 'Not at all', 'hi' => 'Extremely',
             ],
         ];
         if ( isset( $sliderTests[ $cls ] ) ) {
@@ -770,10 +784,148 @@ class SpecialMyProfile extends SpecialPage {
 
     // ===== OCEAN section =====
 
-    private function renderOcean( array $byKey ) {
-        echo '<fieldset class="pcp-prof-section is-collapsed"><legend>Personality</legend>';
-        echo '<p class="pcp-prof-help"><small>Every assessment shares the same privacy model: a <strong>summary scores</strong> visibility (controls the public summary card) and a <strong>raw item responses</strong> visibility (controls the per-item breakdown in the full report). Defaults are private until you opt in.</small></p>';
+    /** Assessment keys in display order, for the Personality/Assessments picker. */
+    private const ASSESSMENT_KEYS = [
+        'ocean', 'mbti', 'enneagram', 'pid5bf', 'cati',
+        'catq', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'hyd', 'asrs', 'ocipcp',
+    ];
 
+    /** Add-an-assessment catalog: key => [ label, blurb, item count, ~minutes ]. */
+    private function assessmentCatalog(): array {
+        return [
+            'ocean'      => [ 'Big Five (OCEAN)', 'The five broad personality dimensions, via the brief BFI-10.', 10, 1 ],
+            'mbti'       => [ 'MBTI / Jungian Type', 'Four bipolar Jungian dichotomies, scored dimensionally.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Mbti::ITEMS ), 8 ],
+            'enneagram'  => [ 'Enneagram of Personality', 'The nine-type personality model, scored dimensionally.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Enneagram::ITEMS ), 8 ],
+            'pid5bf'     => [ 'PID-5-BF-PCP', 'Five maladaptive personality-trait domains.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::ITEMS ), 5 ],
+            'cati'       => [ 'CATI-PCP', 'Autistic traits across multiple facets.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::ITEMS ), 12 ],
+            'catq'       => [ 'CAT-Q-PCP', 'Social camouflaging of autistic traits.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::ITEMS ), 6 ],
+            'nfcs'       => [ 'Need for Closure', 'How strongly you prefer certainty over ambiguity.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::ITEMS ), 4 ],
+            'bpns'       => [ 'Basic Psychological Needs', 'Satisfaction of autonomy, competence, and relatedness.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::ITEMS ), 5 ],
+            'whoqolbref' => [ 'WHO Quality of Life (Brief)', 'Quality of life across four broad domains.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::ITEMS ), 6 ],
+            'amaas'      => [ 'AMAAS-PCP-SR', 'Attention and motivation, self-reported.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::ITEMS ), 5 ],
+            'hyd'        => [ 'HYD-PCP', 'A quick wellbeing check-in across eight everyday domains, taken again over time.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ITEMS ), 3 ],
+            'asrs'       => [ 'ASRS', 'Adult ADHD self-report screener.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::ITEMS ), 4 ],
+            'ocipcp'     => [ 'OCI-PCP', 'Obsessive-compulsive symptoms across six domains. Adapted from OCI-R.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::ITEMS ), 5 ],
+        ];
+    }
+
+    /** True if the user has any stored data for this assessment. */
+    private function assessmentHasData( $store, int $profileId, string $key ): bool {
+        $namespaces = $key === 'ocean' ? [ 'ocean', 'bfi10' ] : [ $key, $key . '_raw' ];
+        foreach ( $namespaces as $ns ) {
+            foreach ( $store->getFields( $profileId, $ns, 0 ) as $f ) {
+                if ( (string)$f->pf_key !== '_vis' ) { return true; }
+            }
+        }
+        return false;
+    }
+
+    /** Assessment keys currently on the user's profile. Explicit picks once the
+     *  picker has been touched; otherwise pre-seeded from tests that have data. */
+    private function effectiveAssessmentPicks( $store, int $profileId ): array {
+        $initialized = false;
+        $picked = [];
+        foreach ( $store->getFields( $profileId, 'assessment_picks', 0 ) as $r ) {
+            $k = (string)$r->pf_key;
+            if ( $k === '_initialized' ) { $initialized = true; continue; }
+            if ( in_array( $k, self::ASSESSMENT_KEYS, true ) ) { $picked[] = $k; }
+        }
+        if ( $initialized ) { return $picked; }
+        $seed = [];
+        foreach ( self::ASSESSMENT_KEYS as $k ) {
+            if ( $this->assessmentHasData( $store, $profileId, $k ) ) { $seed[] = $k; }
+        }
+        return $seed;
+    }
+
+    /** Apply an add/remove to the user's assessment picks. Materializes the
+     *  pre-seed on first touch so a deliberately empty set is not later
+     *  mistaken for "picker never used". Called from save(). */
+    private function applyAssessmentPick( $store, int $profileId, string $add, string $remove ) {
+        $initialized = false;
+        foreach ( $store->getFields( $profileId, 'assessment_picks', 0 ) as $r ) {
+            if ( (string)$r->pf_key === '_initialized' ) { $initialized = true; break; }
+        }
+        if ( !$initialized ) {
+            foreach ( self::ASSESSMENT_KEYS as $k ) {
+                if ( $this->assessmentHasData( $store, $profileId, $k ) ) {
+                    $store->setField( $profileId, 'assessment_picks', $k, null, 1.0, 0 );
+                }
+            }
+            $store->setField( $profileId, 'assessment_picks', '_initialized', null, 1.0, 0 );
+        }
+        if ( $add !== '' && in_array( $add, self::ASSESSMENT_KEYS, true ) ) {
+            $store->setField( $profileId, 'assessment_picks', $add, null, 1.0, 0 );
+        }
+        if ( $remove !== '' && in_array( $remove, self::ASSESSMENT_KEYS, true ) ) {
+            $store->deleteField( $profileId, 'assessment_picks', $remove );
+        }
+    }
+
+    private function renderOcean( array $byKey ) {
+        $store = new UserProfileStore();
+        $profileId = (int)$store->getOrCreateForUser( $this->getUser()->getId() )->prof_id;
+        $catalog = $this->assessmentCatalog();
+        $picks = $this->effectiveAssessmentPicks( $store, $profileId );
+
+        echo '<fieldset id="pcp-assessments" class="pcp-prof-section is-collapsed"><legend>Personality/Assessments</legend>';
+        echo '<p class="pcp-prof-help"><small>Add the assessments you want on your profile. Each shares the same privacy model: a <strong>summary scores</strong> visibility (controls the public summary card) and a <strong>raw item responses</strong> visibility (controls the per-item breakdown in the full report). Defaults are private until you opt in.</small></p>';
+
+        // ---- Add-an-assessment catalog (the not-yet-picked tests) ----
+        $unpicked = [];
+        foreach ( self::ASSESSMENT_KEYS as $k ) {
+            if ( !in_array( $k, $picks, true ) ) { $unpicked[] = $k; }
+        }
+        if ( $unpicked ) {
+            echo '<details class="pcp-assess-catalog"' . ( $picks ? '' : ' open' ) . '>';
+            echo '<summary class="pcp-assess-catalog-summary">&#x2795; Add an assessment</summary>';
+            echo '<div class="pcp-assess-catalog-grid">';
+            foreach ( $unpicked as $k ) {
+                [ $label, $blurb, $items, $minutes ] = $catalog[ $k ];
+                echo '<div class="pcp-assess-tile">';
+                echo '<div class="pcp-assess-tile-name">' . htmlspecialchars( $label ) . '</div>';
+                echo '<div class="pcp-assess-tile-blurb">' . htmlspecialchars( $blurb ) . '</div>';
+                echo '<div class="pcp-assess-tile-meta">' . (int)$items . ' items &middot; ~' . (int)$minutes . ' min</div>';
+                echo '<button type="submit" name="pcp_pick_add" value="' . htmlspecialchars( $k ) . '" data-pcp-pick-key="' . htmlspecialchars( $k ) . '" class="pcp-assess-tile-add mw-ui-button mw-ui-progressive">Add</button>';
+                echo '</div>';
+            }
+            echo '</div></details>';
+        }
+
+        // ---- Picked assessments, in display order, each with a remove control ----
+        foreach ( self::ASSESSMENT_KEYS as $k ) {
+            if ( !in_array( $k, $picks, true ) ) { continue; }
+            echo '<div class="pcp-assess-picked" id="pcp-assessment-' . htmlspecialchars( $k ) . '">';
+            echo '<button type="submit" name="pcp_pick_remove" value="' . htmlspecialchars( $k ) . '" class="pcp-assess-remove" title="Remove this assessment from your profile" aria-label="Remove this assessment">&#x2716;</button>';
+            switch ( $k ) {
+                case 'ocean':      $this->renderBfi10( $byKey ); break;
+                case 'mbti':       $this->renderMbti( $byKey ); break;
+                case 'enneagram':  $this->renderEnneagram( $byKey ); break;
+                case 'pid5bf':     $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::class ); break;
+                case 'cati':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::class ); break;
+                case 'catq':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::class ); break;
+                case 'nfcs':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class ); break;
+                case 'bpns':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class ); break;
+                case 'whoqolbref': $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class ); break;
+                case 'amaas':      $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class ); break;
+                case 'hyd':        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class ); break;
+                case 'asrs':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class ); break;
+                case 'ocipcp':     $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class ); break;
+            }
+            echo '</div>';
+        }
+
+        if ( !$picks ) {
+            echo '<p class="pcp-prof-help pcp-assess-empty"><small>No assessments on your profile yet. Pick from <strong>Add an assessment</strong> above to get started.</small></p>';
+        }
+
+        echo '</fieldset>';
+    }
+
+    /** Big Five (OCEAN) / BFI-10 block. The hidden OCEAN trait sliders ride
+     *  with it: the BFI-10 compute writes them and the form save reads
+     *  f[ocean][O..N]. Dispatched from renderOcean() when 'ocean' is picked. */
+    private function renderBfi10( array $byKey ) {
         // OCEAN trait sliders: kept in DOM (hidden via CSS) so the BFI-10
         // 'Compute & fill OCEAN sliders' button can still write to them and
         // the form save still includes f[ocean][O..N]. User-facing chrome
@@ -825,7 +977,7 @@ class SpecialMyProfile extends SpecialPage {
                 break;
             }
         }
-        echo '<details class="pcp-assess-inline"><summary class="pcp-assess-summary">&#x1F4DD; Big Five (OCEAN) / BFI-10 (10 items, ~1 min, auto-fills your Big Five) &middot; ' . $bfi10Status . ' &middot; ' . $oceanStatus . '</summary>';
+        echo '<details class="pcp-assess-inline"><summary class="pcp-assess-summary">&#x1F4DD; Big Five (OCEAN) / BFI-10-PCP (10 items, ~1 min, auto-fills your Big Five) &middot; ' . $bfi10Status . ' &middot; ' . $oceanStatus . '</summary>';
         echo '<div class="pcp-assess-body pcp-bfi10" data-pcp-save-block="bfi10">';
         echo '<p class="pcp-prof-help pcp-report-toplink"><small><a href="' . htmlspecialchars( $oceanReportUrl ) . '">View full Big Five report &rarr;</a></small> ';
         echo '<button type="button" class="pcp-share-chip" data-share-url="' . htmlspecialchars( $oceanShareUrl ) . '" data-assessment-key="ocean" title="Copy a shareable link to this report">🔗 Share</button>';
@@ -839,7 +991,7 @@ class SpecialMyProfile extends SpecialPage {
             echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
         }
         echo '</select></label>';
-        echo '<br><label class="pcp-assess-vis-raw">Visibility for BFI-10 <strong>raw item responses</strong>: ';
+        echo '<br><label class="pcp-assess-vis-raw">Visibility for BFI-10-PCP <strong>raw item responses</strong>: ';
         echo '<select name="tvr[bfi10]">';
         foreach ( [ 0 => "Private", 1 => "Public (default attribution)", 2 => "Public (username)", 3 => "Public (anonymous)" ] as $vv => $lab ) {
             $sel = $bfi10RawVis === $vv ? " selected" : "";
@@ -880,20 +1032,6 @@ class SpecialMyProfile extends SpecialPage {
         // Compute happens automatically on any slider change; status line stays.
         echo '<div class="pcp-bfi10-status"></div>';
         echo '</div></details>';
-
-        // ---- Remaining assessments (simple to complex) ----
-        $this->renderMbti( $byKey );
-        $this->renderEnneagram( $byKey );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class );
-        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class );
-
-        echo '</fieldset>';
     }
 
 
@@ -986,7 +1124,7 @@ class SpecialMyProfile extends SpecialPage {
         // OEJTS items, always visible. (Direct dichotomy sliders removed:
         // the items drive scoring server-side on save.)
         echo '<div class="pcp-mbti-items-block">';
-        echo '<p class="pcp-prof-help"><small>32-item OEJTS test (Jorgenson 2014, openpsychometrics.org, public-source items). Slide each item toward whichever pole feels more accurate. Dichotomy scores compute automatically when you save.</small></p>';
+        echo '<p class="pcp-prof-help"><small>32-item OEJTS-PCP test (Jorgenson 2014, openpsychometrics.org, public-source items). Slide each item toward whichever pole feels more accurate. Dichotomy scores compute automatically when you save.</small></p>';
         echo '<ol class="pcp-mbti-items">';
         foreach ( \MediaWiki\Extension\Pharmacopedia\Assessments\Mbti::ITEMS as $n => [ $left, $right, $dich, $rightPole ] ) {
             $entry    = $rawByN[ $n ] ?? null;
@@ -1065,7 +1203,7 @@ class SpecialMyProfile extends SpecialPage {
         $statusTxt = $statusBits ? ' &middot; ' . implode( ' &middot; ', $statusBits ) : ' &middot; <em>not yet taken</em>';
 
         echo '<details class="pcp-assess-inline">';
-        echo '<summary class="pcp-assess-summary">&#x1F4DD; Take the Enneagram (' . $totalItems . ' items, 9 type patterns)' . $statusTxt . '</summary>';
+        echo '<summary class="pcp-assess-summary">&#x1F4DD; Take the Enneagram-PCP (' . $totalItems . ' items, 9 type patterns)' . $statusTxt . '</summary>';
         echo '<div class="pcp-assess-body" data-pcp-save-block="enneagram">';
         echo '<p class="pcp-prof-help"><small>Nine interrelated personality patterns. Treated <em>dimensionally</em> here, every type carries a continuous 0-100 score, not just one primary label. 45 items (5 per type) on a 5-point Strongly disagree ↔ Strongly agree slider; per-type scores are the mean of each type\'s answered items, mapped to 0-100, auto-computed when you save.';
         if ( $hasScores ) {
@@ -1097,14 +1235,14 @@ class SpecialMyProfile extends SpecialPage {
             }
         }
         echo '<div class="pcp-assess-vis">';
-        echo '<label>Visibility for Enneagram <strong>summary scores</strong>: ';
+        echo '<label>Visibility for Enneagram-PCP <strong>summary scores</strong>: ';
         echo '<select name="v[enneagram][_vis]">';
         foreach ( [ 0 => 'Private', 1 => 'Public (default attribution)', 2 => 'Public (username)', 3 => 'Public (anonymous)' ] as $vv => $lab ) {
             $sel = $vis === $vv ? ' selected' : '';
             echo '<option value="' . $vv . '"' . $sel . '>' . htmlspecialchars( $lab ) . '</option>';
         }
         echo '</select></label>';
-        echo '<br><label class="pcp-assess-vis-raw">Visibility for Enneagram <strong>raw item responses</strong>: ';
+        echo '<br><label class="pcp-assess-vis-raw">Visibility for Enneagram-PCP <strong>raw item responses</strong>: ';
         echo '<select name="tvr[enneagram]">';
         foreach ( [ 0 => 'Private', 1 => 'Public (default attribution)', 2 => 'Public (username)', 3 => 'Public (anonymous)' ] as $vv => $lab ) {
             $sel = $ennRawVis === $vv ? ' selected' : '';
@@ -1149,6 +1287,13 @@ class SpecialMyProfile extends SpecialPage {
     private function save( $store, $profile, $request ) {
         $profileId = (int)$profile->prof_id;
 
+        // Assessment picker: add/remove a test from the Personality/Assessments set.
+        $pickAdd    = trim( (string)$request->getVal( 'pcp_pick_add', '' ) );
+        $pickRemove = trim( (string)$request->getVal( 'pcp_pick_remove', '' ) );
+        if ( $pickAdd !== '' || $pickRemove !== '' ) {
+            $this->applyAssessmentPick( $store, $profileId, $pickAdd, $pickRemove );
+        }
+
         // Identity
         $alias = trim( (string)$request->getVal( 'public_alias', '' ) );
         $showDefault = max( 0, min( 3, (int)$request->getVal( 'show_default', 0 ) ) );
@@ -1157,7 +1302,7 @@ class SpecialMyProfile extends SpecialPage {
 
         // Per-test visibility for summary scores (tv[test_key]).
         $tv = $request->getArray( 'tv' ) ?: [];
-        $allowedTests = [ 'pid5bf', 'raadsr', 'catq', 'cati', 'mbti', 'enneagram', 'ocean', 'bfi10', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs' ];
+        $allowedTests = [ 'pid5bf', 'raadsr', 'catq', 'cati', 'mbti', 'enneagram', 'ocean', 'bfi10', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'hyd', 'asrs', 'ocipcp' ];
         foreach ( $tv as $testKey => $visVal ) {
             $visVal = max( 0, min( 3, (int)$visVal ) );
             if ( !in_array( $testKey, $allowedTests, true ) ) continue;
@@ -1229,7 +1374,9 @@ class SpecialMyProfile extends SpecialPage {
             'bpns'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class,
             'whoqolbref' => \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class,
             'amaas'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class,
+            'hyd'        => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class,
             'asrs'       => \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class,
+            'ocipcp'     => \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class,
         ];
         $tUnsureAll = $request->getArray( 't_unsure' ) ?: [];
         foreach ( $t as $testKey => $items ) {
@@ -1263,6 +1410,8 @@ class SpecialMyProfile extends SpecialPage {
                 'bpns'      => [ 1.0, 7.0 ],
                 'whoqolbref' => [ 1.0, 5.0 ],
                 'amaas'      => [ 0.0, 100.0 ],
+                'hyd'        => [ -100.0, 100.0 ],
+                'ocipcp'     => [ 0.0, 4.0 ],
             ];
             if ( isset( $sliderBounds[ $testKey ] ) ) {
                 [ $lo, $hi ] = $sliderBounds[ $testKey ];
@@ -1354,6 +1503,12 @@ class SpecialMyProfile extends SpecialPage {
         ];
         echo '<fieldset class="pcp-prof-section is-collapsed"><legend>Personality &amp; autism assessments</legend>';
         echo '<p class="pcp-prof-help"><small>Each test is optional. Raw responses are stored privately; only computed subscale &amp; total scores respect the visibility toggle.</small></p>';
+        // Administer-to-others entry point (Phase 2 surface 3).
+        $pcpHubUrl = \MediaWiki\SpecialPage\SpecialPage::getTitleFor(
+            'AdministerAssessments' )->getLocalURL();
+        echo '<div class="pcp-adm" style="margin:2px 0 13px;">'
+            . '<a class="ep-control" href="' . htmlspecialchars( $pcpHubUrl ) . '">'
+            . '<span class="ec-mark"></span>Administer to others</a></div>';
         foreach ( $classes as $cls ) {
             $key = $cls::KEY;
             // Load scores + meta
@@ -2182,8 +2337,9 @@ listEl.addEventListener('click', function(e){
     var del = e.target.closest('.pcp-ft-delete');
     if (del) {
         var id = del.getAttribute('data-uts-id');
-        if (!confirm('Delete this test score?')) return;
-        api('delete', { uts_id: id }, function(err, j){ if (err || j.error) { alert('Delete failed.'); return; } location.reload(); });
+        window.PCPConfirmDelete('Delete this test score?', function(){
+            api('delete', { uts_id: id }, function(err, j){ if (err || j.error) { alert('Delete failed.'); return; } location.reload(); });
+        });
         return;
     }
     var editTrigger = e.target.closest('.pcp-ft-edit') || e.target.closest('.pcp-ft-vis-badge');

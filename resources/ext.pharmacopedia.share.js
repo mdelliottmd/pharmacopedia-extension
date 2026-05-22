@@ -533,7 +533,15 @@
                         $( '<strong>' ).text( c.name ),
                         $( '<span class="pcp-cohort-count">' ).text( ' (' + c.member_count + ' members)' ),
                         $( '<button type="button" class="pcp-btn pcp-btn-danger pcp-cohort-delete">Delete</button>' ).on( 'click', function () {
-                            if ( !confirm( 'Delete cohort "' + c.name + '"? This removes it from any share rules.' ) ) return;
+                            var $del = $( this );
+                            if ( $del.data( 'pcpConfirmed' ) !== true ) {
+                                window.PCPConfirmDelete( 'Delete cohort "' + c.name + '"? This removes it from any share rules.', function () {
+                                    $del.data( 'pcpConfirmed', true );
+                                    $del.trigger( 'click' );
+                                } );
+                                return;
+                            }
+                            $del.removeData( 'pcpConfirmed' );
                             api.postWithToken( 'csrf', {
                                 action: 'pharmacopediacohorts',
                                 op: 'delete',

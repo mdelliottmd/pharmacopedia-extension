@@ -136,14 +136,16 @@
     border-color: #c4b5fd;
     box-shadow: 0 0 0 2px rgba(124,58,237,0.35);
 }
-.pcp-dt-time-prev {
+.pcp-dt-time-prev,
+.pcp-dt-date-prev {
     color: #c4b5fd;
     font-size: 0.72em;
     margin-top: 0.15em;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     min-height: 1.1em;
 }
-.pcp-dt-time-prev.bad {
+.pcp-dt-time-prev.bad,
+.pcp-dt-date-prev.bad {
     color: #ef4444;
 }
 

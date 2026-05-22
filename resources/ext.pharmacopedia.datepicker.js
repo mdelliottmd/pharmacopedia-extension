@@ -429,6 +429,19 @@
         if ( rootEl.dataset.initial ) {
             try { initial = JSON.parse( rootEl.dataset.initial ); } catch ( e ) { initial = null; }
         }
+        // pcp-range-keynorm: the natural-language ObservationParser emits a
+        // range struct keyed from/through; this widget reads start/end. Map
+        // them so a parser-created entry pre-fills on edit. Original keys kept.
+        ( function normalizeRangeKeys( s ) {
+            if ( !s || typeof s !== 'object' ) { return; }
+            if ( s.kind === 'range' ) {
+                if ( s.start === undefined && s.from !== undefined ) { s.start = s.from; }
+                if ( s.end === undefined && s.through !== undefined ) { s.end = s.through; }
+            }
+            if ( s.kind === 'possibility' && Array.isArray( s.options ) ) {
+                s.options.forEach( normalizeRangeKeys );
+            }
+        }( initial ) );
 
         var startingMode = lockMode || ( initial && initial.kind ? initial.kind : 'point' );
         var state = {
@@ -485,7 +498,7 @@
                         '<label>Date</label>' +
                         '<input type="text" class="pcp-dt-text" data-prefix="' + prefix + '" autocomplete="off"' +
                             ' placeholder="summer 2008 · 2015-03-04 · around age 14">' +
-                        '<div class="pcp-dt-cal" data-prefix="' + prefix + '"></div>' +
+                        '<div class="pcp-dt-date-prev" data-prefix="' + prefix + '"></div>' + '<div class="pcp-dt-cal" data-prefix="' + prefix + '"></div>' +
                     '</div>' +
                     '<div class="pcp-dt-col pcp-dt-col-time">' +
                         '<label>Time</label>' +
@@ -512,7 +525,7 @@
                             '<label>Date</label>' +
                             '<input type="text" class="pcp-dt-text" data-prefix="' + prefix + '" autocomplete="off"' +
                                 ' placeholder="summer 2008 · 2015-03-04 · around age 14">' +
-                            '<div class="pcp-dt-cal" data-prefix="' + prefix + '"></div>' +
+                            '<div class="pcp-dt-date-prev" data-prefix="' + prefix + '"></div>' + '<div class="pcp-dt-cal" data-prefix="' + prefix + '"></div>' +
                         '</div>' +
                         '<div class="pcp-dt-col pcp-dt-col-time">' +
                             '<label>Time</label>' +
@@ -540,7 +553,8 @@
         function wireField( prefix, initialField ) {
             state.fieldState[ prefix ] = {
                 view: { year: new Date().getFullYear(), month: new Date().getMonth() + 1 },
-                selected: null
+                selected: null,
+                initialField: initialField || null
             };
             var textEl = rootEl.querySelector( '.pcp-dt-text[data-prefix="' + prefix + '"]' );
             var calEl  = rootEl.querySelector( '.pcp-dt-cal[data-prefix="'  + prefix + '"]' );
@@ -651,13 +665,41 @@
             var timeEl = rootEl.querySelector( '.pcp-dt-time[data-prefix="' + prefix + '"]' );
             var tzEl   = rootEl.querySelector( '.pcp-dt-tz[data-prefix="'   + prefix + '"]' );
             var prevEl = rootEl.querySelector( '.pcp-dt-time-prev[data-prefix="' + prefix + '"]' );
+            var datePrevEl = rootEl.querySelector( '.pcp-dt-date-prev[data-prefix="' + prefix + '"]' );
             if ( !textEl ) return null;
-            var parsed = parseFuzzy( textEl.value );
+            // pcp-prefill-roundtrip: when the text is byte-identical to the
+            // pre-filled value, reuse the original parsed struct instead of
+            // re-parsing. The server quickadd parser resolves phrases (e.g.
+            // age-relative "when 12yo old") the lighter client parser may
+            // not; a blind re-parse silently drops the date on an untouched
+            // edit-then-save. Re-parse only when the user actually edits.
+            var fs0   = state.fieldState[ prefix ];
+            var initF = fs0 && fs0.initialField;
+            var parsed;
+            if ( initF && initF.raw_text && textEl.value === initF.raw_text && initF.parsed ) {
+                parsed = initF.parsed;
+            } else {
+                parsed = parseFuzzy( textEl.value );
+            }
             var pTime  = parseTime( timeEl.value );
             var tStr   = pTime && !pTime.error ? formatTime( pTime ) : null;
             if ( !timeEl.value.trim() )           { prevEl.textContent = ''; prevEl.classList.remove( 'bad' ); }
             else if ( pTime && pTime.error )      { prevEl.textContent = '? not recognized'; prevEl.classList.add( 'bad' ); }
             else if ( tStr )                      { prevEl.textContent = '→ ' + tStr; prevEl.classList.remove( 'bad' ); }
+            if ( datePrevEl ) {
+                if ( parsed ) {
+                    var dprev = formatParsedForPreview( parsed );
+                    if ( tStr ) { dprev += ' ' + tStr; }
+                    datePrevEl.textContent = '→ ' + dprev;
+                    datePrevEl.classList.remove( 'bad' );
+                } else if ( textEl.value.trim() ) {
+                    datePrevEl.textContent = '? not recognized';
+                    datePrevEl.classList.add( 'bad' );
+                } else {
+                    datePrevEl.textContent = '';
+                    datePrevEl.classList.remove( 'bad' );
+                }
+            }
             return {
                 raw_text:  textEl.value || null,
                 parsed:    parsed,
@@ -861,7 +903,16 @@
                     } );
                 }
                 function updateRangePreview() {
-                    var result = parseRangeText( rangeTextEl.value, rangeTzEl.value );
+                    // pcp-prefill-roundtrip: an untouched pre-filled range
+                    // keeps its original parsed sides instead of re-parsing
+                    // (the client parser may not resolve a server-parsed
+                    // phrase, which would drop the date on save).
+                    var result;
+                    if ( ( initStart || initEnd ) && rangeTextEl.value === combinedText ) {
+                        result = { start: initStart, end: initEnd };
+                    } else {
+                        result = parseRangeText( rangeTextEl.value, rangeTzEl.value );
+                    }
                     state.rangeStart = result.start;
                     state.rangeEnd   = result.end;
                     function describe( label, side ) {

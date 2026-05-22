@@ -1,0 +1,283 @@
+/*!
+ * Category index - the two-origin diptych. Scoped under .pcp-catindex
+ * (the generator wraps its output in that root) so nothing here leaks
+ * into site CSS. Built from /design/category_index.html (designer-claude).
+ */
+.pcp-catindex {
+    /* pharma palette */
+    --p-bg: #0e0d0f; --p-bg-2: #131216; --p-bg-3: #18171c;
+    --p-ink: #ece9f2; --p-ink-dim: #a29eae; --p-ink-mute: #6c6877;
+    --p-violet: #8b5cf6; --p-violet-bright: #a78bfa; --p-violet-ink: #b9a4f0;
+    --p-line: #232230; --p-line-faint: #1a1922;
+    /* plants palette */
+    --l-loam: #110a05; --l-bark: #221610; --l-bark-raised: #2e1f15; --l-bark-edge: #3d2a1d;
+    --l-bone: #d4c5a8; --l-bone-dim: #a8927a; --l-lichen: #7a6650;
+    --l-moss: #6a8a52; --l-fern: #8eb070; --l-amber: #b67a44;
+    --l-walnut: #6b4423; --l-tobacco: #4a2f1a;
+    --l-rule: rgba(212,197,168,0.08); --l-rule-strong: rgba(212,197,168,0.16);
+    color: var(--p-ink);
+    font-size: 13px;
+    line-height: 1.6;
+    /* full-height two-origin split: pharma | 1px #000 seam | plants,
+       painted on the root so the transparent chrome bands (topbar,
+       titleband, strip, footer) carry the diptych edge to edge. The
+       #000 stripe coincides with .col-plant's 1px border-left. */
+    background: linear-gradient(90deg,
+        var(--p-bg) 0, var(--p-bg) 50%,
+        #000 50%, #000 calc(50% + 1px),
+        var(--l-loam) calc(50% + 1px), var(--l-loam) 100%);
+}
+.pcp-catindex * { box-sizing: border-box; }
+.pcp-catindex a { color: inherit; text-decoration: none; }
+.pcp-catindex summary { list-style: none; }
+.pcp-catindex summary::-webkit-details-marker { display: none; }
+
+/* ===== title band (transparent: the root split shows through) ===== */
+.pcp-catindex .titleband {
+    position: relative;
+    border: 1px solid var(--p-line);
+    padding: 34px 30px 30px; text-align: center;
+}
+.pcp-catindex .tb-eyebrow {
+    position: relative; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--p-ink-dim); margin: 0 0 12px;
+}
+.pcp-catindex .tb-title {
+    position: relative; font-family: 'Newsreader', Georgia, serif;
+    font-size: 38px; font-weight: 400; letter-spacing: -0.015em; color: #f4f1f7; margin: 0;
+}
+.pcp-catindex .tb-sub {
+    position: relative; margin: 13px auto 0; max-width: 560px;
+    font-size: 13px; color: var(--p-ink-dim); line-height: 1.6;
+}
+
+/* ===== the diptych ===== */
+.pcp-catindex .diptych { display: flex; align-items: stretch; }
+.pcp-catindex .col { flex: 1 1 0; min-width: 0; padding: 30px 30px 56px; }
+.pcp-catindex .col-pharma {
+    background: var(--p-bg);
+    box-shadow: inset -10px 0 22px -16px rgba(139,92,246,0.35);
+}
+.pcp-catindex .col-plant {
+    position: relative;
+    background:
+      radial-gradient(ellipse 70% 30% at 60% 0%, rgba(107,68,35,0.12), transparent 70%),
+      radial-gradient(ellipse 50% 50% at 90% 60%, rgba(106,138,82,0.05), transparent 70%),
+      var(--l-loam);
+    border-left: 1px solid #000;
+    box-shadow: inset 10px 0 22px -16px rgba(106,138,82,0.32);
+}
+.pcp-catindex .col-inner { position: relative; max-width: 460px; }
+.pcp-catindex .col-pharma .col-inner { margin-left: auto; margin-right: 34px; }
+.pcp-catindex .col-plant .col-inner { margin-right: auto; margin-left: 34px; }
+.pcp-catindex .diptych-seam { display: none; }
+
+/* ===== pharma root ===== */
+.pcp-catindex .troot {
+    position: relative; background: var(--p-bg-2);
+    border: 1px solid var(--p-line); border-top: 2px solid var(--p-violet);
+    padding: 13px 18px 14px;
+}
+.pcp-catindex .troot .rk { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--p-violet-bright); }
+.pcp-catindex .troot .nm { font-family: 'Newsreader', Georgia, serif; font-size: 25px; line-height: 1.1; margin: 4px 0; }
+.pcp-catindex .troot .mt { font-size: 10.5px; color: var(--p-ink-mute); font-variant-numeric: tabular-nums; }
+.pcp-catindex .troot::after {
+    content: ''; position: absolute; left: 27px; top: 100%;
+    width: 1px; height: 16px; background: var(--p-line);
+}
+
+/* ===== plant root ===== */
+.pcp-catindex .lroot {
+    position: relative;
+    background: linear-gradient(158deg, var(--l-bark-raised), var(--l-bark) 75%);
+    border: 1px solid var(--l-rule-strong); border-top: 2px solid var(--l-moss);
+    padding: 16px 20px 17px; display: flex; gap: 16px; align-items: center;
+}
+.pcp-catindex .lroot .lr-sprig { width: 44px; height: 42px; color: var(--l-moss); flex-shrink: 0; }
+.pcp-catindex .lroot .lr-rank { font-size: 9px; letter-spacing: 0.21em; text-transform: uppercase; color: var(--l-moss); }
+.pcp-catindex .lroot .lr-name {
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 26px;
+    color: var(--l-bone); line-height: 1.08; margin: 3px 0 4px;
+}
+.pcp-catindex .lroot .lr-count { font-size: 11px; color: var(--l-lichen); }
+
+/* ===== pharma tree ===== */
+.pcp-catindex .tbody { position: relative; }
+.pcp-catindex .tbranch { position: relative; padding: 15px 0 5px 70px; }
+.pcp-catindex .tbranch::before {
+    content: ''; position: absolute; left: 27px; top: 0; bottom: 0;
+    width: 1px; background: var(--p-line);
+}
+.pcp-catindex .tbranch:last-child::before { bottom: auto; height: 38px; }
+.pcp-catindex .tbranch::after {
+    content: ''; position: absolute; left: 27px; top: 38px;
+    width: 43px; height: 1px; background: var(--p-line);
+}
+.pcp-catindex summary.tnode {
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; outline: none; padding: 1px 0;
+}
+.pcp-catindex .tw-chev {
+    flex-shrink: 0; padding: 3px;
+    border: solid var(--p-violet-bright); border-width: 0 1.6px 1.6px 0;
+    transform: rotate(-45deg); transition: transform .18s ease;
+}
+.pcp-catindex details.tbranch[open] > summary .tw-chev { transform: rotate(45deg); }
+.pcp-catindex .tnode-body { min-width: 0; }
+.pcp-catindex .tnode .rk { font-size: 8.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--p-ink-mute); }
+.pcp-catindex .tnode .nm {
+    font-family: 'Newsreader', Georgia, serif; font-size: 16px;
+    margin: 1px 0 0; display: flex; align-items: baseline; gap: 9px;
+}
+.pcp-catindex .tnode .ct {
+    font-family: 'Geist', sans-serif; font-size: 9px; color: var(--p-violet-ink);
+    border: 1px solid var(--p-line); padding: 1px 6px; letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums; position: relative; top: -2px;
+}
+.pcp-catindex .tbranch > summary:hover .nm-t { color: var(--p-violet-ink); }
+.pcp-catindex .tbranch > summary:hover .tw-chev { border-color: var(--p-violet-ink); }
+.pcp-catindex .tbranch > summary:focus-visible { outline: 1px solid var(--p-violet); outline-offset: 3px; }
+.pcp-catindex .tfoliage {
+    margin-top: 11px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1px; background: var(--p-line-faint); border: 1px solid var(--p-line-faint);
+}
+.pcp-catindex .tleaf {
+    background: var(--p-bg-2); padding: 7px 10px;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+}
+.pcp-catindex .tleaf .lg { width: 5px; height: 5px; flex-shrink: 0; background: var(--p-violet); opacity: 0.65; }
+.pcp-catindex .tleaf a { color: var(--p-ink); }
+.pcp-catindex .tleaf:hover { background: var(--p-bg-3); }
+.pcp-catindex .tleaf:hover a { color: var(--p-violet-ink); }
+.pcp-catindex .tleaf:hover .lg { opacity: 1; }
+.pcp-catindex .tleaf a.new { color: #a8736d; }
+.pcp-catindex details.tbranch[open] > .tfoliage { animation: pcp-ci-open .19s ease both; }
+
+/* ===== plant tree ===== */
+.pcp-catindex .lbody { position: relative; padding-top: 6px; }
+.pcp-catindex .trunk {
+    position: absolute; left: 30px; top: -16px; bottom: 12px; width: 15px;
+    background: linear-gradient(177deg, var(--l-bark-edge), var(--l-walnut) 42%, var(--l-tobacco));
+    border-radius: 8px 8px 4px 4px;
+    clip-path: polygon(0% 0%, 100% 0%, 100% 91%, 50% 100%, 0% 91%);
+}
+.pcp-catindex .lbranch { position: relative; padding: 15px 0 13px 116px; }
+.pcp-catindex .bough {
+    position: absolute; left: 28px; top: 5px; width: 96px; height: 88px;
+    color: var(--l-walnut); pointer-events: none;
+}
+.pcp-catindex summary.lnode { display: block; cursor: pointer; outline: none; }
+.pcp-catindex .lnode-top { display: flex; align-items: center; gap: 10px; }
+.pcp-catindex .lw-chev {
+    flex-shrink: 0; padding: 3px;
+    border: solid var(--l-lichen); border-width: 0 1.7px 1.7px 0;
+    transform: rotate(-45deg); transition: transform .18s ease;
+}
+.pcp-catindex details.lbranch[open] > summary .lw-chev { transform: rotate(45deg); border-color: var(--l-moss); }
+.pcp-catindex .lnode .ln-glyph { width: 19px; height: 22px; color: var(--l-moss); flex-shrink: 0; }
+.pcp-catindex .lnode .ln-name {
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 20px;
+    color: var(--l-bone); line-height: 1.1;
+}
+.pcp-catindex .lnode .ln-count {
+    font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--l-lichen); border: 1px solid var(--l-rule-strong); padding: 2px 7px;
+}
+.pcp-catindex .lnode .ln-desc { font-size: 11.5px; color: var(--l-bone-dim); margin: 5px 0 0 48px; }
+.pcp-catindex .lbranch > summary:hover .ln-name { color: var(--l-amber); }
+.pcp-catindex .lbranch > summary:hover .lw-chev { border-color: var(--l-amber); }
+.pcp-catindex .lbranch > summary:focus-visible { outline: 1px solid var(--l-moss); outline-offset: 3px; }
+.pcp-catindex .lfoliage { margin: 13px 0 0 48px; display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.pcp-catindex .leaf { display: flex; align-items: center; gap: 9px; padding: 2px; }
+.pcp-catindex .leaf .leaf-ic { width: 20px; height: 23px; color: var(--l-moss); flex-shrink: 0; transition: transform .18s ease; }
+.pcp-catindex .leaf:nth-child(2n) .leaf-ic { color: var(--l-fern); }
+.pcp-catindex .leaf .lf-name { font-family: 'Source Serif 4', Georgia, serif; font-size: 14px; color: var(--l-bone); }
+.pcp-catindex .leaf:hover .leaf-ic { color: var(--l-fern); transform: scale(1.12); }
+.pcp-catindex .leaf:hover .lf-name { color: var(--l-amber); }
+.pcp-catindex details.lbranch[open] > .lfoliage { animation: pcp-ci-open .2s ease both; }
+
+@keyframes pcp-ci-open {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pcp-catindex .tw-chev, .pcp-catindex .lw-chev, .pcp-catindex .leaf .leaf-ic { transition: none; }
+    .pcp-catindex details.tbranch[open] > .tfoliage,
+    .pcp-catindex details.lbranch[open] > .lfoliage { animation: none; }
+}
+
+/* ===== narrow viewport: stack, pharma above plant ===== */
+@media (max-width: 880px) {
+    /* the diptych stacks: drop the desktop split, flat root background */
+    .pcp-catindex { background: var(--p-bg); }
+    .pcp-catindex .diptych { flex-direction: column; }
+    .pcp-catindex .col-pharma, .pcp-catindex .col-plant { box-shadow: none; }
+    .pcp-catindex .col-plant { border-left: 0; }
+    .pcp-catindex .col-pharma .col-inner, .pcp-catindex .col-plant .col-inner { margin: 0 auto; }
+    .pcp-catindex .tb-title { font-size: 30px; }
+    .pcp-catindex .diptych-seam {
+        display: flex; flex-direction: column; align-items: center; gap: 7px;
+        padding: 30px 22px; text-align: center;
+        background: linear-gradient(180deg, var(--p-bg), var(--l-loam));
+    }
+    .pcp-catindex .seam-sprig { width: 30px; height: 28px; color: var(--l-moss); }
+    .pcp-catindex .seam-eyebrow { font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--l-lichen); }
+    .pcp-catindex .seam-label { font-family: 'Source Serif 4', Georgia, serif; font-size: 17px; color: var(--l-bone); }
+}
+
+
+/* Flat class node: a curated pharma class with no subcategories in the live
+   graph. No <details>, no chevron - the class name links straight to its
+   category page. Left-padded to line up with the chevroned branches. */
+.pcp-catindex .tbranch-flat > .tnode {
+    display: flex; align-items: center; gap: 12px;
+    padding: 1px 0 1px 23px;
+}
+.pcp-catindex a.nm-t { color: var(--p-ink); }
+.pcp-catindex .tbranch-flat > .tnode:hover a.nm-t { color: var(--p-violet-ink); }
+
+
+/* ===== chromeless-splash chrome: the module's own topbar + footer.
+   The Main Page / Category index drop all Vector chrome (the
+   pcp-diptych-page body class, step 2); the module carries this. ===== */
+.pcp-catindex .topbar {
+    display: flex; align-items: center; gap: 22px;
+    padding: 13px 30px; border-bottom: 1px solid var(--p-line);
+}
+.pcp-catindex .brand { display: flex; align-items: center; gap: 11px; }
+.pcp-catindex .seal svg { width: 27px; height: 27px; color: var(--p-violet-bright); display: block; }
+.pcp-catindex .wm-top {
+    font-family: 'Newsreader', Georgia, serif; font-size: 18px;
+    font-weight: 500; color: var(--p-ink);
+}
+.pcp-catindex .topnav { margin-left: auto; display: flex; gap: 21px; align-items: center; font-size: 12.5px; }
+.pcp-catindex .topnav a { color: var(--p-ink-dim); }
+.pcp-catindex .topnav a:hover { color: var(--p-ink); }
+.pcp-catindex .topnav .search {
+    display: flex; align-items: center; gap: 8px; color: var(--p-ink-mute);
+    border: 1px solid var(--p-line); padding: 5px 10px; font-size: 12px;
+}
+.pcp-catindex .footer { border-top: 1px solid var(--p-line); }
+.pcp-catindex .footer-row {
+    display: flex; justify-content: center; gap: 44px; flex-wrap: wrap;
+    padding: 22px 30px 40px;
+}
+.pcp-catindex .footer-meta { text-align: center; }
+.pcp-catindex .footer-line { font-size: 11px; color: var(--p-ink-mute); margin: 0 0 4px; }
+.pcp-catindex .footer-links { display: flex; gap: 16px; justify-content: center; margin-top: 9px; }
+.pcp-catindex .footer-links a { font-size: 11px; color: var(--p-ink-dim); }
+.pcp-catindex .footer-links a:hover { color: var(--p-violet-ink); }
+
+/* full-viewport fill: only in chromeless mode (the body class is added
+   on the two splash pages by step 2). The grounds reach the screen
+   bottom even when content is short. */
+body.pcp-diptych-page .pcp-catindex {
+    min-height: 100vh; display: flex; flex-direction: column;
+}
+body.pcp-diptych-page .pcp-catindex .diptych { flex: 1 1 auto; }
+
+@media (max-width: 880px) {
+    .pcp-catindex .topnav a:not(.search) { display: none; }
+}
+
