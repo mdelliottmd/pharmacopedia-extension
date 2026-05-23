@@ -141,7 +141,8 @@
         }
         function show( visible ) {
             chipTop.style.display = visible ? 'inline-block' : 'none';
-            bottomWrap.style.display = visible ? 'block' : 'none';
+            // bottomWrap retired in favor of the near-control chip.
+            bottomWrap.style.display = 'none';
         }
 
         function scheduleAutosave() {
@@ -168,8 +169,40 @@
             if ( dirty ) scheduleAutosave();
         }
 
-        blockEl.addEventListener( 'input', checkDirty );
-        blockEl.addEventListener( 'change', checkDirty );
+        // Pin chipTop to the top-right corner of the touched control.
+        // chipTop is reparented to document.body and positioned absolutely;
+        // recomputes on every input event and on scroll while pending.
+        var pcpChipTarget = null;
+        function pcpChipPin() {
+            if ( !pcpChipTarget || !document.body.contains( pcpChipTarget ) ) { return; }
+            var r = pcpChipTarget.getBoundingClientRect();
+            // 16px dot; nudgeX centers chip on the corner, nudgeY lifts 3px more
+            var nudgeX = 4;   // 4px further right than centered (Mark 2026-05-22)
+            var nudgeY = 15;  // 4px higher than the previous 11 (Mark 2026-05-22)
+            chipTop.style.top  = ( r.top  + window.scrollY - nudgeY ) + 'px';
+            chipTop.style.left = ( r.right + window.scrollX - nudgeX ) + 'px';
+        }
+        function pcpMoveChipNear( target ) {
+            if ( !target || !target.tagName ) { return; }
+            var tag = target.tagName;
+            if ( tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA' ) { return; }
+            if ( target.type === 'submit' || target.type === 'button' || target.type === 'hidden' ) { return; }
+            // skip when target is inside an excluded add-row slot
+            if ( target.name && ( target.name.indexOf( 'dx_new' ) === 0 || target.name.indexOf( 'um_new' ) === 0 ) ) { return; }
+            pcpChipTarget = target;
+            if ( chipTop.parentNode !== document.body ) {
+                document.body.appendChild( chipTop );
+            }
+            pcpChipPin();
+        }
+        window.addEventListener( 'scroll',  pcpChipPin, true );
+        window.addEventListener( 'resize',  pcpChipPin );
+        function pcpCheckDirtyEvt( e ) {
+            if ( e ) { pcpMoveChipNear( e.target ); }
+            checkDirty();
+        }
+        blockEl.addEventListener( 'input',  pcpCheckDirtyEvt );
+        blockEl.addEventListener( 'change', pcpCheckDirtyEvt );
 
         function doSave( e, force ) {
             if ( e && e.preventDefault ) e.preventDefault();

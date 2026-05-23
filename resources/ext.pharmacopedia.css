@@ -5514,11 +5514,11 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     padding: 0;
     cursor: pointer;
 
-    /* Circle */
+    /* Circle (13px = 14px - 10%, 2026-05-22) */
     display: inline-block;
-    width: 0.9em;
-    height: 0.9em;
-    min-width: 0.9em;
+    width: 13px;
+    height: 13px;
+    min-width: 13px;
     border-radius: 50%;
     background: #555;
     opacity: 0;
@@ -5529,19 +5529,19 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     line-height: 0;
 }
 .pcp-block-save-dot.saving {
-    opacity: 1;
+    opacity: 0.8;
     background: #f59e0b;       /* amber */
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
     animation: pcp-block-save-pulse 1s ease-in-out infinite;
 }
 .pcp-block-save-dot.saved {
-    opacity: 1;
+    opacity: 0.8;
     background: #4ade80;       /* green, matches RequestReview */
     box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.25);
     animation: none;
 }
 .pcp-block-save-dot.error {
-    opacity: 1;
+    opacity: 0.8;
     background: #f87171;       /* red, matches RequestReview */
     box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.3);
     animation: none;
@@ -9275,3 +9275,10 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.is-committed .pcp-rate-num { color
 #vector-appearance-pinned-container,
 #vector-appearance-unpinned-container,
 .vector-appearance-landmark { display: none !important; }
+
+/* dot-chip top-right pin (2026-05-22): blocksave appends the chip to
+   document.body and positions it absolutely at the touched control's
+   top-right corner, like a notification badge. The base .pcp-block-save-
+   dot rule already sets display:inline-block + size; this rule just gives
+   it absolute placement and a stacking context above form chrome. */
+.pcp-block-save-dot { position: absolute; z-index: 50; pointer-events: auto; }

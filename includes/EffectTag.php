@@ -75,7 +75,12 @@ class EffectTag {
 
         // HEAD line
         $h .= '<div class="pcp-row-head">';
-        $h .= '<span class="pcp-row-title pcp-effect-label">' . $labelEsc . '</span>';
+        $pcpEffTitle = defined( 'NS_EFFECT' ) ? \MediaWiki\Title\Title::makeTitleSafe( NS_EFFECT, $label ) : null;
+        if ( $pcpEffTitle ) {
+            $h .= '<span class="pcp-row-title pcp-effect-label"><a href="' . htmlspecialchars( $pcpEffTitle->getLocalURL() ) . '">' . $labelEsc . '</a></span>';
+        } else {
+            $h .= '<span class="pcp-row-title pcp-effect-label">' . $labelEsc . '</span>';
+        }
         $h .= '<span class="pcp-row-aggs">';
         $h .= self::renderPatientAggRow( $patient );
         $h .= self::renderProviderAggRow( $provider );

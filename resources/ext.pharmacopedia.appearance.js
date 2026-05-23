@@ -463,3 +463,195 @@
         ready();
     }
 }() );
+
+/* topnav live search: debounced REST title-search dropdown.
+   Lives in DiptychChrome's .tn-search slot (Main Page +
+   Category index). No-op on pages where the slot is absent. */
+( function () {
+    var doc = document;
+    function pcpTopnavSearch() {
+        var root = doc.querySelector( '.tn-search' );
+        if ( !root ) { return; }
+        var input  = root.querySelector( '.tn-search-input' );
+        var list   = root.querySelector( '.tn-search-results' );
+        if ( !input || !list ) { return; }
+        var debounceMs = 180;
+        var minChars   = 2;
+        var limit      = 8;
+        var lastQuery  = '';
+        var timer      = null;
+        var activeIdx  = -1;
+        var lastFetch  = 0;
+
+        function close() {
+            list.hidden = true;
+            list.innerHTML = '';
+            activeIdx = -1;
+            root.setAttribute( 'aria-expanded', 'false' );
+        }
+        function ensureOpen() {
+            list.hidden = false;
+            root.setAttribute( 'aria-expanded', 'true' );
+        }
+        function setActive( i ) {
+            var items = list.querySelectorAll( 'li[data-href]' );
+            for ( var k = 0; k < items.length; k++ ) {
+                items[ k ].classList.toggle( 'is-active', k === i );
+            }
+            activeIdx = i;
+            if ( i >= 0 && items[ i ] ) {
+                items[ i ].scrollIntoView( { block: 'nearest' } );
+            }
+        }
+        function render( pages ) {
+            list.innerHTML = '';
+            if ( !pages || !pages.length ) {
+                var empty = doc.createElement( 'div' );
+                empty.className = 'tn-r-empty';
+                empty.textContent = 'No matches';
+                list.appendChild( empty );
+                ensureOpen();
+                return;
+            }
+            for ( var i = 0; i < pages.length; i++ ) {
+                var p = pages[ i ];
+                var li = doc.createElement( 'li' );
+                li.setAttribute( 'role', 'option' );
+                var url = p._url ? p._url
+                    : ( ( window.mw && mw.util && mw.util.getUrl )
+                        ? mw.util.getUrl( p.key || p.title )
+                        : ( '/index.php?title=' + encodeURIComponent( ( p.key || p.title ).replace( / /g, '_' ) ) ) );
+                li.setAttribute( 'data-href', url );
+                var tEl = doc.createElement( 'div' );
+                tEl.className = 'tn-r-title';
+                tEl.textContent = p.title || p.key || '';
+                li.appendChild( tEl );
+                if ( p.description ) {
+                    var dEl = doc.createElement( 'div' );
+                    dEl.className = 'tn-r-desc';
+                    dEl.textContent = p.description;
+                    li.appendChild( dEl );
+                }
+                li.addEventListener( 'mousedown', function ( ev ) {
+                    ev.preventDefault();
+                    window.location.href = this.getAttribute( 'data-href' );
+                } );
+                list.appendChild( li );
+            }
+            ensureOpen();
+            activeIdx = -1;
+        }
+        // Use action=opensearch (case-insensitive, MW's native typeahead).
+        // Namespaces: main + Category + Enzyme + Receptor + Phenotype +
+        // USLegal + Problem + Effect.
+        var nsSet = '0|14|3000|3002|3004|3006|3008|3010';
+        function fetchSuggestions( q ) {
+            var url = '/api.php?action=opensearch'
+                + '&search=' + encodeURIComponent( q )
+                + '&namespace=' + nsSet
+                + '&limit=' + limit
+                + '&format=json&formatversion=2';
+            var token = ++lastFetch;
+            fetch( url, { credentials: 'same-origin' } )
+                .then( function ( r ) { return r.ok ? r.json() : null; } )
+                .then( function ( d ) {
+                    if ( token !== lastFetch ) { return; }
+                    // opensearch shape: [ query, titles[], descs[], urls[] ]
+                    if ( !d || !d[ 1 ] || !d[ 1 ].length ) {
+                        pcpFulltextFallback( q, token );
+                        return;
+                    }
+                    var titles = d[ 1 ], descs = d[ 2 ] || [], urls = d[ 3 ] || [];
+                    var pages = [];
+                    for ( var i = 0; i < titles.length; i++ ) {
+                        pages.push( {
+                            title:       titles[ i ],
+                            key:         titles[ i ],
+                            description: descs[ i ] || '',
+                            _url:        urls[ i ] || ''
+                        } );
+                    }
+                    render( pages );
+                } )
+                .catch( function () { /* network errors silent */ } );
+        }
+
+        // Case-insensitive full-text fallback (handles all-caps titles
+        // like 'LSD' that opensearch's prefix index misses on lower-
+        // case queries). Slower than opensearch so only fired when the
+        // fast path returned zero.
+        function pcpFulltextFallback( q, token ) {
+            var nsArr = nsSet.split( '|' ).join( '|' );
+            var url = '/api.php?action=query&list=search'
+                + '&srsearch=' + encodeURIComponent( q )
+                + '&srnamespace=' + nsArr
+                + '&srlimit=' + limit
+                + '&srprop=snippet'
+                + '&format=json&formatversion=2';
+            fetch( url, { credentials: 'same-origin' } )
+                .then( function ( r ) { return r.ok ? r.json() : null; } )
+                .then( function ( d ) {
+                    if ( token !== lastFetch ) { return; }
+                    var hits = d && d.query && d.query.search;
+                    if ( !hits || !hits.length ) { render( [] ); return; }
+                    var pages = [];
+                    for ( var i = 0; i < hits.length; i++ ) {
+                        var h = hits[ i ];
+                        var snip = ( h.snippet || '' ).replace( /<[^>]+>/g, '' );
+                        pages.push( {
+                            title:       h.title,
+                            key:         h.title,
+                            description: snip
+                        } );
+                    }
+                    render( pages );
+                } )
+                .catch( function () { /* silent */ } );
+        }
+        input.addEventListener( 'input', function () {
+            var q = input.value.trim();
+            if ( q === lastQuery ) { return; }
+            lastQuery = q;
+            clearTimeout( timer );
+            if ( q.length < minChars ) { close(); return; }
+            timer = setTimeout( function () { fetchSuggestions( q ); }, debounceMs );
+        } );
+        input.addEventListener( 'keydown', function ( e ) {
+            var items = list.querySelectorAll( 'li[data-href]' );
+            if ( e.key === 'ArrowDown' ) {
+                e.preventDefault();
+                if ( !items.length ) { return; }
+                setActive( ( activeIdx + 1 ) % items.length );
+            } else if ( e.key === 'ArrowUp' ) {
+                e.preventDefault();
+                if ( !items.length ) { return; }
+                setActive( ( activeIdx - 1 + items.length ) % items.length );
+            } else if ( e.key === 'Enter' ) {
+                if ( activeIdx >= 0 && items[ activeIdx ] ) {
+                    e.preventDefault();
+                    window.location.href = items[ activeIdx ].getAttribute( 'data-href' );
+                } else if ( input.value.trim().length >= minChars ) {
+                    e.preventDefault();
+                    window.location.href = '/index.php?title=Special:Search&search='
+                        + encodeURIComponent( input.value.trim() );
+                }
+            } else if ( e.key === 'Escape' ) {
+                close();
+                input.blur();
+            }
+        } );
+        doc.addEventListener( 'click', function ( e ) {
+            if ( !root.contains( e.target ) ) { close(); }
+        } );
+        input.addEventListener( 'focus', function () {
+            if ( list.children.length && input.value.trim().length >= minChars ) {
+                ensureOpen();
+            }
+        } );
+    }
+    if ( doc.readyState === 'loading' ) {
+        doc.addEventListener( 'DOMContentLoaded', pcpTopnavSearch );
+    } else {
+        pcpTopnavSearch();
+    }
+}() );

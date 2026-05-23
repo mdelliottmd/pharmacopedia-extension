@@ -156,9 +156,6 @@ class SpecialMyProfile extends SpecialPage {
             <?php $this->renderMeds( $store, $profile ); ?>
             <?php $this->renderFormalTesting( $store, $profile ); ?>
 
-            <div class="pcp-prof-save">
-                <button type="submit" class="mw-ui-button mw-ui-progressive">Save profile</button>
-            </div>
         </form>
         <?php
         $out->addHTML( ob_get_clean() );
@@ -196,7 +193,8 @@ class SpecialMyProfile extends SpecialPage {
 
     /**
      * Render one assessment as a <details> block consistent with BFI-10's inline style.
-     * Items POST as t[<key>][<n>]. Saving happens via the main "Save profile" button.
+     * Items POST as t[<key>][<n>]. The per-block autosave (800ms after
+     * change) commits via Special:SaveProfileBlock; no explicit Save click.
      */
     private function renderInlineAssessment( string $cls ) {
         $store = new UserProfileStore();
@@ -378,7 +376,7 @@ class SpecialMyProfile extends SpecialPage {
             }
             echo '</ol>';
         }
-        echo '<p class="pcp-prof-help"><small>Responses are saved when you click <strong>Save profile</strong> at the bottom of the page. Partial responses are allowed; subscale scores are computed from whatever items you have answered.</small></p>';
+        echo '<p class="pcp-prof-help"><small>Responses save automatically 800ms after you stop changing them. Partial responses are allowed; subscale scores are computed from whatever items you have answered.</small></p>';
         echo '</div></details>';
     }
 

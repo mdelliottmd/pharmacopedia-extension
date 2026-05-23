@@ -75,6 +75,24 @@ class SpecialSaveProfileBlock extends SpecialPage {
                 case 'assessment-whoqolbref':
                     $this->saveAssessment( $store, $profileId, $request, 'whoqolbref' );
                     break;
+                case 'assessment-asrs':
+                    $this->saveAssessment( $store, $profileId, $request, 'asrs' );
+                    break;
+                case 'assessment-amaas':
+                    $this->saveAssessment( $store, $profileId, $request, 'amaas' );
+                    break;
+                case 'assessment-hyd':
+                    $this->saveAssessment( $store, $profileId, $request, 'hyd' );
+                    break;
+                case 'assessment-bsl23':
+                    $this->saveAssessment( $store, $profileId, $request, 'bsl23' );
+                    break;
+                case 'assessment-ess':
+                    $this->saveAssessment( $store, $profileId, $request, 'ess' );
+                    break;
+                case 'assessment-ocipcp':
+                    $this->saveAssessment( $store, $profileId, $request, 'ocipcp' );
+                    break;
                 case 'bfi10':
                     $this->saveBfi10( $store, $profileId, $request );
                     break;

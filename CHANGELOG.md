@@ -7,6 +7,146 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
+## [0.9.8.6] - 2026-05-23
+
+A surface-expansion release: every Problem and every Effect gets its
+own wiki page in a new dedicated namespace, with auto-generated
+medicines lists; every medicine page's problem-cards and effect-labels
+now link there directly. The diptych topnav loses the dead Assessments
+link and gains a live typeahead search with case-insensitive fallback.
+Special:MyProfile drops its redundant Save button now that every block
+autosaves; the autosave dot follows the touched control. About:Privacy
+is published. One mid-flight fatal in the autosave save-handler is
+fixed.
+
+### Added
+- **NS_PROBLEM (3008) + NS_EFFECT (3010)** with talk pages, registered
+  as content namespaces, searchable by default, under FlaggedRevs (via
+  `$wgExtensionFunctions` for correct registration ordering). Pattern
+  mirrors the existing Enzyme / Receptor / Phenotype / USLegal block.
+- **170 Problem stubs + 288 Effect stubs** auto-created via a new
+  `maintenance/migrateProblemEffectStubs.php` CLI script. Each stub
+  carries a one-line "Stub" header, the canonical description if any,
+  an auto-generated medicines section, and the sentinel
+  `Category:Problem stubs` / `Category:Effect stubs` for the buildout
+  queue. Idempotent re-run; backfills `p_page_id` / `e_page_id`.
+- **`<problemMedicines slug="..." />`** and
+  **`<effectMedicines slug="..." />`** parser tags: auto-generated
+  "Medicines used for this" / "Medicines that may cause this" lists.
+  Queries `pcp_votable_elements` joined to `page`, distincts, sorts
+  by title; uses parameterized QueryBuilder.
+- **Schema**: `pcp_problem.p_page_id` (INT UNSIGNED NULL) and
+  `pcp_effects.e_page_id` (INT UNSIGNED NULL), indexed, link the
+  canonical DB row to its wiki page id.
+- **Topnav live search**: 180ms-debounced typeahead with an 8-result
+  dropdown rendered as an ARIA combobox; arrow / Enter / Escape
+  keyboard nav; click-outside to close. Hits the eight content
+  namespaces (Main, Category, Enzyme, Receptor, Phenotype, USLegal,
+  Problem, Effect). Lives in `ext.pharmacopedia.appearance.js`; uses
+  `action=opensearch` first (fast prefix), with an automatic
+  `action=query&list=search` fallback on zero hits (catches all-caps
+  titles like LSD that the opensearch prefix index cannot
+  case-insensitively match). Pinned to the leftmost slot of the
+  right-side `.topnav` cluster as a soft-violet input that lifts to
+  violet-bright on focus.
+- **About:Privacy** wiki page: brief plain-language policy covering
+  what the site collects, third parties (Cloudflare Turnstile, Gmail
+  SMTP, Dropbox-as-encrypted-backup-sub-processor), cookies,
+  retention windows, encryption (Let's Encrypt TLS, PBKDF2-SHA512
+  passwords, OATHAuth 2FA, AdminCrypto X25519 sealed-box + AES-256-
+  GCM with passphrase / managed modes, OAuth 2.0 + PKCE for the iOS
+  app, GPG-AES256 backups), and the manual-today deletion path with
+  the up-to-60-day backup-lag disclosure.
+
+### Changed
+- **Medicine page link surface**: every `<problem ref="...">` card title
+  now links to `Problem:<Name>`; every `<effect ref="...">` label
+  links to `Effect:<Name>`. The sidebar Common-uses list links the
+  same way. `Special:Problem/<slug>` auto-redirects to the matching
+  NS page when `p_page_id` is set (legacy aggregate stays as
+  fallback). Special-page fallback paths preserved for any link that
+  predates the migration.
+- **Diptych topnav**: removed the dead "Assessments" link. Search
+  rebuilt as a live input + dropdown (was a static link to
+  Special:Search). Browse / Categories / Log in stay quiet dim links
+  on the right; Search sits as the leftmost item in the right cluster
+  as the prominent action.
+- **Special:MyProfile**: removed the bottom "Save profile" submit
+  button. Every editable block (identity, demographics, ocean,
+  bfi10, mbti, enneagram, every picked inline assessment, diagnoses,
+  meds) autosaves via `blocksave.js` 800ms after the last change.
+  Stale "click Save profile" copy on the inline-assessment helper
+  paragraph updated to autosave language; corresponding PHP doc-
+  comments corrected.
+- **Blocksave save-status dot**: now pins to the top-right of the
+  control that was last manipulated, via absolute positioning at
+  `getBoundingClientRect()` coordinates with the chip reparented to
+  `document.body` and a scroll/resize repin handler. The bottom-of-
+  block chip is retired in favor of this single follow-the-cursor
+  indicator. Final size 13px with 0.8 opacity on active states; pin
+  offset 4px right, 11px up to sit just outside the control corner.
+
+### Fixed
+- **Special:SaveProfileBlock** rejected 6 of the 12 picker-eligible
+  assessment cards with `{ok:false, error:"unknown block: assessment-<key>"}`,
+  so edits never persisted. Added missing switch cases for `asrs`,
+  `amaas`, `hyd`, `bsl23`, `ess`, `ocipcp`; all 12 now save via the
+  same `saveAssessment()` dispatch.
+- **Blocksave dot rendering**: the `.pcp-block-save-dot` rule's
+  `font-size: 0` collapsed every em-sized `width` / `height` to zero
+  px; only the 1-2px `box-shadow` ring rendered, making every size
+  adjustment look identical. Switched the size declarations to
+  absolute px so the dot renders at its intended dimensions
+  regardless of the rule's font-size reset.
+- **Topnav search case-sensitivity**: lowercase queries against
+  all-caps titles (e.g., `lsd` against `LSD`) returned "No matches"
+  via `opensearch` alone. The automatic `list=search` fallback
+  introduced this release catches them. Same hybrid pattern was
+  handed off to app-claude for the iOS app's typeahead.
+
+### Audit follow-ups (2026-05-22 sweeps)
+Closed in this tag:
+- **L3**: `$wgEnableUploads` deduped in LocalSettings.php; live value
+  (= true) unchanged, dead earlier `= false` removed. (Config-only,
+  not in the extension repo.)
+- **Post-push surface audit** (server-claude, 2026-05-23): no
+  critical, no high; all six pre-flighted questions cleared
+  (parser-tag XSS, SpecialProblem redirect ACL, migration script
+  attribution, namespace lockdown, schema parameterization,
+  redirect trust model).
+
+Deferred to the next release (0.9.8.7):
+- **M3**: `pcp_perspective_invite.pvi_token` cleartext at rest.
+  Schema migration + dual-write rotation, ~half day, parser-claude
+  (schema) + interface-claude (code).
+- **OAuth2 JWT signing keypair**: install
+  `$wgOAuth2PrivateKey` / `$wgOAuth2PublicKey` so
+  `/rest.php/oauth2/authorize` and `/oauth2/access_token` stop
+  emitting `LogicException: Invalid key supplied`. Launch-blocker
+  for the iOS app's first sign-in. ~30 min, server-claude.
+- **M1 typeahead rate-limit**: the new live search is a fresh
+  `/api.php` amplification surface with no server-side cap.
+  Recommended `$wgRateLimits['searchrequest']` + fail2ban filter
+  on `/api.php?action=opensearch|query&list=search`. server-claude.
+
+Monitoring (no action this tag):
+- **L1** privacy-policy minors-language flagged by the audit reads as
+  a discrepancy in the audit output, not in the published page; the
+  live `About:Privacy` is as drafted (no age restriction per Mark's
+  call). Carried as a policy-side polish item.
+
+### Deploy notes
+- Migration script attribution: `EDIT_INTERNAL` flag intentionally
+  skips AbuseFilter + captcha + rate limits per MW convention for
+  ops migrations. All 458 created pages credit MDElliottMD; expect a
+  one-time contribution-volume spike on Special:Contributions.
+- Page-id range from this run: 1367-1824 (170 problems + 288
+  effects). Range may differ on staging; the migration backfills
+  `p_page_id` / `e_page_id` to the actual ids regardless.
+- iOS app search typeahead was reported case-sensitive too;
+  handoff to app-claude carried the same opensearch + list=search
+  hybrid pattern (handoff dated 2026-05-22).
+
 ## [0.9.8.5] - 2026-05-22
 
 A consolidation release on a busy day. The 0-5 mouseover rating

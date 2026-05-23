@@ -37,6 +37,8 @@ class Hooks {
         $parser->setHook( 'frontpage', [ FrontPageTag::class, 'render' ] );
         $parser->setHook( 'pharmaLiterature', [ LiteratureTag::class, 'render' ] );
         $parser->setHook( 'pharmaCommonUses', [ CommonUsesTag::class, 'render' ] );
+        $parser->setHook( 'problemMedicines', [ ProblemMedicinesTag::class, 'render' ] );
+        $parser->setHook( 'effectMedicines',  [ EffectMedicinesTag::class,  'render' ] );
     }
 
     public static function onLoadExtensionSchemaUpdates( $updater ) {
@@ -57,6 +59,9 @@ class Hooks {
         // v0.15: Problems repository (now standalone; legacy pcp_indications dropped in 5b)
         $updater->addExtensionTable( 'pcp_problem',           "$dir/problems.sql" );
         $updater->addExtensionTable( 'pcp_problem_alias',     "$dir/problem_alias.sql" );
+        // v0.9.8.5: per-entity wiki pages -- link back from canonical row to page_id
+        $updater->addExtensionField( 'pcp_problem',  'p_page_id', "$dir/patch-pcp_problem-p_page_id.sql" );
+        $updater->addExtensionField( 'pcp_effects',  'e_page_id', "$dir/patch-pcp_effects-e_page_id.sql" );
         $updater->addExtensionTable( 'pcp_interactions',        "$dir/interactions.sql" );
         $updater->addExtensionTable( 'pcp_interaction_reports', "$dir/interaction_reports.sql" );
         $updater->addExtensionTable( 'pcp_experience_reports',   "$dir/experience_reports.sql" );

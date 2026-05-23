@@ -53,7 +53,14 @@ class ProblemTag {
         if ( $pageId <= 0 ) {
             $h  = '<div class="pcp-row pcp-row-problem pcp-problem pcp-problem-preview" id="problem-' . htmlspecialchars( $normSlug ) . '">';
             $h .= '<div class="pcp-row-head">';
-            $h .= '<span class="pcp-row-title">' . htmlspecialchars( $title ) . '</span>';
+            $h .= '<span class="pcp-row-title">';
+        $pcpProbTitle = defined( 'NS_PROBLEM' ) ? \MediaWiki\Title\Title::makeTitleSafe( NS_PROBLEM, $title ) : null;
+        if ( $pcpProbTitle ) {
+            $h .= '<a href="' . htmlspecialchars( $pcpProbTitle->getLocalURL() ) . '">' . htmlspecialchars( $title ) . '</a>';
+        } else {
+            $h .= htmlspecialchars( $title );
+        }
+        $h .= '</span>';
             $h .= '<span class="pcp-row-aggs"><span class="pcp-row-agg pcp-problem-vote-placeholder">(efficacy ratings appear once page is saved)</span></span>';
             $h .= '<span class="pcp-row-actions">';
             $h .= SpecialDeletePharmaElement::buttonHtml( 'problem', $normSlug, $author );
@@ -100,7 +107,14 @@ class ProblemTag {
 
         // HEAD line
         $h .= '<div class="pcp-row-head">';
-        $h .= '<span class="pcp-row-title">' . htmlspecialchars( $title ) . '</span>';
+        $h .= '<span class="pcp-row-title">';
+        $pcpProbTitle = defined( 'NS_PROBLEM' ) ? \MediaWiki\Title\Title::makeTitleSafe( NS_PROBLEM, $title ) : null;
+        if ( $pcpProbTitle ) {
+            $h .= '<a href="' . htmlspecialchars( $pcpProbTitle->getLocalURL() ) . '">' . htmlspecialchars( $title ) . '</a>';
+        } else {
+            $h .= htmlspecialchars( $title );
+        }
+        $h .= '</span>';
         $h .= '<span class="pcp-row-aggs"><span class="pcp-row-agg pcp-problem-agg">' . $aggText . '</span></span>';
         $h .= '<span class="pcp-row-actions">';
         $h .= SpecialDeletePharmaElement::buttonHtml( 'problem', $normSlug, $author );

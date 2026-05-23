@@ -3,6 +3,7 @@ namespace MediaWiki\Extension\Pharmacopedia;
 
 use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\Title;
 
 /**
  * <pharmaCommonUses>...</pharmaCommonUses> -- the medicine-page
@@ -90,7 +91,9 @@ class CommonUsesTag {
         foreach ( $top as $use ) {
             $name = htmlspecialchars( (string)( $use['name'] ?? '' ) );
             $slug = (string)( $use['slug'] ?? '' );
-            $url  = SpecialPage::getTitleFor( 'Problem', $slug )->getLocalURL();
+            $nsTitle = defined( 'NS_PROBLEM' ) ? Title::makeTitleSafe( NS_PROBLEM, (string)( $use['name'] ?? '' ) ) : null;
+            $url     = $nsTitle ? $nsTitle->getLocalURL()
+                : SpecialPage::getTitleFor( 'Problem', $slug )->getLocalURL();
             $eid  = (int)( $slugToEid[ $slug ] ?? 0 );
             $rate = '';
             if ( $eid > 0 ) {

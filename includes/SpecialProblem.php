@@ -56,6 +56,18 @@ class SpecialProblem extends SpecialPage {
 
         $row = $resolved ?: $raw;
 
+        // Post-migration: every canonical row has a Problem:<Name> page;
+        // redirect there and let the wiki page handle the article view.
+        // Legacy aggregate render below stays as the fallback for any
+        // row that somehow lacks p_page_id.
+        if ( !empty( $row->p_page_id ) ) {
+            $nsTitle = \MediaWiki\Title\Title::newFromID( (int)$row->p_page_id );
+            if ( $nsTitle && $nsTitle->exists() ) {
+                $out->redirect( $nsTitle->getLocalURL() );
+                return;
+            }
+        }
+
         $name = (string)$row->p_name;
         $slug = (string)$row->p_slug;
         $cat  = (string)$row->p_category;
