@@ -235,6 +235,14 @@ class SpecialMyAssessment extends SpecialPage {
             $this->renderHydReport( $user );
             return;
         }
+        if ( $key === 'bsl23' ) {
+            $this->renderBsl23Report( $user );
+            return;
+        }
+        if ( $key === 'ess' ) {
+            $this->renderEssReport( $user );
+            return;
+        }
         if ( $key === 'asrs' ) {
             $this->renderAsrsReport( $user );
             return;
@@ -243,9 +251,139 @@ class SpecialMyAssessment extends SpecialPage {
             $this->renderOcipcpReport( $user );
             return;
         }
+        // Registry-driven fallback: any self-takeable scale without a bespoke
+        // report renderer above gets a generic report (full name, scores table,
+        // interpret() reading) so a new scale registered in AssessmentRegistry
+        // works out of the box.
+        if ( \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::has( $key )
+            && \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::selfTakeable( $key )
+        ) {
+            $this->renderGenericReport( $user, $key );
+            return;
+        }
         $out->setPageTitle( 'Assessment report: ' . $key );
         $out->addHTML( Html::element( 'div', [ 'class' => 'errorbox' ],
             'No rich report yet for assessment "' . $key . '".' ) );
+    }
+
+    /**
+     * A generic detail report for any self-takeable scale that doesn't (yet)
+     * have a bespoke renderer above. Shows the scale's full name, warning,
+     * citation, subscales + total + any other stored scores, and the scorer's
+     * interpret() reading. Triggered by registering a new scale: the report
+     * page works immediately, and a bespoke renderer can be added later.
+     */
+    private function renderGenericReport( $user, string $key ): void {
+        $out = $this->getOutput();
+        $cls = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::scorerClass( $key );
+        if ( !$cls ) {
+            $out->addHTML( Html::element( 'div', [ 'class' => 'errorbox' ],
+                'No scorer for assessment "' . $key . '".' ) );
+            return;
+        }
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( (int)$user->getId() );
+        $profileId = (int)$profile->prof_id;
+
+        // Load stored summary scores for this scale.
+        $scores = []; $takenAt = null;
+        foreach ( $store->getFields( $profileId, $key, 0 ) as $f ) {
+            $fk = (string)$f->pf_key;
+            if ( $fk === '_vis' )     continue;
+            if ( $fk === 'taken_at' ) { $takenAt = (string)$f->pf_value_text; continue; }
+            $scores[ $fk ] = $f->pf_value_num !== null ? (float)$f->pf_value_num : null;
+        }
+
+        $out->setPageTitle( (string)$cls::NAME );
+        $h  = '<h2>' . htmlspecialchars( (string)$cls::FULL_NAME ) . '</h2>';
+        if ( defined( $cls . '::WARNING' ) && $cls::WARNING ) {
+            $h .= '<div class="pcp-banner"><span class="pcp-banner__title">Heads up</span>'
+                . '<span class="pcp-banner__body">' . htmlspecialchars( (string)$cls::WARNING ) . '</span></div>';
+        }
+        if ( !$scores ) {
+            $h .= '<p><em>Not yet taken. Use Special:MyProfile to take this assessment.</em></p>';
+            $h .= '<p style="opacity:0.7;">' . htmlspecialchars( (string)$cls::DESCRIPTION ) . '</p>';
+            $out->addHTML( $h );
+            return;
+        }
+        // Subscales table (if defined). Reads the scorer's SUBSCALES const.
+        if ( defined( $cls . '::SUBSCALES' ) && is_array( $cls::SUBSCALES ) && $cls::SUBSCALES ) {
+            $h .= '<table class="pcp-pa-table"><tbody>';
+            foreach ( $cls::SUBSCALES as $sk => $def ) {
+                $v = $scores[ 'subscale_' . $sk ] ?? null;
+                $label = is_array( $def ) ? (string)( $def['label'] ?? $sk ) : (string)$sk;
+                $h .= '<tr><th>' . htmlspecialchars( $label ) . '</th>'
+                    . '<td>' . ( $v === null ? '&mdash;' : htmlspecialchars( number_format( (float)$v, 2 ) ) ) . '</td></tr>';
+            }
+            if ( isset( $scores['total'] ) && $scores['total'] !== null ) {
+                $h .= '<tr><th>Total</th><td>'
+                    . htmlspecialchars( number_format( (float)$scores['total'], 2 ) ) . '</td></tr>';
+            }
+            $h .= '</tbody></table>';
+        } elseif ( isset( $scores['total'] ) && $scores['total'] !== null ) {
+            $h .= '<p><strong>Total:</strong> '
+                . htmlspecialchars( number_format( (float)$scores['total'], 2 ) ) . '</p>';
+        }
+        // Any other numeric scores (behavioral counts, derived measures) -
+        // dump them out so EDE-Q's vomit_episodes, BMI, etc. all show up.
+        $extras = [];
+        foreach ( $scores as $k => $v ) {
+            if ( $k === 'total' || strpos( $k, 'subscale_' ) === 0 || $k === 'answered' ) {
+                continue;
+            }
+            if ( $v === null ) {
+                continue;
+            }
+            $extras[ $k ] = $v;
+        }
+        if ( $extras ) {
+            $h .= '<h3>Other</h3><table class="pcp-pa-table"><tbody>';
+            foreach ( $extras as $k => $v ) {
+                $label = ucwords( str_replace( '_', ' ', $k ) );
+                $disp = is_int( $v ) || $v == (int)$v
+                    ? (string)(int)$v
+                    : number_format( (float)$v, 2 );
+                $h .= '<tr><th>' . htmlspecialchars( $label ) . '</th>'
+                    . '<td>' . htmlspecialchars( $disp ) . '</td></tr>';
+            }
+            $h .= '</tbody></table>';
+        }
+        // interpret() reading, if the scorer provides one.
+        if ( method_exists( $cls, 'interpret' ) ) {
+            try {
+                $reading = $cls::interpret( $scores );
+                $overall = '';
+                $flags = [];
+                if ( is_array( $reading ) ) {
+                    $overall = (string)( $reading['overall'] ?? '' );
+                    if ( isset( $reading['flags'] ) && is_array( $reading['flags'] ) ) {
+                        $flags = $reading['flags'];
+                    }
+                } elseif ( is_string( $reading ) ) {
+                    $overall = $reading;
+                }
+                if ( $overall !== '' ) {
+                    $h .= '<p><em>' . htmlspecialchars( $overall ) . '</em></p>';
+                }
+                if ( $flags ) {
+                    $h .= '<ul class="pcp-pa-flags">';
+                    foreach ( $flags as $flag ) {
+                        $h .= '<li>' . htmlspecialchars( (string)$flag ) . '</li>';
+                    }
+                    $h .= '</ul>';
+                }
+            } catch ( \Throwable $e ) {
+                // Silent fallback: interpret() failed, just skip the reading.
+            }
+        }
+        if ( $takenAt ) {
+            $h .= '<p style="opacity:0.6;">Last taken: '
+                . htmlspecialchars( substr( $takenAt, 0, 4 ) . '-' . substr( $takenAt, 4, 2 ) . '-' . substr( $takenAt, 6, 2 ) )
+                . '</p>';
+        }
+        $h .= '<p style="opacity:0.6;font-size:0.9em;">'
+            . htmlspecialchars( (string)$cls::CITATION ) . '</p>';
+        $out->addHTML( $h );
     }
 
     // ===== CATI report =====
@@ -1645,6 +1783,289 @@ class SpecialMyAssessment extends SpecialPage {
     }
 
     // ===== End HYD-PCP report =====
+
+
+    // ===== BSL-23-PCP report =====
+
+    /**
+     * Special:MyAssessment/bsl23: the full report for a BSL-23-PCP
+     * borderline-spectrum check-in. BSL-23-PCP is an original, uncalibrated
+     * instrument, not a clinical or diagnostic measure, so the report stays
+     * gentle and plain-spoken throughout. It is unidimensional: a single
+     * overall mean, with no per-domain breakdown.
+     *
+     * Like the HYD-PCP report, this RECOMPUTES from raw responses: it reads
+     * bsl23_raw/item_N, separates answered items from "Not sure" items, and
+     * calls Bsl23::scoreResponses(). It does not depend on which aggregate
+     * keys the save path persisted.
+     */
+    private function renderBsl23Report( $user ) {
+        $Bsl23 = \MediaWiki\Extension\Pharmacopedia\Assessments\Bsl23::class;
+        $out = $this->getOutput();
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( $user->getId() );
+        $profileId = (int)$profile->prof_id;
+
+        $takenAt = null;
+        foreach ( $store->getFields( $profileId, 'bsl23', 0 ) as $f ) {
+            if ( (string)$f->pf_key === 'taken_at' ) {
+                $takenAt = (string)$f->pf_value_text;
+                break;
+            }
+        }
+        $rawByN = [];
+        foreach ( $store->getFields( $profileId, 'bsl23_raw', 0 ) as $f ) {
+            $k = (string)$f->pf_key;
+            if ( strpos( $k, 'item_' ) !== 0 ) {
+                continue;
+            }
+            $rawByN[ (int)substr( $k, 5 ) ] = [
+                'num'  => $f->pf_value_num,
+                'text' => $f->pf_value_text,
+            ];
+        }
+
+        $out->setPageTitle( 'My BSL-23-PCP report' );
+        if ( !$rawByN ) {
+            $out->addWikiTextAsInterface(
+                "No BSL-23-PCP responses on file. Take the check-in on [[Special:MyProfile]] to see your report here."
+            );
+            return;
+        }
+
+        // Separate answered items from "Not sure" items, then recompute.
+        $responses = [];
+        $idkItems  = [];
+        foreach ( $rawByN as $n => $entry ) {
+            if ( (string)( $entry['text'] ?? '' ) === 'unsure' ) {
+                $idkItems[] = (int)$n;
+            } elseif ( $entry['num'] !== null ) {
+                $responses[ (int)$n ] = (float)$entry['num'];
+            }
+        }
+        $scores = $Bsl23::scoreResponses( $responses, $idkItems );
+        $reading = $Bsl23::interpret( $scores );
+
+        $h = '<div class="pcp-cati-report pcp-bsl23-report">';
+
+        // Crisis-support warning, rendered the way the AMAAS report renders
+        // its WARNING: an orange-bordered box at the top. BSL-23-PCP item 18
+        // is the self-harm item, so this line carries crisis-support contacts.
+        $h .= '<div class="pcp-cati-cutoff-box" style="border-left:4px solid #d97757;">';
+        $h .= '<p style="margin:0;"><strong>An informal check-in.</strong> '
+            . htmlspecialchars( $Bsl23::WARNING ) . '</p>';
+        $h .= '</div>';
+
+        $h .= '<p style="opacity:0.75;">' . htmlspecialchars( $Bsl23::FULL_NAME );
+        if ( $takenAt ) {
+            $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
+        }
+        $h .= ' &middot; <a href="'
+            . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() )
+            . '#bsl23-take">Take it again</a></p>';
+
+        $h .= '<h2>How you have been doing, overall</h2>';
+        $h .= $this->renderBsl23Overall( $scores, $reading );
+
+        $h .= '<h2>About BSL-23-PCP</h2>';
+        $h .= $this->renderBsl23Methodology();
+
+        $h .= '</div>';
+        $out->addHTML( $h );
+    }
+
+    /**
+     * The headline panel: the overall mean shown prominently, the severity
+     * band with its BANDS_NOTE footnote beneath it, and Bsl23::interpret()'s
+     * gentle one-line reading. BSL-23-PCP is unidimensional, so there is no
+     * per-domain profile.
+     */
+    private function renderBsl23Overall( array $scores, array $reading ): string {
+        $Bsl23 = \MediaWiki\Extension\Pharmacopedia\Assessments\Bsl23::class;
+        $total    = $scores['total'] ?? null;
+        $answered = (int)( $scores['answered'] ?? 0 );
+
+        $h = '<div class="pcp-cati-cutoff-box">';
+        if ( $total === null ) {
+            $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+            $h .= '</div>';
+            return $h;
+        }
+        $disp = number_format( (float)$total, $total == (int)$total ? 0 : 2 );
+        $h .= '<p>Your overall figure, the mean of the '
+            . $answered . ' item' . ( $answered === 1 ? '' : 's' ) . ' you answered: '
+            . '<strong style="color:#7c3aed; font-size:1.25em;">' . htmlspecialchars( $disp ) . '</strong> '
+            . '<span style="opacity:0.7;">on a scale from ' . (int)$Bsl23::SCALE_MIN . ' ('
+            . htmlspecialchars( strtolower( $Bsl23::ANCHOR_LOW ) ) . ') to '
+            . (int)$Bsl23::SCALE_MAX . ' (' . htmlspecialchars( strtolower( $Bsl23::ANCHOR_HIGH ) ) . ').</span></p>';
+
+        $band = $Bsl23::severityBand( (float)$total );
+        if ( $band !== null ) {
+            $h .= '<p>Severity band for this snapshot: <strong>' . htmlspecialchars( $band ) . '</strong>.</p>';
+            $h .= '<p style="opacity:0.7; font-size:0.9em;">' . htmlspecialchars( $Bsl23::BANDS_NOTE ) . '</p>';
+        }
+        $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+        $h .= '</div>';
+        return $h;
+    }
+
+    private function renderBsl23Methodology(): string {
+        $h  = '<p>BSL-23-PCP is a brief check-in on borderline-spectrum experiences over the past '
+            . 'week, across twenty-three first-person symptom statements: mood instability, '
+            . 'emptiness, identity, self-image, dissociation, trust, closeness, control, and more. '
+            . 'Each item is a single slider, from not at all to very strongly. It is unidimensional: '
+            . 'the overall figure is just the mean of the items you answered.</p>';
+        $h .= '<p><strong>It is locally brewed and not validated.</strong> BSL-23-PCP is an original '
+            . 'instrument written for this wiki, inspired by the short Borderline Symptom List '
+            . '(BSL-23) but not a copy of it. It has no norms and no validated cutoffs, and is not a '
+            . 'clinical or diagnostic measure. A borderline diagnosis is made by a clinician, not a '
+            . 'questionnaire. The severity bands are borrowed from the published BSL-23 bands as a '
+            . 'reference frame only, so a band is orientation, not a verdict. It is built to be taken '
+            . 'again over time, so the most useful reading is usually the trend across check-ins, not '
+            . 'any single snapshot.</p>';
+        return $h;
+    }
+
+    // ===== End BSL-23-PCP report =====
+
+
+    // ===== ESS-PCP report =====
+
+    /**
+     * Special:MyAssessment/ess: the full report for an ESS-PCP daytime-
+     * sleepiness check. ESS-PCP is an original, uncalibrated instrument, not a
+     * clinical or diagnostic measure, so the report stays gentle and
+     * plain-spoken. It is unidimensional: a single 0-to-24 total.
+     *
+     * Like the BSL-23-PCP report, this RECOMPUTES from raw responses: it reads
+     * ess_raw/item_N, separates answered items from "Not sure" items, and
+     * calls Ess::scoreResponses().
+     */
+    private function renderEssReport( $user ) {
+        $Ess = \MediaWiki\Extension\Pharmacopedia\Assessments\Ess::class;
+        $out = $this->getOutput();
+        $store = new UserProfileStore();
+        $profile = $store->getOrCreateForUser( $user->getId() );
+        $profileId = (int)$profile->prof_id;
+
+        $takenAt = null;
+        foreach ( $store->getFields( $profileId, 'ess', 0 ) as $f ) {
+            if ( (string)$f->pf_key === 'taken_at' ) {
+                $takenAt = (string)$f->pf_value_text;
+                break;
+            }
+        }
+        $rawByN = [];
+        foreach ( $store->getFields( $profileId, 'ess_raw', 0 ) as $f ) {
+            $k = (string)$f->pf_key;
+            if ( strpos( $k, 'item_' ) !== 0 ) {
+                continue;
+            }
+            $rawByN[ (int)substr( $k, 5 ) ] = [
+                'num'  => $f->pf_value_num,
+                'text' => $f->pf_value_text,
+            ];
+        }
+
+        $out->setPageTitle( 'My ESS-PCP report' );
+        if ( !$rawByN ) {
+            $out->addWikiTextAsInterface(
+                "No ESS-PCP responses on file. Take it on [[Special:MyProfile]] to see your report here."
+            );
+            return;
+        }
+
+        $responses = [];
+        $idkItems  = [];
+        foreach ( $rawByN as $n => $entry ) {
+            if ( (string)( $entry['text'] ?? '' ) === 'unsure' ) {
+                $idkItems[] = (int)$n;
+            } elseif ( $entry['num'] !== null ) {
+                $responses[ (int)$n ] = (float)$entry['num'];
+            }
+        }
+        $scores = $Ess::scoreResponses( $responses, $idkItems );
+        $reading = $Ess::interpret( $scores );
+
+        $h = '<div class="pcp-cati-report pcp-ess-report">';
+
+        // The instrument's safety WARNING, in an amber-bordered box, the way
+        // the BSL-23 and AMAAS reports surface their warnings.
+        $h .= '<div class="pcp-cati-cutoff-box" style="border-left:4px solid #d97757;">';
+        $h .= '<p style="margin:0;"><strong>An informal check.</strong> '
+            . htmlspecialchars( $Ess::WARNING ) . '</p>';
+        $h .= '</div>';
+
+        $h .= '<p style="opacity:0.75;">' . htmlspecialchars( $Ess::FULL_NAME );
+        if ( $takenAt ) {
+            $h .= ' &middot; Last taken ' . htmlspecialchars( substr( $takenAt, 0, 10 ) );
+        }
+        $h .= ' &middot; <a href="'
+            . htmlspecialchars( SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() )
+            . '#ess-take">Take it again</a></p>';
+
+        $h .= '<h2>How sleepy your days have been, overall</h2>';
+        $h .= $this->renderEssOverall( $scores, $reading );
+
+        $h .= '<h2>About ESS-PCP</h2>';
+        $h .= $this->renderEssMethodology();
+
+        $h .= '</div>';
+        $out->addHTML( $h );
+    }
+
+    /**
+     * The headline panel: the 0-to-24 Epworth total shown prominently, the
+     * band with its BANDS_NOTE footnote, and Ess::interpret()'s gentle reading.
+     */
+    private function renderEssOverall( array $scores, array $reading ): string {
+        $Ess = \MediaWiki\Extension\Pharmacopedia\Assessments\Ess::class;
+        $total    = $scores['total'] ?? null;
+        $answered = (int)( $scores['answered'] ?? 0 );
+
+        $h = '<div class="pcp-cati-cutoff-box">';
+        if ( $total === null ) {
+            $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+            $h .= '</div>';
+            return $h;
+        }
+        $itemCount = count( $Ess::ITEMS );
+        $disp = number_format( (float)$total, $total == (int)$total ? 0 : 1 );
+        $h .= '<p>Your Epworth total, summed across the ' . $itemCount . ' situations';
+        if ( $answered < $itemCount ) {
+            $h .= ' (estimated from the ' . $answered . ' you answered)';
+        }
+        $h .= ': <strong style="color:#7c3aed; font-size:1.25em;">' . htmlspecialchars( $disp )
+            . '</strong> <span style="opacity:0.7;">out of a possible 24.</span></p>';
+
+        $band = $Ess::severityBand( (float)$total );
+        if ( $band !== null ) {
+            $h .= '<p>Where this sits: <strong>' . htmlspecialchars( $band ) . '</strong>.</p>';
+            $h .= '<p style="opacity:0.7; font-size:0.9em;">' . htmlspecialchars( $Ess::BANDS_NOTE ) . '</p>';
+        }
+        $h .= '<p>' . htmlspecialchars( $reading['overall'] ) . '</p>';
+        $h .= '</div>';
+        return $h;
+    }
+
+    private function renderEssMethodology(): string {
+        $h  = '<p>ESS-PCP is a brief check on how easily you doze off during the day. It '
+            . 'presents eight quiet, passive everyday situations, and for each you rate on a '
+            . 'single slider how likely you would be to fall asleep in it, not just to feel '
+            . 'tired. The total is the sum across all eight, from 0 to 24; higher means '
+            . 'sleepier.</p>';
+        $h .= '<p><strong>It is locally brewed and not validated.</strong> ESS-PCP is an original '
+            . 'instrument written for this wiki, inspired by the Epworth Sleepiness Scale but not '
+            . 'a copy of it. It has no norms of its own. The cutoff of 10 is borrowed from the '
+            . 'published Epworth scale as a reference frame, so it is orientation, not a verdict, '
+            . 'and ESS-PCP is not a clinical or diagnostic measure. Excessive daytime sleepiness '
+            . 'is assessed by a clinician, not a questionnaire. It is built to be taken again over '
+            . 'time, so the most useful reading is usually the trend across checks, not any '
+            . 'single snapshot.</p>';
+        return $h;
+    }
+
+    // ===== End ESS-PCP report =====
 
 
     // ===== BPNS report =====

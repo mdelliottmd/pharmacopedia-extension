@@ -151,9 +151,20 @@ class SpecialUserProfile extends SpecialPage {
             'ocean'        => 'Personality — Big Five (OCEAN)',
         ];
 
+        // Namespaces handled as cards by renderAssessments below. The base
+        // list is every self-takeable scale in the registry (plus its _raw
+        // namespace), plus a few legacy aliases (bfi10, raadsr) that predate
+        // the registry. Adding a new self-takeable scale to the registry
+        // automatically routes its rows here.
+        $cardNamespaces = [ 'bfi10', 'bfi10_raw', 'raadsr', 'raadsr_raw', 'ocipcp', 'ocipcp_raw' ];
+        foreach ( \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::keysSelfTakeable() as $regKey ) {
+            $cardNamespaces[] = $regKey;
+            $cardNamespaces[] = $regKey . '_raw';
+        }
+        $cardNamespaces = array_values( array_unique( $cardNamespaces ) );
+
         foreach ( $byNs as $ns => $rows ) {
-            // These are all rendered as cards by renderAssessments below.
-            if ( in_array( $ns, [ 'ocean', 'cati', 'cati_raw', 'catq', 'catq_raw', 'pid5bf', 'pid5bf_raw', 'mbti', 'mbti_raw', 'enneagram', 'enneagram_raw', 'raadsr', 'raadsr_raw', 'bfi10', 'bfi10_raw', 'nfcs', 'nfcs_raw', 'bpns', 'bpns_raw', 'whoqolbref', 'whoqolbref_raw', 'asrs', 'asrs_raw', 'amaas', 'amaas_raw', 'hyd', 'hyd_raw' ], true ) ) continue;
+            if ( in_array( $ns, $cardNamespaces, true ) ) continue;
             $label = $nsLabels[ $ns ] ?? ucfirst( $ns );
             $out->addHTML( '<h2>' . htmlspecialchars( $label ) . '</h2>' );
             $out->addHTML( '<table class="pcp-prof-readout"><tbody>' );
@@ -589,7 +600,39 @@ class SpecialUserProfile extends SpecialPage {
                 'report'    => true,
                 'build'     => function ( $s ) { return $this->hydHeadline( $s ); },
             ],
+            'bsl23'     => [
+                'label'     => 'BSL-23-PCP (borderline-spectrum check-in)',
+                'short'     => 'BSL-23-PCP',
+                'report'    => true,
+                'build'     => function ( $s ) { return $this->bsl23Headline( $s ); },
+            ],
+            'ess'       => [
+                'label'     => 'ESS-PCP (daytime-sleepiness check)',
+                'short'     => 'ESS-PCP',
+                'report'    => true,
+                'build'     => function ( $s ) { return $this->essHeadline( $s ); },
+            ],
         ];
+        // Autopopulate any registered self-takeable scale that doesn't have
+        // a bespoke headline builder above. New scales get a generic card
+        // (total + interpret() reading) until someone wants a richer one.
+        foreach ( \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::keysSelfTakeable() as $regKey ) {
+            if ( isset( $tests[ $regKey ] ) ) {
+                continue;
+            }
+            $cls = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::scorerClass( $regKey );
+            if ( !$cls ) {
+                continue;
+            }
+            $tests[ $regKey ] = [
+                'label'  => (string)$cls::FULL_NAME,
+                'short'  => (string)$cls::NAME,
+                'report' => true,
+                'build'  => function ( $s ) use ( $cls ) {
+                    return $this->genericHeadline( $cls, $s );
+                },
+            ];
+        }
 
         $cards = [];
         foreach ( $tests as $key => $def ) {
@@ -695,6 +738,124 @@ class SpecialUserProfile extends SpecialPage {
         $reading = $Hyd::interpret( $s );
         $sub = '<em>' . htmlspecialchars( $reading['overall'] ) . '</em>';
 
+        return [ 'headline' => $headline, 'sub' => $sub ];
+    }
+
+    /**
+     * BSL-23-PCP read-view card: a one-line summary of a completed
+     * borderline-spectrum check-in. The overall figure is the mean of the
+     * items the person answered, on the 0 (not at all) to 4 (very strongly)
+     * symptom-intensity scale, so a higher figure means more symptom load.
+     * The headline shows that mean on a bar with no midpoint marker (the
+     * scale is unidimensional, not bipolar); the sub carries the severity
+     * band and Bsl23::interpret()'s gentle, non-diagnostic reading.
+     */
+    private function bsl23Headline( array $s ): array {
+        $Bsl23 = \MediaWiki\Extension\Pharmacopedia\Assessments\Bsl23::class;
+        if ( !isset( $s['total'] ) || $s['total'] === null ) {
+            return [ 'headline' => '<em>Incomplete</em>', 'sub' => '' ];
+        }
+        $total = (float)$s['total'];
+        $min   = (float)$Bsl23::SCALE_MIN;
+        $max   = (float)$Bsl23::SCALE_MAX;
+        // Map the 0..4 figure onto a 0..100% bar fill.
+        $pct  = max( 0.0, min( 100.0, ( ( $total - $min ) / ( $max - $min ) ) * 100.0 ) );
+        $disp = number_format( $total, $total == (int)$total ? 0 : 2 );
+
+        $headline = '<div class="pcp-up-cati">'
+            . '<span class="pcp-up-cati-trait">'
+            . '<span class="pcp-up-cati-label">Overall</span>'
+            . '<span class="pcp-up-cati-bar">'
+                . '<span class="pcp-up-cati-fill" style="width:' . number_format( $pct, 1 ) . '%"></span>'
+            . '</span>'
+            . '<span class="pcp-up-cati-val">' . htmlspecialchars( $disp ) . '</span>'
+            . '</span>'
+            . '</div>';
+
+        $band    = $Bsl23::severityBand( $total );
+        $reading = $Bsl23::interpret( $s );
+        $sub = '';
+        if ( $band !== null ) {
+            $sub .= '<strong>' . htmlspecialchars( $band ) . '</strong> &middot; ';
+        }
+        $sub .= '<em>' . htmlspecialchars( $reading['overall'] ) . '</em>';
+
+        return [ 'headline' => $headline, 'sub' => $sub ];
+    }
+
+    /**
+     * ESS-PCP read-view card: a one-line summary of a completed daytime-
+     * sleepiness check. The overall figure is the Epworth total, summed across
+     * the eight situations on the 0-to-24 scale, so a higher figure means more
+     * daytime sleepiness. The headline shows that total on a bar; the sub
+     * carries the band and Ess::interpret()'s gentle, non-diagnostic reading.
+     */
+    private function essHeadline( array $s ): array {
+        $Ess = \MediaWiki\Extension\Pharmacopedia\Assessments\Ess::class;
+        if ( !isset( $s['total'] ) || $s['total'] === null ) {
+            return [ 'headline' => '<em>Incomplete</em>', 'sub' => '' ];
+        }
+        $total = (float)$s['total'];
+        $max   = (float)count( $Ess::ITEMS ) * (float)$Ess::SCALE_MAX;
+        // Map the 0..24 total onto a 0..100% bar fill.
+        $pct  = $max > 0 ? max( 0.0, min( 100.0, ( $total / $max ) * 100.0 ) ) : 0.0;
+        $disp = number_format( $total, $total == (int)$total ? 0 : 1 );
+
+        $headline = '<div class="pcp-up-cati">'
+            . '<span class="pcp-up-cati-trait">'
+            . '<span class="pcp-up-cati-label">Overall</span>'
+            . '<span class="pcp-up-cati-bar">'
+                . '<span class="pcp-up-cati-fill" style="width:' . number_format( $pct, 1 ) . '%"></span>'
+            . '</span>'
+            . '<span class="pcp-up-cati-val">' . htmlspecialchars( $disp ) . '</span>'
+            . '</span>'
+            . '</div>';
+
+        $band    = $Ess::severityBand( $total );
+        $reading = $Ess::interpret( $s );
+        $sub = '';
+        if ( $band !== null ) {
+            $sub .= '<strong>' . htmlspecialchars( $band ) . '</strong> &middot; ';
+        }
+        $sub .= '<em>' . htmlspecialchars( $reading['overall'] ) . '</em>';
+
+        return [ 'headline' => $headline, 'sub' => $sub ];
+    }
+
+    /**
+     * Generic fallback headline for any registered self-takeable scale that
+     * does not have a bespoke per-test builder above. Shows the global score
+     * (if any) and the scorer's interpret() reading. Triggered when a new
+     * scale (e.g. EDE-Q-PCP) is added to the registry: it lands here with no
+     * UserProfile-side wiring needed.
+     */
+    private function genericHeadline( string $cls, array $s ): array {
+        if ( !isset( $s['total'] ) || $s['total'] === null ) {
+            return [ 'headline' => '<em>Incomplete</em>', 'sub' => '' ];
+        }
+        $total = (float)$s['total'];
+        $disp  = number_format( $total, $total == (int)$total ? 0 : 2 );
+        $headline = '<div class="pcp-up-generic-total">'
+            . '<span class="pcp-up-generic-label">Total</span>'
+            . '<span class="pcp-up-generic-val">' . htmlspecialchars( $disp ) . '</span>'
+            . '</div>';
+
+        $sub = '';
+        if ( method_exists( $cls, 'interpret' ) ) {
+            try {
+                $reading = $cls::interpret( $s );
+                if ( is_array( $reading ) ) {
+                    $sub = (string)( $reading['overall'] ?? '' );
+                } elseif ( is_string( $reading ) ) {
+                    $sub = $reading;
+                }
+            } catch ( \Throwable $e ) {
+                $sub = '';
+            }
+        }
+        if ( $sub !== '' ) {
+            $sub = '<em>' . htmlspecialchars( $sub ) . '</em>';
+        }
         return [ 'headline' => $headline, 'sub' => $sub ];
     }
 

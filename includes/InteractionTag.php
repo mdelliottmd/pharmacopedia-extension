@@ -633,11 +633,15 @@ class InteractionTag {
 
         $h  = '<div class="pcp-row-panel pcp-row-rate-panel pcp-interaction-rate"' . $dataAttrs . ' hidden>';
 
-        // Perspective selector (rendered for everyone; UI hides it if not eligible)
-        $h .= '<div class="pcp-interaction-persp-row">';
+        // Perspective selector (rendered for everyone; UI hides it if not eligible).
+        // Wrapped in a fieldset + visually-hidden legend per WCAG 1.3.1 / 3.3.2
+        // so screen readers announce the radio group with a name (a11y-claude
+        // baseline 2026-05-22).
+        $h .= '<fieldset class="pcp-interaction-persp-row">';
+        $h .= '<legend class="visuallyhidden">Perspective for this interaction</legend>';
         $h .= '<label><input type="radio" name="pcp-ix-persp-' . $elementId . '" value="1" checked> Personal experience</label> ';
         $h .= '<label class="pcp-ix-persp-provider"><input type="radio" name="pcp-ix-persp-' . $elementId . '" value="2"> As a clinician (provider)</label>';
-        $h .= '</div>';
+        $h .= '</fieldset>';
 
         // Experience row (1-5)
         $h .= '<div class="pcp-interaction-q">How much experience do you have with this combination (1 a little, 5 a lot)?</div>';

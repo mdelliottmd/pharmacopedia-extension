@@ -467,8 +467,10 @@
 
             if ( nRated > 0 ) {
                 $container.append(
+                    // h3 sits under the h2 Effects section heading; was h4
+                    // (WCAG 1.3.1 outline skip, a11y-claude baseline 2026-05-22).
                     $( '<div class="pcp-effect-bucket pcp-effect-bucket-common"></div>' )
-                        .append( $( '<h4 class="pcp-effect-bucket-heading"></h4>' )
+                        .append( $( '<h3 class="pcp-effect-bucket-heading"></h3>' )
                             .text( 'Common ' )
                             .append( '<span class="pcp-effect-bucket-count">(' + buckets.common.length + ')</span>' ) )
                         .append( mkUl( buckets.common, 'pcp-effect-bucket-common-list' ) )
@@ -632,8 +634,13 @@
                 $card.find( '.pcp-likert-slider-wrap' ).toggleClass( 'pcp-likert-dk-on', d.user_value === -1 );
                 // Update aggregate text
                 if ( d.n > 0 ) {
-                    var $agg = $card.find( '.pcp-problem-agg' );
-                    $agg.html( $agg.html().replace( /[\d.]+/, Number( d.mean ).toFixed( 1 ) ) );
+                    var $r = $card.find( '.pcp-rating' );
+                    var s5 = ( d.mean ).toFixed( 1 );
+                    $r.find( '.pcp-stars-clip' ).attr( 'width', ( d.mean * 24 ).toFixed( 2 ) );
+                    $r.find( '.pcp-rating-num' ).text( s5 );
+                    $r.find( '.pcp-rating-n' ).text( 'n=' + d.n );
+                    $r.attr( 'aria-label', 'Efficacy rated ' + s5 +
+                        ' out of 5, from ' + d.n + ' rating' + ( d.n === 1 ? '' : 's' ) );
                 }
             } ).fail( function ( code ) {
                 mw.notify( 'Save failed (' + code + ')', { type: 'error' } );
@@ -663,10 +670,13 @@
                 $card.find( '.pcp-likert-btn-dk' ).removeClass( 'pcp-likert-active' );
                 $card.find( '.pcp-likert-slider-wrap' ).removeClass( 'pcp-likert-dk-on' );
                 if ( d.n > 0 ) {
-                    var $agg = $card.find( '.pcp-problem-agg' );
-                    var mFmt = Number( d.mean ).toFixed( 1 );
-                    // Replace the first number in the agg text with the new mean
-                    $agg.html( $agg.html().replace( /[\d.]+/, mFmt ) );
+                    var $r = $card.find( '.pcp-rating' );
+                    var s5 = ( d.mean ).toFixed( 1 );
+                    $r.find( '.pcp-stars-clip' ).attr( 'width', ( d.mean * 24 ).toFixed( 2 ) );
+                    $r.find( '.pcp-rating-num' ).text( s5 );
+                    $r.find( '.pcp-rating-n' ).text( 'n=' + d.n );
+                    $r.attr( 'aria-label', 'Efficacy rated ' + s5 +
+                        ' out of 5, from ' + d.n + ' rating' + ( d.n === 1 ? '' : 's' ) );
                 }
             } ).fail( function ( code ) {
                 mw.notify( 'Save failed (' + code + ')', { type: 'error' } );
@@ -2360,6 +2370,26 @@ $( document ).on( 'click', '.pcp-vis-toggle', function () {
         } );
         /* ===== End PID-5-BF sliders ===== */
 
+        /* ===== Height items (std vs metric) =====
+         * On unit-radio change, show the matching .pcp-pid-height-group
+         * (data-height-unit) and hide the other. Std has feet+inches; metric
+         * has cm. Initial sync mirrors the rendered defaults (std checked). */
+        $( document ).on( 'change', '.pcp-pid-height input[type=radio][name^="t_unit["]', function () {
+            var $item = $( this ).closest( '.pcp-pid-height' );
+            var picked = this.value;
+            $item.find( '.pcp-pid-height-group' ).each( function () {
+                this.hidden = ( this.getAttribute( 'data-height-unit' ) !== picked );
+            } );
+        } );
+        $( '.pcp-pid-height' ).each( function () {
+            var $item = $( this );
+            var picked = $item.find( 'input[type=radio][name^="t_unit["]:checked' ).val() || 'std';
+            $item.find( '.pcp-pid-height-group' ).each( function () {
+                this.hidden = ( this.getAttribute( 'data-height-unit' ) !== picked );
+            } );
+        } );
+        /* ===== End Height items ===== */
+
         /* ===== BFI-10 personality test scoring ===== */
         // Compute fires on either the explicit button (legacy) or any
         // BFI-10 slider change. Both bindings call the same logic.
@@ -3312,6 +3342,27 @@ $( document ).on( 'click', '.pcp-vis-toggle', function () {
                     try { sessionStorage.setItem( PICK_KEY, k ); } catch ( e ) {}
                 }
             } );
+            // home-claude 2026-05-22: sidebar link "My Assessments"
+            // -> Special:MyProfile#pcp-assessments should OPEN the
+            // section, not just scroll to it. On load and hashchange,
+            // if location.hash names a .pcp-prof-section id, expand
+            // it (same toggle as the legend click).
+            function pcpOpenHashSection() {
+                var h = location.hash;
+                if ( !h || h.length < 2 ) { return; }
+                var el = document.getElementById(
+                    decodeURIComponent( h.slice( 1 ) )
+                );
+                if ( !el || !el.classList.contains( 'pcp-prof-section' ) ) {
+                    return;
+                }
+                el.classList.remove( 'is-collapsed' );
+                $( el ).find( '> legend' ).first()
+                    .attr( 'aria-expanded', 'true' );
+            }
+            pcpOpenHashSection();
+            $( window ).on( 'hashchange', pcpOpenHashSection );
+
             // RESTORE: on the next load, expand the section, scroll, flash.
             ( function restorePickedAssessment() {
                 var key;
@@ -3833,3 +3884,93 @@ $( function () {
     }
 }() );
 
+/* ===== .pcp-rate widget — mouseover/keyboard/touch rate input
+   on the 0-5 scale (designer-claude handoff 2026-05-22). One
+   component, on problem cards and COMMON USES rows. Hover →
+   stars preview-fill to the cursor, click commits via
+   action=pharmacopedialikert; keyboard arrows step 0.1; touch
+   press-and-drag, lift commits. Aggregate is read from
+   data-agg (0-5). ===== */
+$( function () {
+    if ( !window.mw || !mw.Api ) { return; }
+    var rateApi = new mw.Api();
+    function clamp( v ) { return Math.max( 0, Math.min( 5, v ) ); }
+    function init( w ) {
+        var stars = w.querySelector( '.pcp-rate-stars' );
+        if ( !stars ) { return; }
+        var fill = w.querySelector( '.pcp-rate-fill' );
+        var num = w.querySelector( '.pcp-rate-num' );
+        var agg = parseFloat( w.getAttribute( 'data-agg' ) ) || 0;
+        function show( v ) {
+            v = clamp( v );
+            fill.style.width = ( v / 5 * 100 ).toFixed( 2 ) + '%';
+            num.textContent = v.toFixed( 1 );
+            w.setAttribute( 'aria-valuenow', v.toFixed( 2 ) );
+            w.setAttribute( 'aria-valuetext', v.toFixed( 1 ) + ' out of 5' );
+        }
+        function rest() { w.classList.remove( 'is-rating' ); show( agg ); }
+        function posToVal( clientX ) {
+            var r = stars.getBoundingClientRect();
+            return clamp( ( clientX - r.left ) / r.width * 5 );
+        }
+        function commit( v ) {
+            v = clamp( v );
+            agg = v;
+            w.classList.remove( 'is-rating' );
+            w.classList.add( 'is-committed' );
+            show( v );
+            setTimeout( function () { w.classList.remove( 'is-committed' ); }, 850 );
+            var eid = parseInt( w.getAttribute( 'data-element-id' ), 10 );
+            if ( !eid ) { return; }
+            rateApi.postWithToken( 'csrf', {
+                action: 'pharmacopedialikert',
+                element_id: eid,
+                value: v,
+                format: 'json'
+            } ).done( function ( resp ) {
+                var d = resp && resp.pharmacopedialikert;
+                if ( d && d.n != null && d.n > 0 && d.mean != null ) {
+                    agg = parseFloat( d.mean );
+                    w.setAttribute( 'data-agg', agg.toFixed( 2 ) );
+                    w.setAttribute( 'data-agg-n', d.n );
+                    show( agg );
+                }
+            } ).fail( function ( code ) {
+                mw.notify( 'Rating failed (' + code + ')', { type: 'error' } );
+            } );
+        }
+        w.addEventListener( 'mousemove', function ( e ) {
+            w.classList.add( 'is-rating' );
+            show( posToVal( e.clientX ) );
+        } );
+        w.addEventListener( 'mouseleave', rest );
+        w.addEventListener( 'click', function ( e ) { commit( posToVal( e.clientX ) ); } );
+        w.addEventListener( 'keydown', function ( e ) {
+            var cur = parseFloat( w.getAttribute( 'aria-valuenow' ) );
+            if ( isNaN( cur ) ) { cur = agg; }
+            var d = 0;
+            if ( e.key === 'ArrowRight' || e.key === 'ArrowUp' ) { d = 0.1; }
+            else if ( e.key === 'ArrowLeft' || e.key === 'ArrowDown' ) { d = -0.1; }
+            else if ( e.key === 'Enter' || e.key === ' ' ) {
+                e.preventDefault(); commit( cur ); return;
+            } else { return; }
+            e.preventDefault();
+            w.classList.add( 'is-rating' );
+            show( cur + d );
+        } );
+        w.addEventListener( 'touchstart', function ( e ) {
+            w.classList.add( 'is-rating' );
+            show( posToVal( e.touches[ 0 ].clientX ) );
+        }, { passive: true } );
+        w.addEventListener( 'touchmove', function ( e ) {
+            e.preventDefault();
+            w.classList.add( 'is-rating' );
+            show( posToVal( e.touches[ 0 ].clientX ) );
+        } );
+        w.addEventListener( 'touchend', function ( e ) {
+            var t = e.changedTouches[ 0 ];
+            commit( posToVal( t ? t.clientX : 0 ) );
+        } );
+    }
+    document.querySelectorAll( '.pcp-rate' ).forEach( init );
+} );

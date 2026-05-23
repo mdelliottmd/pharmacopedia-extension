@@ -6,7 +6,7 @@
 .pcp-catindex {
     /* pharma palette */
     --p-bg: #0e0d0f; --p-bg-2: #131216; --p-bg-3: #18171c;
-    --p-ink: #ece9f2; --p-ink-dim: #a29eae; --p-ink-mute: #6c6877;
+    --p-ink: #ece9f2; --p-ink-dim: #a29eae; --p-ink-mute: #94909c;
     --p-violet: #8b5cf6; --p-violet-bright: #a78bfa; --p-violet-ink: #b9a4f0;
     --p-line: #232230; --p-line-faint: #1a1922;
     /* plants palette */
@@ -39,12 +39,13 @@
     padding: 34px 30px 30px; text-align: center;
 }
 .pcp-catindex .tb-eyebrow {
-    position: relative; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    position: relative; font-size: var(--type-small, 12px); letter-spacing: 0.22em; text-transform: uppercase;
     color: var(--p-ink-dim); margin: 0 0 12px;
 }
-.pcp-catindex .tb-title {
+.pcp-catindex .titleband h1.tb-title {
     position: relative; font-family: 'Newsreader', Georgia, serif;
-    font-size: 38px; font-weight: 400; letter-spacing: -0.015em; color: #f4f1f7; margin: 0;
+    font-size: 38px; font-weight: 400; letter-spacing: -0.015em; color: #f4f1f7;
+    margin: 0; padding: 0; border: 0;
 }
 .pcp-catindex .tb-sub {
     position: relative; margin: 13px auto 0; max-width: 560px;
@@ -78,9 +79,9 @@
     border: 1px solid var(--p-line); border-top: 2px solid var(--p-violet);
     padding: 13px 18px 14px;
 }
-.pcp-catindex .troot .rk { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--p-violet-bright); }
-.pcp-catindex .troot .nm { font-family: 'Newsreader', Georgia, serif; font-size: 25px; line-height: 1.1; margin: 4px 0; }
-.pcp-catindex .troot .mt { font-size: 10.5px; color: var(--p-ink-mute); font-variant-numeric: tabular-nums; }
+.pcp-catindex .troot .rk { font-size: var(--type-small, 12px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--p-violet-bright); }
+.pcp-catindex .troot h2.nm { font-family: 'Newsreader', Georgia, serif; font-size: 25px; font-weight: 400; line-height: 1.1; margin: 4px 0; padding: 0; border: 0; }
+.pcp-catindex .troot .mt { font-size: var(--type-small, 12px); color: var(--p-ink-mute); font-variant-numeric: tabular-nums; }
 .pcp-catindex .troot::after {
     content: ''; position: absolute; left: 27px; top: 100%;
     width: 1px; height: 16px; background: var(--p-line);
@@ -94,12 +95,12 @@
     padding: 16px 20px 17px; display: flex; gap: 16px; align-items: center;
 }
 .pcp-catindex .lroot .lr-sprig { width: 44px; height: 42px; color: var(--l-moss); flex-shrink: 0; }
-.pcp-catindex .lroot .lr-rank { font-size: 9px; letter-spacing: 0.21em; text-transform: uppercase; color: var(--l-moss); }
-.pcp-catindex .lroot .lr-name {
-    font-family: 'Source Serif 4', Georgia, serif; font-size: 26px;
-    color: var(--l-bone); line-height: 1.08; margin: 3px 0 4px;
+.pcp-catindex .lroot .lr-rank { font-size: var(--type-small, 12px); letter-spacing: 0.21em; text-transform: uppercase; color: var(--l-moss); }
+.pcp-catindex .lroot h2.lr-name {
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 400;
+    color: var(--l-bone); line-height: 1.08; margin: 3px 0 4px; padding: 0; border: 0;
 }
-.pcp-catindex .lroot .lr-count { font-size: 11px; color: var(--l-lichen); }
+.pcp-catindex .lroot .lr-count { font-size: var(--type-small, 12px); color: var(--l-lichen); }
 
 /* ===== pharma tree ===== */
 .pcp-catindex .tbody { position: relative; }
@@ -124,13 +125,13 @@
 }
 .pcp-catindex details.tbranch[open] > summary .tw-chev { transform: rotate(45deg); }
 .pcp-catindex .tnode-body { min-width: 0; }
-.pcp-catindex .tnode .rk { font-size: 8.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--p-ink-mute); }
+.pcp-catindex .tnode .rk { font-size: var(--type-small, 12px); letter-spacing: 0.18em; text-transform: uppercase; color: var(--p-ink-mute); }
 .pcp-catindex .tnode .nm {
     font-family: 'Newsreader', Georgia, serif; font-size: 16px;
     margin: 1px 0 0; display: flex; align-items: baseline; gap: 9px;
 }
 .pcp-catindex .tnode .ct {
-    font-family: 'Geist', sans-serif; font-size: 9px; color: var(--p-violet-ink);
+    font-family: 'Geist', sans-serif; font-size: var(--type-small, 12px); color: var(--p-violet-ink);
     border: 1px solid var(--p-line); padding: 1px 6px; letter-spacing: 0.05em;
     font-variant-numeric: tabular-nums; position: relative; top: -2px;
 }
@@ -176,19 +177,25 @@
 }
 .pcp-catindex details.lbranch[open] > summary .lw-chev { transform: rotate(45deg); border-color: var(--l-moss); }
 .pcp-catindex .lnode .ln-glyph { width: 19px; height: 22px; color: var(--l-moss); flex-shrink: 0; }
-.pcp-catindex .lnode .ln-name {
-    font-family: 'Source Serif 4', Georgia, serif; font-size: 20px;
-    color: var(--l-bone); line-height: 1.1;
+.pcp-catindex .lnode h3.ln-name {
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 400;
+    color: var(--l-bone); line-height: 1.1; margin: 0; padding: 0; border: 0;
 }
 .pcp-catindex .lnode .ln-count {
-    font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--l-lichen); border: 1px solid var(--l-rule-strong); padding: 2px 7px;
 }
-.pcp-catindex .lnode .ln-desc { font-size: 11.5px; color: var(--l-bone-dim); margin: 5px 0 0 48px; }
+.pcp-catindex .lnode .ln-desc { font-size: var(--type-small, 12px); color: var(--l-bone-dim); margin: 5px 0 0 48px; }
 .pcp-catindex .lbranch > summary:hover .ln-name { color: var(--l-amber); }
 .pcp-catindex .lbranch > summary:hover .lw-chev { border-color: var(--l-amber); }
 .pcp-catindex .lbranch > summary:focus-visible { outline: 1px solid var(--l-moss); outline-offset: 3px; }
-.pcp-catindex .lfoliage { margin: 13px 0 0 48px; display: flex; flex-wrap: wrap; gap: 8px 22px; }
+/* .lfoliage holds the Latin classes under a volume. After the plant-side
+   deepening (2026-05-22 designer ship), each class is a collapsible <details
+   class="lsub"> rather than a flat <a class="leaf">, so the container
+   stacks vertically instead of wrapping in a flex grid. */
+.pcp-catindex .lfoliage { margin: 13px 0 0 48px; display: flex; flex-direction: column; gap: 2px; }
+/* Vestigial: kept in case any consumer (or the old pharma path) still emits
+   .leaf inside .lfoliage. The new plant path uses .lsub. */
 .pcp-catindex .leaf { display: flex; align-items: center; gap: 9px; padding: 2px; }
 .pcp-catindex .leaf .leaf-ic { width: 20px; height: 23px; color: var(--l-moss); flex-shrink: 0; transition: transform .18s ease; }
 .pcp-catindex .leaf:nth-child(2n) .leaf-ic { color: var(--l-fern); }
@@ -197,14 +204,92 @@
 .pcp-catindex .leaf:hover .lf-name { color: var(--l-amber); }
 .pcp-catindex details.lbranch[open] > .lfoliage { animation: pcp-ci-open .2s ease both; }
 
+/* ===== plant-side level 4: Latin class as a collapsible sub-branch =====
+   Each .lsub is a <details> whose summary carries the leaf icon, the Latin
+   name, the parenthetical English gloss, the direct-member count, and a
+   chevron. Member medicines render inside .lsfoliage when expanded. Lifted
+   verbatim from /design/category_index.html with one adjustment: .ls-count
+   was 9px in the mock; raised to the --type-small (12px) chrome-text floor
+   per the WCAG floor rule in DESIGN_TOKENS.md. */
+.pcp-catindex .lsub {
+    border-left: 1px solid var(--l-rule);
+    padding: 4px 0 6px 16px;
+    position: relative;
+}
+.pcp-catindex .lsub > summary {
+    display: flex; align-items: center; gap: 9px;
+    cursor: pointer; outline: none; list-style: none;
+    padding: 2px 0;
+}
+.pcp-catindex .lsub > summary::-webkit-details-marker { display: none; }
+.pcp-catindex .lsub > summary .leaf-ic {
+    width: 18px; height: 21px; color: var(--l-moss);
+    flex-shrink: 0; transition: transform .18s ease;
+}
+.pcp-catindex .lsub:nth-child(2n) > summary .leaf-ic { color: var(--l-fern); }
+.pcp-catindex .lsub:nth-child(3n)   > summary .leaf-ic { transform: rotate(-12deg); }
+.pcp-catindex .lsub:nth-child(3n+1) > summary .leaf-ic { transform: rotate(9deg); }
+.pcp-catindex .lsub > summary .lf-name {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 14.5px; color: var(--l-bone);
+    flex: 1;
+}
+.pcp-catindex .lsub > summary .lf-gloss {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 13px; color: var(--l-bone-dim);
+}
+.pcp-catindex .lsub > summary .ls-count {
+    font-size: var(--type-small, 12px); letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--l-lichen);
+}
+.pcp-catindex .lsub > summary .ls-chev {
+    flex-shrink: 0; padding: 2.5px;
+    border: solid var(--l-lichen); border-width: 0 1.4px 1.4px 0;
+    transform: rotate(-45deg); transition: transform .18s ease;
+}
+.pcp-catindex details.lsub[open] > summary .ls-chev {
+    transform: rotate(45deg); border-color: var(--l-moss);
+}
+.pcp-catindex .lsub > summary:hover .lf-name  { color: var(--l-amber); }
+.pcp-catindex .lsub > summary:hover .leaf-ic  { color: var(--l-fern); transform: rotate(0deg) scale(1.10); }
+.pcp-catindex .lsub > summary:hover .ls-chev  { border-color: var(--l-amber); }
+.pcp-catindex .lsub > summary:focus-visible   { outline: 1px solid var(--l-moss); outline-offset: 3px; }
+
+/* Member medicines under a class sub-branch */
+.pcp-catindex .lsfoliage {
+    margin: 4px 0 4px 26px;
+    display: flex; flex-direction: column;
+}
+.pcp-catindex .lsleaf {
+    display: flex; align-items: center; gap: 9px;
+    padding: 4px 9px;
+    border-left: 1px solid var(--l-rule);
+    text-decoration: none;
+}
+.pcp-catindex .lsleaf .lsdot {
+    width: 4px; height: 4px; flex-shrink: 0;
+    background: var(--l-moss); opacity: 0.55;
+}
+.pcp-catindex .lsleaf .lsname {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 13.5px; color: var(--l-bone);
+}
+.pcp-catindex .lsleaf:hover         { background: rgba(106, 138, 82, 0.07); }
+.pcp-catindex .lsleaf:hover .lsname { color: var(--l-amber); }
+.pcp-catindex .lsleaf:hover .lsdot  { opacity: 1; background: var(--l-fern); }
+.pcp-catindex details.lsub[open] > .lsfoliage { animation: pcp-ci-open .18s ease both; }
+
 @keyframes pcp-ci-open {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-    .pcp-catindex .tw-chev, .pcp-catindex .lw-chev, .pcp-catindex .leaf .leaf-ic { transition: none; }
+    .pcp-catindex .tw-chev, .pcp-catindex .lw-chev,
+    .pcp-catindex .leaf .leaf-ic, .pcp-catindex .lsub > summary .leaf-ic,
+    .pcp-catindex .lsub > summary .ls-chev { transition: none; }
     .pcp-catindex details.tbranch[open] > .tfoliage,
-    .pcp-catindex details.lbranch[open] > .lfoliage { animation: none; }
+    .pcp-catindex details.lbranch[open] > .lfoliage,
+    .pcp-catindex details.lsub[open] > .lsfoliage { animation: none; }
 }
 
 /* ===== narrow viewport: stack, pharma above plant ===== */
@@ -215,15 +300,28 @@
     .pcp-catindex .col-pharma, .pcp-catindex .col-plant { box-shadow: none; }
     .pcp-catindex .col-plant { border-left: 0; }
     .pcp-catindex .col-pharma .col-inner, .pcp-catindex .col-plant .col-inner { margin: 0 auto; }
-    .pcp-catindex .tb-title { font-size: 30px; }
+    .pcp-catindex .titleband h1.tb-title { font-size: 30px; }
     .pcp-catindex .diptych-seam {
         display: flex; flex-direction: column; align-items: center; gap: 7px;
         padding: 30px 22px; text-align: center;
         background: linear-gradient(180deg, var(--p-bg), var(--l-loam));
     }
     .pcp-catindex .seam-sprig { width: 30px; height: 28px; color: var(--l-moss); }
-    .pcp-catindex .seam-eyebrow { font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--l-lichen); }
+    .pcp-catindex .seam-eyebrow { font-size: var(--type-small, 12px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--l-lichen); }
     .pcp-catindex .seam-label { font-family: 'Source Serif 4', Georgia, serif; font-size: 17px; color: var(--l-bone); }
+
+    /* Plant deepening on narrow viewports: tighten indents, let the long
+       Latin + gloss summary row wrap (gloss flows to its own line under
+       the Latin name); medicine leaves indent halfway. */
+    .pcp-catindex .lfoliage { margin: 11px 0 0 18px; }
+    .pcp-catindex .lsub { padding-left: 12px; }
+    .pcp-catindex .lsub > summary { flex-wrap: wrap; row-gap: 2px; }
+    .pcp-catindex .lsub > summary .lf-name  { flex: 0 1 auto; }
+    .pcp-catindex .lsub > summary .ls-count { order: 2; margin-left: auto; }
+    .pcp-catindex .lsub > summary .ls-chev  { order: 3; }
+    .pcp-catindex .lsub > summary .lf-gloss { order: 4; flex: 1 1 100%; margin-left: 27px; font-size: var(--type-small, 12px); }
+    .pcp-catindex .lsfoliage { margin-left: 18px; }
+    .pcp-catindex .lsleaf { padding-left: 11px; }
 }
 
 
@@ -264,9 +362,9 @@
     padding: 22px 30px 40px;
 }
 .pcp-catindex .footer-meta { text-align: center; }
-.pcp-catindex .footer-line { font-size: 11px; color: var(--p-ink-mute); margin: 0 0 4px; }
+.pcp-catindex .footer-line { font-size: var(--type-small, 12px); color: var(--p-ink-mute); margin: 0 0 4px; }
 .pcp-catindex .footer-links { display: flex; gap: 16px; justify-content: center; margin-top: 9px; }
-.pcp-catindex .footer-links a { font-size: 11px; color: var(--p-ink-dim); }
+.pcp-catindex .footer-links a { font-size: var(--type-small, 12px); color: var(--p-ink-dim); }
 .pcp-catindex .footer-links a:hover { color: var(--p-violet-ink); }
 
 /* full-viewport fill: only in chromeless mode (the body class is added

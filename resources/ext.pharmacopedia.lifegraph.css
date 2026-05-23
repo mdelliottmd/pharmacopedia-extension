@@ -35,7 +35,7 @@
     padding: 0.2em 0.6em;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     margin-left: auto;
 }
 .pcp-life-graph-fit:hover { background: #2a2a2a; color: #fff; }
@@ -64,7 +64,7 @@
     border: 1px solid #5d3b8e;
     border-radius: 12px;
     padding: 0.1em 0.5em 0.1em 0.35em;
-    font-size: 0.74em;
+    font-size: var(--type-small, 12px);
     color: #fff;
     cursor: pointer;
 }
@@ -96,7 +96,7 @@
     border: 1px solid #5d3b8e;
     border-radius: 6px;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     user-select: none;
     list-style: none;
 }

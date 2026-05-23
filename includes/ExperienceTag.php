@@ -199,18 +199,23 @@ class ExperienceTag {
              ' data-form-key="' . htmlspecialchars( $formKey ) . '"' . $prefillAttr .
              ' onsubmit="return false;">';
 
-        // Perspective toggle -- new-mode + provider only.
+        // Perspective toggle -- new-mode + provider only. Fieldset + visually-
+        // hidden legend per WCAG 1.3.1 / 3.3.2 (a11y-claude baseline 2026-05-22).
         if ( !$editMode && $canProvider ) {
-            $h .= '<div class="pcp-xp-field pcp-xp-persp-row">';
+            $h .= '<fieldset class="pcp-xp-field pcp-xp-persp-row">';
+            $h .= '<legend class="visuallyhidden">Perspective for this experience</legend>';
             $h .= '<label><input type="radio" name="pcp-xp-persp-' . $pid . '-' . $formKey . '" value="1" checked> Personal experience</label> ';
             $h .= '<label><input type="radio" name="pcp-xp-persp-' . $pid . '-' . $formKey . '" value="2"> Clinical experience</label>';
-            $h .= '</div>';
+            $h .= '</fieldset>';
         }
 
-        // Currently taking / prescribing
-        $h .= '<div class="pcp-xp-field">';
-        $h .= '<div class="pcp-xp-q pcp-xp-q-personal">Are you currently taking it?</div>';
-        $h .= '<div class="pcp-xp-q pcp-xp-q-clinical">Do you still prescribe / manage this medicine?</div>';
+        // Currently taking / prescribing. Fieldset wraps the radio group; the
+        // <legend> is the existing dual-mode question text repurposed as a
+        // screen-reader-only group label so visible UI is unchanged.
+        $h .= '<fieldset class="pcp-xp-field">';
+        $h .= '<legend class="visuallyhidden">Are you currently taking or prescribing this medicine?</legend>';
+        $h .= '<div class="pcp-xp-q pcp-xp-q-personal" aria-hidden="true">Are you currently taking it?</div>';
+        $h .= '<div class="pcp-xp-q pcp-xp-q-clinical" aria-hidden="true">Do you still prescribe / manage this medicine?</div>';
         $cur = [
             1 => [ 'Still taking it', 'Still do' ],
             2 => [ 'Stopped', 'No longer' ],
@@ -222,7 +227,7 @@ class ExperienceTag {
                   '<span class="pcp-xp-lbl-personal">' . htmlspecialchars( $labels[0] ) . '</span>' .
                   '<span class="pcp-xp-lbl-clinical">' . htmlspecialchars( $labels[1] ) . '</span></label> ';
         }
-        $h .= '</div></div>';
+        $h .= '</div></fieldset>';
 
         // Duration
         $h .= '<div class="pcp-xp-field">';

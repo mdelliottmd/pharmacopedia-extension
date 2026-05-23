@@ -2,6 +2,7 @@
 namespace MediaWiki\Extension\Pharmacopedia;
 
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Title\Title;
 
 /**
  * Store for the unified Problems repository (replacing the old indications repo
@@ -195,5 +196,133 @@ class ProblemStore {
             $row = $this->getById( (int)$row->p_merged_into );
         }
         return $row && !$row->p_retired ? $row : null;
+    }
+
+    /**
+     * Ranked "uses" for a medicine page, for the Common-uses datasheet field:
+     * the repository Problems linked to the page through <problem ref="...">
+     * tags, ordered by how many people have rated each one (the truest
+     * reading of "common").
+     *
+     * Each <problem ref="..."> on a medicine page materialises one
+     * pcp_votable_elements row with ve_slug = 'problem-ref-<problem-slug>'
+     * plus an efficacy likert in pcp_likert_reports. This collects those rows,
+     * joins the live (non-retired) pcp_problem entries, batches the likert
+     * aggregates in one query, and ranks. Three indexed queries, no N+1.
+     *
+     * @param string|Title $medicine Medicine page title (string or Title).
+     * @param int $limit How many uses to return in 'top'; the remainder still
+     *   count toward 'total'. Pass 0 for no cap.
+     * @return array{top:array,total:int} 'top' is a list of arrays shaped
+     *   [ 'name' => string, 'slug' => string, 'raters' => int, 'mean' => ?float ],
+     *   sorted by rater count descending, then name. 'mean' is the efficacy
+     *   mean, or null when the use has no ratings yet. 'total' counts ALL
+     *   linked live problems so the caller can render "+N more".
+     */
+    public function medicineUses( $medicine, $limit = 5 ): array {
+        $empty = [ 'top' => [], 'total' => 0 ];
+
+        $title = $medicine instanceof Title
+            ? $medicine
+            : Title::newFromText( (string)$medicine );
+        if ( !$title ) {
+            return $empty;
+        }
+        $pageId = $title->getArticleID();
+        if ( $pageId <= 0 ) {
+            return $empty;
+        }
+
+        $dbr = $this->dbr();
+        $prefix = 'problem-ref-';
+
+        // 1. The medicine's repository-linked problem elements. The <problem
+        //    ref="..."> tag renders ve_slug = 'problem-ref-<problem-slug>'.
+        $elementRows = $dbr->select(
+            'pcp_votable_elements',
+            [ 've_id', 've_slug' ],
+            [
+                've_page_id' => $pageId,
+                've_slug' . $dbr->buildLike( $prefix, $dbr->anyString() ),
+            ],
+            __METHOD__
+        );
+        $slugToElement = [];
+        foreach ( $elementRows as $r ) {
+            $problemSlug = substr( (string)$r->ve_slug, strlen( $prefix ) );
+            if ( $problemSlug !== '' ) {
+                $slugToElement[ $problemSlug ] = (int)$r->ve_id;
+            }
+        }
+        if ( !$slugToElement ) {
+            return $empty;
+        }
+
+        // 2. The live (non-retired) pcp_problem rows for those slugs.
+        $problemRows = $dbr->select(
+            'pcp_problem',
+            [ 'p_slug', 'p_name' ],
+            [ 'p_slug' => array_keys( $slugToElement ), 'p_retired' => 0 ],
+            __METHOD__
+        );
+        $names = [];
+        foreach ( $problemRows as $r ) {
+            $names[ (string)$r->p_slug ] = (string)$r->p_name;
+        }
+        if ( !$names ) {
+            return $empty;
+        }
+
+        // 3. Batched efficacy-likert aggregates for the surviving elements.
+        //    Mirrors LikertStore::getAggregates(): the mean runs over actual
+        //    ratings (pl_value >= 0); a "don't know" (-1) abstains.
+        $elementIds = [];
+        foreach ( array_keys( $names ) as $slug ) {
+            $elementIds[] = $slugToElement[ $slug ];
+        }
+        $aggRows = $dbr->select(
+            'pcp_likert_reports',
+            [
+                'pl_element_id',
+                'n_rated'   => 'SUM(CASE WHEN pl_value >= 0 THEN 1 ELSE 0 END)',
+                'sum_rated' => 'SUM(CASE WHEN pl_value >= 0 THEN pl_value ELSE 0 END)',
+            ],
+            [ 'pl_element_id' => $elementIds ],
+            __METHOD__,
+            [ 'GROUP BY' => 'pl_element_id' ]
+        );
+        $aggByElement = [];
+        foreach ( $aggRows as $r ) {
+            $aggByElement[ (int)$r->pl_element_id ] = [
+                'n'   => (int)$r->n_rated,
+                'sum' => (float)$r->sum_rated,
+            ];
+        }
+
+        // 4. Assemble and rank: rater count descending, then name, then slug.
+        $uses = [];
+        foreach ( $names as $slug => $name ) {
+            $agg = $aggByElement[ $slugToElement[ $slug ] ] ?? [ 'n' => 0, 'sum' => 0.0 ];
+            $raters = $agg['n'];
+            $uses[] = [
+                'name'   => $name,
+                'slug'   => $slug,
+                'raters' => $raters,
+                'mean'   => $raters > 0 ? round( $agg['sum'] / $raters, 2 ) : null,
+            ];
+        }
+        usort( $uses, static function ( $a, $b ) {
+            if ( $a['raters'] !== $b['raters'] ) {
+                return $b['raters'] <=> $a['raters'];
+            }
+            $byName = strcasecmp( $a['name'], $b['name'] );
+            return $byName !== 0 ? $byName : strcmp( $a['slug'], $b['slug'] );
+        } );
+
+        $limit = max( 0, (int)$limit );
+        return [
+            'top'   => $limit > 0 ? array_slice( $uses, 0, $limit ) : $uses,
+            'total' => count( $uses ),
+        ];
     }
 }

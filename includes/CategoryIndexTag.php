@@ -65,6 +65,29 @@ class CategoryIndexTag {
         ],
     ];
 
+    /**
+     * One-word / short-phrase English gloss per Latin Pendell class, shown
+     * inline in the Category index as "Latin (gloss)". Canonical translation
+     * by category-claude (2026-05-22), Pendell-true rather than Latin
+     * dictionary lookup. Each gloss is the noun form of Pendell's own
+     * TOC subtitle for the chapter (Daimonica from Gnosis chapter subtitle
+     * "Toloache, Flying Herbs, and the Witch's Garden"; Excitantia takes
+     * the house word "psychostimulants" per the standing terminology rule).
+     */
+    private const PLANT_CLASS_GLOSS = [
+        'Euphorica'     => 'euphorics',
+        'Evaesthetica'  => 'sensually pleasing',
+        'Existentia'    => 'existential plants',
+        'Inebriantia'   => 'inebriants',
+        'Metaphysica'   => 'intimations',
+        'Pacifica'      => 'peacemakers',
+        'Rhapsodica'    => 'muses',
+        'Empathogenica' => 'empathogens',
+        'Excitantia'    => 'psychostimulants',
+        'Daimonica'     => 'witch plants',
+        'Phantastica'   => 'visionaries',
+    ];
+
     public static function render( $input, array $args, $parser, $frame ) {
         $parser->getOutput()->updateCacheExpiry( 300 );
         $parser->getOutput()->addModuleStyles( [ 'ext.pharmacopedia.categoryindex' ] );
@@ -78,7 +101,7 @@ class CategoryIndexTag {
         $h .= '<div class="diptych">';
         $h .= self::pharmaColumn( $dbr );
         $h .= self::seam();
-        $h .= self::plantColumn();
+        $h .= self::plantColumn( $dbr );
         $h .= '</div>';
         $h .= DiptychChrome::footer();
         $h .= '</div>';
@@ -88,7 +111,7 @@ class CategoryIndexTag {
     private static function titleBand() {
         return '<div class="titleband">'
             . '<p class="tb-eyebrow">Index</p>'
-            . '<div class="tb-title">The category index</div>'
+            . '<h1 class="tb-title">The category index</h1>'
             . '<p class="tb-sub">Every medicine on the wiki has one of two origins. '
             . 'The pharmaceutical classes branch to the left, indexed by therapeutic '
             . 'use; the plant categories to the right, indexed by the Pendell axis.</p>'
@@ -150,7 +173,7 @@ class CategoryIndexTag {
 
         $h  = '<div class="col col-pharma"><div class="col-inner">';
         $h .= '<div class="troot"><div class="rk">Origin</div>'
-            . '<div class="nm">Pharmaceutical</div>'
+            . '<h2 class="nm">Pharmaceutical</h2>'
             . '<div class="mt">23 classes &middot; indexed by therapeutic use, alphabetical</div>'
             . '</div>';
         $h .= '<div class="tbody">';
@@ -198,12 +221,53 @@ class CategoryIndexTag {
             . '</div></div></div></div>';
     }
 
-    private static function plantColumn() {
+    private static function plantColumn( $dbr ) {
+        // Flat list of every Latin class across the three volumes, used as
+        // the IN() set for the one-query members fetch below.
+        $allClasses = [];
+        foreach ( self::PLANT_VOLUMES as $vol ) {
+            foreach ( $vol['classes'] as $cls ) {
+                $allClasses[] = $cls;
+            }
+        }
+
+        // Mainspace medicines categorized in each Latin class. One query
+        // covers all 11 classes; results are grouped by parent class in PHP.
+        // Multi-membership is preserved naturally - a medicine tagged with
+        // two Latin classes appears under both tree positions.
+        $members = array_fill_keys( $allClasses, [] );
+        $res = $dbr->select(
+            [ 'page', 'categorylinks', 'linktarget' ],
+            [ 'medicine' => 'page.page_title', 'parent' => 'linktarget.lt_title' ],
+            [
+                'page.page_namespace'     => NS_MAIN,
+                'linktarget.lt_namespace' => NS_CATEGORY,
+                'linktarget.lt_title'     => $allClasses,
+            ],
+            __METHOD__,
+            [],
+            [
+                'categorylinks' => [ 'INNER JOIN', 'cl_from = page_id' ],
+                'linktarget'    => [ 'INNER JOIN', 'lt_id = cl_target_id' ],
+            ]
+        );
+        foreach ( $res as $r ) {
+            $p = (string)$r->parent;
+            if ( isset( $members[ $p ] ) ) {
+                $members[ $p ][] = (string)$r->medicine;
+            }
+        }
+        // Alphabetize each class's medicines (case-insensitive).
+        foreach ( $members as $cls => $list ) {
+            natcasesort( $list );
+            $members[ $cls ] = array_values( $list );
+        }
+
         $h  = '<div class="col col-plant"><div class="col-inner">';
         $h .= '<div class="lroot">'
             . '<svg class="lr-sprig" viewBox="0 0 46 46" aria-hidden="true"><use href="#pl-sprig"/></svg>'
             . '<div><div class="lr-rank">Origin</div>'
-            . '<div class="lr-name">Plants</div>'
+            . '<h2 class="lr-name">Plants</h2>'
             . '<div class="lr-count">3 volumes &middot; 11 classes &middot; the Pendell axis</div>'
             . '</div></div>';
         $h .= '<div class="lbody"><div class="trunk" aria-hidden="true"></div>';
@@ -213,15 +277,36 @@ class CategoryIndexTag {
                 . '<svg class="bough" viewBox="0 0 100 92" aria-hidden="true"><use href="#pl-bough"/></svg>'
                 . '<div class="lnode-top"><span class="lw-chev"></span>'
                 . '<svg class="ln-glyph" viewBox="0 0 22 26"><use href="#pl-leaf"/></svg>'
-                . '<span class="ln-name">' . htmlspecialchars( $vol['key'] ) . '</span>'
+                . '<h3 class="ln-name">' . htmlspecialchars( $vol['key'] ) . '</h3>'
                 . '<span class="ln-count">' . count( $classes ) . ' classes</span></div>'
                 . '<div class="ln-desc">' . htmlspecialchars( $vol['desc'] ) . '</div>'
                 . '</summary><div class="lfoliage">';
             foreach ( $classes as $cls ) {
-                $url = Title::makeTitle( NS_CATEGORY, $cls )->getLocalURL();
-                $h .= '<a class="leaf" href="' . htmlspecialchars( $url ) . '">'
+                $meds  = $members[ $cls ] ?? [];
+                $n     = count( $meds );
+                $gloss = self::PLANT_CLASS_GLOSS[ $cls ] ?? '';
+                // Class node: a collapsed <details>; the summary carries the
+                // Latin name, the parenthetical English gloss, the direct-
+                // member count, and a chevron. Members render only on expand.
+                $h .= '<details class="lsub"><summary>'
                     . '<svg class="leaf-ic" viewBox="0 0 22 26"><use href="#pl-leaf"/></svg>'
-                    . '<span class="lf-name">' . htmlspecialchars( $cls ) . '</span></a>';
+                    . '<span class="lf-name">' . htmlspecialchars( $cls ) . '</span>';
+                if ( $gloss !== '' ) {
+                    $h .= '<span class="lf-gloss">(' . htmlspecialchars( $gloss ) . ')</span>';
+                }
+                $h .= '<span class="ls-count">' . $n . '</span>'
+                    . '<span class="ls-chev"></span>'
+                    . '</summary>'
+                    . '<div class="lsfoliage">';
+                foreach ( $meds as $med ) {
+                    $url  = Title::makeTitle( NS_MAIN, $med )->getLocalURL();
+                    $disp = str_replace( '_', ' ', $med );
+                    $h   .= '<a class="lsleaf" href="' . htmlspecialchars( $url ) . '">'
+                        . '<span class="lsdot"></span>'
+                        . '<span class="lsname">' . htmlspecialchars( $disp ) . '</span>'
+                        . '</a>';
+                }
+                $h .= '</div></details>';
             }
             $h .= '</div></details>';
         }

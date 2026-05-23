@@ -396,7 +396,7 @@
     --plants-bark-edge:   #3d2a1d;
     --plants-bone:        #d4c5a8;
     --plants-bone-dim:    #a8927a;
-    --plants-lichen:      #7a6650;
+    --plants-lichen:      #9c958a;
     --plants-whisper:     #5a4636;
     --plants-moss:        #6a8a52;
     --plants-fern:        #8eb070;
@@ -571,7 +571,7 @@ body.pcp-skin-plants {
 }
 .pcp-skin-plants .pcp-pendell-attr i,
 .pcp-skin-plants .pcp-pendell-attr em {
-    color: var(--plants-amber-deep);
+    color: var(--plants-amber);
 }
 .pcp-skin-plants .pcp-pendell-voice {
     color: var(--plants-moss);

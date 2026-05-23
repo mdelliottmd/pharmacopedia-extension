@@ -267,7 +267,7 @@
     --pharma-tier-boxed:       #c25a52;
     --pharma-tier-strong:      #c7884a;
     --pharma-tier-primary:     #8b5cf6;
-    --pharma-tier-derived:     #6c6877;
+    --pharma-tier-derived:     #94909c;
     --pharma-redlink:          #a8736d;
 
     /* --- Legacy aliases. Retire as phases B to F migrate surfaces. --- */
@@ -288,8 +288,8 @@
     --pharma-teal:             var(--pharma-violet-ink);
     --pharma-info:             var(--pharma-violet-ink);
     --pharma-danger:           var(--pharma-tier-boxed);
-    --pharma-tier1-red:        var(--pharma-tier-boxed);
-    --pharma-tier1-deep:       var(--pharma-tier-boxed);
+    --pharma-tier1-red:        #ef4444;
+    --pharma-tier1-deep:       #b91c1c;
     --pharma-blue:             var(--pharma-ch-summary);
     --pharma-green:            var(--pharma-ch-pharmacy);
     --pharma-amber:            var(--pharma-tier-strong);
@@ -303,6 +303,42 @@
     --topbar-h:        54px;
     --rail-w:          292px;
     --type-scale:      1;
+    /* Chrome-text floor, WCAG-driven (DESIGN_TOKENS.md "Accessibility
+       floors"). Every interface chrome text - captions, meta, counts,
+       pill labels, footnote markers - sits at this token or higher.
+       The reading-text rail (--type-scale) does not apply. */
+    --type-small:      12px;
+}
+
+/* Visually-hidden helper: removes from the visual flow while leaving the
+   text in the accessibility tree. Used for <legend class="visuallyhidden">
+   on parser-tag fieldsets where a visible label would be redundant chrome
+   but a screen-reader-only group label still serves WCAG 1.3.1 / 3.3.2. */
+.visuallyhidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Reset default fieldset chrome where the fieldset is used as a layout
+   wrapper for a11y group labelling (radio groups in parser tags). The
+   class rules below define the visible layout; we just suppress the
+   browser-default border, padding, and min-inline-size so the visual
+   matches the prior <div>-based markup. Margins on these classes are
+   set deliberately elsewhere; not overridden here. */
+fieldset.pcp-xp-field,
+fieldset.pcp-interaction-persp-row,
+fieldset.pcp-effect-perspective-row,
+fieldset.pcp-a11y-fs-wrap {
+    border: 0;
+    padding: 0;
+    min-inline-size: 0;
 }
 
 /* C/Specimen base font. Geist is the default body face for the pharma
@@ -329,7 +365,7 @@ body:not(.pcp-skin-plants) {
     --pharma-teal:           #6a8a52;   /* moss (link) */
     --pharma-surface-2:      #1c1714;   /* alt bark */
     --pharma-danger:         #7a3a22;   /* rust */
-    --pharma-lichen:         #7a6650;   /* lichen */
+    --pharma-lichen:         #9c958a;   /* lichen (lifted 2026-05-22 for AA on chip suggest bg) */
     --pharma-ring:           rgba(212, 197, 168, 0.16);
     --pharma-track:          #2e1f15;   /* bark-raised */
     --pharma-info:           #6a8a52;   /* moss */
@@ -343,6 +379,7 @@ body:not(.pcp-skin-plants) {
     --pharma-amber:          #b67a44;
     --pharma-custom-accent:  #b67a44;   /* same as amber on plants */
     --pharma-redlink:        #c08372;   /* desaturated rust; redlink, AA on loam */
+    --pharma-ink-mute:       #9c958a;   /* plants-local muted (was #94909c cool grey) */
 }
 
 body.pcp-skin-fungi {
@@ -362,6 +399,7 @@ body.pcp-skin-fungi {
     --pharma-surface-2:      #0e100f;   /* substrate-warm */
     --pharma-danger:         #8a3f2b;   /* rot */
     --pharma-lichen:         #888a7d;   /* veil */
+    --pharma-ink-mute:       #888a7d;   /* fungi-local muted (was #94909c cool grey) */
     --pharma-ring:           rgba(216, 211, 193, 0.16);
     --pharma-track:          #22251f;   /* flesh-raised */
     --pharma-info:           #6878b8;   /* bruise */
@@ -377,40 +415,33 @@ body.pcp-skin-fungi {
     --pharma-redlink:        #c08a73;   /* desaturated rot; redlink */
 }
 
-/* ===== <vote> binary widget ===== */
+/* ===== <vote> binary widget =====
+   ADA S1 (designer-claude 2026-05-22): the up/down buttons render
+   always, at 24x24, with no chip behind the control. The former
+   hover/focus reveal collapsed the buttons to 0px - failing touch
+   operability and the 2.5.8 target-size minimum. */
 .pcp-vote { display: inline; }
 .pcp-vote-controls {
-    display: inline-flex; align-items: center; gap: 0;
-    margin-left: 6px; vertical-align: middle;
-    font-size: 0.82em; line-height: 1.2;
-    padding: 1px 6px; border-radius: 10px;
-    background: rgba(128,128,128,0.10);
-    transition: gap 0.2s, padding 0.2s, background 0.2s;
-}
-.pcp-vote:hover .pcp-vote-controls,
-.pcp-vote:focus-within .pcp-vote-controls {
-    gap: 2px;
-    background: rgba(128,128,128,0.18);
+    display: inline-flex; align-items: center; gap: 2px;
+    margin-left: 6px; vertical-align: middle; line-height: 1;
 }
 .pcp-vote-btn {
-    background: none; border: none; cursor: pointer;
-    color: inherit; font-size: 0.9em;
-    opacity: 0; max-width: 0; padding: 0;
-    overflow: hidden; pointer-events: none;
-    transition: opacity 0.2s, max-width 0.2s, padding 0.2s;
+    width: 24px; height: 24px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    color: var(--pharma-ink-mute, #94909c); font-size: var(--type-small, 12px); line-height: 1;
 }
-.pcp-vote:hover .pcp-vote-btn,
-.pcp-vote:focus-within .pcp-vote-btn {
-    opacity: 0.55; max-width: 1.4em; padding: 0 3px; pointer-events: auto;
+.pcp-vote-btn:hover { color: var(--pharma-ink, #ece9f2); }
+.pcp-vote-btn:focus-visible {
+    outline: 1px solid var(--pharma-violet, #8b5cf6); outline-offset: -2px;
 }
-.pcp-vote:hover .pcp-vote-btn:hover,
-.pcp-vote:focus-within .pcp-vote-btn:hover { opacity: 1; }
-.pcp-vote-btn.pcp-vote-active { opacity: 1; font-weight: bold; }
+.pcp-vote-btn.pcp-vote-active { font-weight: bold; }
 .pcp-vote-up.pcp-vote-active { color: #16a34a; }
 .pcp-vote-down.pcp-vote-active { color: #dc2626; }
 .pcp-vote-score {
-    min-width: 1.5em; text-align: center;
-    font-variant-numeric: tabular-nums; font-weight: 600;
+    min-width: 30px; text-align: center;
+    font-size: var(--type-small, 12px); font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 .pcp-vote-score-pos  { color: #16a34a; }
 .pcp-vote-score-neg  { color: #dc2626; }
@@ -431,7 +462,7 @@ body.pcp-skin-fungi {
     display: flex; align-items: baseline; justify-content: space-between; gap: 1em;
 }
 .pcp-effect-label { font-size: 1.05em; }
-.pcp-effect-agg { font-size: 0.85em; opacity: 0.85; }
+.pcp-effect-agg { font-size: var(--type-small, 12px); opacity: 0.85; }
 .pcp-effect-pct { font-weight: 600; }
 .pcp-effect-vmean { color: #6366f1; font-variant-numeric: tabular-nums; }
 .pcp-effect-n { opacity: 0.7; }
@@ -440,7 +471,7 @@ body.pcp-skin-fungi {
 .pcp-effect-controls,
 .pcp-effect-valence-row {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     opacity: 0; max-height: 0; overflow: hidden; margin: 0;
     pointer-events: none;
     transition: opacity 0.2s, max-height 0.25s, margin 0.2s;
@@ -485,7 +516,7 @@ body.pcp-skin-fungi {
     padding: 0.8em 1em;
 }
 .pcp-discuss-header {
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     opacity: 0.55;
     margin: 0;
     transition: font-size 0.2s, opacity 0.2s, margin 0.2s;
@@ -523,14 +554,14 @@ body.pcp-skin-fungi {
     border-left: 2px solid rgba(128,128,128,0.25);
     margin: 0.4em 0;
 }
-.pcp-c-meta { font-size: 0.82em; opacity: 0.75; margin-bottom: 0.2em; }
+.pcp-c-meta { font-size: var(--type-small, 12px); opacity: 0.75; margin-bottom: 0.2em; }
 .pcp-c-author { font-weight: 600; }
 .pcp-c-time { margin-left: 0.5em; }
 .pcp-c-edited { opacity: 0.7; font-style: normal; }
 .pcp-c-body { font-size: 0.95em; white-space: pre-wrap; word-wrap: break-word; }
 .pcp-c-deleted { opacity: 0.5; }
 .pcp-c-actions {
-    margin-top: 0.3em; font-size: 0.82em;
+    margin-top: 0.3em; font-size: var(--type-small, 12px);
     opacity: 0; transition: opacity 0.2s;
 }
 .pcp-c:hover .pcp-c-actions,
@@ -574,14 +605,14 @@ body.pcp-skin-fungi {
 /* ===== Perspective additions to <effect> ===== */
 .pcp-effect-agg {
     display: flex; flex-direction: column; align-items: flex-end;
-    font-size: 0.85em; line-height: 1.4;
+    font-size: var(--type-small, 12px); line-height: 1.4;
 }
 .pcp-effect-agg-row { white-space: nowrap; }
 .pcp-agg-icon { display: inline-block; margin-right: 0.15em; }
 
 .pcp-effect-perspective-row {
     display: none;
-    flex-wrap: wrap; gap: 0.8em; font-size: 0.82em;
+    flex-wrap: wrap; gap: 0.8em; font-size: var(--type-small, 12px);
     margin: 0.3em 0;
     opacity: 0;
     transition: opacity 0.2s;
@@ -679,7 +710,7 @@ body.pcp-skin-fungi {
     background: rgba(156,163,175,0.05);
 }
 .pcp-titration-vote-placeholder {
-    font-size: 0.82em; opacity: 0.6; font-style: normal;
+    font-size: var(--type-small, 12px); opacity: 0.6; font-style: normal;
 }
 
 /* "Suggest a titration strategy" button (rendered by MedTemplate) */
@@ -744,7 +775,7 @@ body.pcp-skin-fungi {
 }
 .pcp-st-modal-cancel:hover { background: rgba(128,128,128,0.2); }
 .pcp-st-modal-err {
-    background: rgba(220,38,38,0.10); color: #b91c1c;
+    background: rgba(220,38,38,0.10); color: #ef4444;
     border: 1px solid rgba(220,38,38,0.3);
     padding: 0.4em 0.7em; border-radius: 4px; margin-bottom: 0.6em; font-size: 0.9em;
 }
@@ -767,16 +798,16 @@ body.pcp-skin-fungi {
     margin-bottom: 0.4em; flex-wrap: wrap;
 }
 .pcp-anecdote-badge {
-    font-size: 0.78em; font-weight: 600;
+    font-size: var(--type-small, 12px); font-weight: 600;
     padding: 2px 8px; border-radius: 10px;
 }
 .pcp-anecdote-badge-personal {
-    background: rgba(217,119,6,0.15); color: #92400e;
+    background: rgba(217,119,6,0.15); color: #b67a44;
 }
 .pcp-anecdote-badge-provider {
     background: rgba(8,145,178,0.15); color: #155e75;
 }
-.pcp-anecdote-author { font-size: 0.85em; opacity: 0.75; }
+.pcp-anecdote-author { font-size: var(--type-small, 12px); opacity: 0.75; }
 .pcp-anecdote-body {
     font-size: 0.97em; line-height: 1.55;
 }
@@ -787,7 +818,7 @@ body.pcp-skin-fungi {
     background: rgba(156,163,175,0.05);
 }
 .pcp-anecdote-vote-placeholder {
-    font-size: 0.82em; opacity: 0.6; font-style: normal;
+    font-size: var(--type-small, 12px); opacity: 0.6; font-style: normal;
 }
 
 /* "Suggest an anecdote" button */
@@ -795,7 +826,7 @@ body.pcp-skin-fungi {
     display: inline-block; margin: 0.5em 0;
     background: rgba(217,119,6,0.10);
     border: 1px dashed rgba(217,119,6,0.55);
-    color: #92400e !important;
+    color: #b67a44 !important;
     padding: 0.4em 0.9em; border-radius: 6px;
     font-size: 0.95em; text-decoration: none !important;
 }
@@ -856,14 +887,14 @@ body.pcp-skin-fungi {
 }
 .pcp-se2-pick {
     background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.35);
-    color: inherit; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em;
+    color: inherit; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: var(--type-small, 12px);
 }
 .pcp-se2-list li.pcp-se2-selected .pcp-se2-pick {
     background: #2563eb; color: #fff; border-color: #2563eb;
 }
 .pcp-se2-pick:hover { background: rgba(37,99,235,0.22); }
 .pcp-se2-desc-preview { opacity: 0.75; font-size: 0.9em; }
-.pcp-se2-aliases-preview { opacity: 0.55; font-size: 0.82em; font-style: normal; }
+.pcp-se2-aliases-preview { opacity: 0.55; font-size: var(--type-small, 12px); font-style: normal; }
 .pcp-se2-noresults { font-style: normal; opacity: 0.7; margin: 0.6em 0; }
 .pcp-se2-newlink { font-weight: 600; }
 
@@ -901,7 +932,7 @@ body.pcp-skin-fungi {
     background: #c4b5fd; color: #fff; border-color: #c4b5fd; opacity: 1;
 }
 .pcp-likert-dk-count {
-    opacity: 0.6; font-style: normal; font-size: 0.85em; margin-left: 0.4em;
+    opacity: 0.6; font-style: normal; font-size: var(--type-small, 12px); margin-left: 0.4em;
 }
 
 /* Caduceus (provider) icon: 2x larger than baseline */
@@ -962,7 +993,7 @@ details.pcp-effect-bucket-rare-severe {
     border-radius: 4px;
 }
 details.pcp-effect-bucket-rare-severe > summary.pcp-effect-bucket-heading {
-    color: #b91c1c;
+    color: #ef4444;
     background: rgba(185, 28, 28, 0.10);
     font-weight: bold;
 }
@@ -971,7 +1002,7 @@ details.pcp-effect-bucket-rare-severe[open] > summary.pcp-effect-bucket-heading 
     background: rgba(185, 28, 28, 0.16);
 }
 details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
-    color: #b91c1c;
+    color: #ef4444;
     opacity: 0.85;
 }
 
@@ -1011,7 +1042,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 
 .pcp-interaction-via {
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     opacity: 0.75;
     text-decoration: none;
     border: 1px solid rgba(128,128,128,0.45);
@@ -1022,7 +1053,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-interaction-via:hover { opacity: 1; }
 
 .pcp-interaction-severe-tag {
-    font-size: 0.74em;
+    font-size: var(--type-small, 12px);
     background: #b91c1c;
     color: #fff !important;
     padding: 0.1em 0.6em;
@@ -1073,7 +1104,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-hint, .pcp-ix-noresults { opacity: 0.65; font-style: normal; margin: 0.4em 0; }
 
 .pcp-ix-group-h {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     opacity: 0.65;
@@ -1089,7 +1120,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-list li.pcp-ix-selected { background: rgba(13,148,136,0.18); }
 
 .pcp-ix-pick {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     padding: 0.15em 0.55em;
     border: 1px solid rgba(13,148,136,0.55);
     background: transparent;
@@ -1100,7 +1131,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-pick:hover { background: rgba(13,148,136,0.18); }
 
 .pcp-ix-type-chip {
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     padding: 0.1em 0.5em;
     border-radius: 999px;
     text-transform: uppercase;
@@ -1171,7 +1202,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-note-toggle { font-size: 0.88em; }
 .pcp-ix-note { margin-top: 0.3em; display: flex; flex-wrap: wrap; gap: 0.4em; align-items: flex-start; }
 .pcp-ix-note-input { flex: 1; min-width: 220px; padding: 0.3em 0.4em; }
-.pcp-ix-note-status { font-size: 0.85em; opacity: 0.7; }
+.pcp-ix-note-status { font-size: var(--type-small, 12px); opacity: 0.7; }
 
 
 /* ===== Interaction notes (reader-facing) ===== */
@@ -1206,7 +1237,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     background: rgba(13,148,136,0.08);
 }
 .pcp-interaction-note-meta {
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     opacity: 0.75;
     margin-bottom: 0.15em;
 }
@@ -1239,7 +1270,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     border-color: rgba(220, 38, 38, 0.45);
 }
 .pcp-ix-del-row { margin-right: 0.25em; vertical-align: middle; }
-.pcp-ix-del-note { margin-left: 0.4em; vertical-align: middle; font-size: 0.85em; opacity: 0.85; }
+.pcp-ix-del-note { margin-left: 0.4em; vertical-align: middle; font-size: var(--type-small, 12px); opacity: 0.85; }
 
 
 /* Row × delete: pin to top-right of the card. */
@@ -1271,12 +1302,12 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-ix-delconfirm-icon {
     font-size: 2.4em;
     line-height: 1;
-    color: #b91c1c;
+    color: #ef4444;
     margin-bottom: 0.1em;
 }
 .pcp-ix-delconfirm-title {
     margin: 0.15em 0 0.4em 0;
-    color: #b91c1c;
+    color: #ef4444;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 1.05em;
@@ -1357,7 +1388,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 
 .pcp-row-action {
-    font-size: 0.84em;
+    font-size: var(--type-small, 12px);
     padding: 0.15em 0.6em;
     border: 1px solid rgba(128,128,128,0.5);
     background: transparent;
@@ -1521,7 +1552,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 
 .pcp-anecdote-badge {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     padding: 0.1em 0.5em;
     border-radius: 999px;
     border: 1px solid rgba(128,128,128,0.45);
@@ -1698,14 +1729,14 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     border-radius: 999px; padding: 0.15em 0.6em;
     font-size: 0.9em;
 }
-.pcp-xp-chip em { opacity: 0.65; font-size: 0.85em; }
-.pcp-xp-chip-x { text-decoration: none; color: #b91c1c; font-weight: bold; }
+.pcp-xp-chip em { opacity: 0.65; font-size: var(--type-small, 12px); }
+.pcp-xp-chip-x { text-decoration: none; color: #ef4444; font-weight: bold; }
 .pcp-xp-chip-vbtns { display: inline-flex; gap: 0.15em; }
 .pcp-xp-chip-vbtn {
     min-width: 1.7em; padding: 0 0.25em;
     border: 1px solid rgba(128,128,128,0.45);
     background: transparent; color: inherit;
-    border-radius: 3px; cursor: pointer; font-size: 0.82em;
+    border-radius: 3px; cursor: pointer; font-size: var(--type-small, 12px);
 }
 .pcp-xp-chip-vbtn.pcp-active { background: #6366f1; color: #fff; border-color: #6366f1; }
 
@@ -1729,12 +1760,12 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-xp-picker-result:hover { background: rgba(13,148,136,0.15); }
 .pcp-xp-picker-new { color: #0d9488; font-style: normal; }
 .pcp-xp-picker-empty { opacity: 0.55; font-style: normal; padding: 0.3em 0.45em; }
-.pcp-xp-picker-cancel { font-size: 0.85em; opacity: 0.7; align-self: flex-start; }
+.pcp-xp-picker-cancel { font-size: var(--type-small, 12px); opacity: 0.7; align-self: flex-start; }
 
 .pcp-xp-anecdote { width: 100%; box-sizing: border-box; padding: 0.4em 0.5em; }
 .pcp-xp-form-actions { display: flex; align-items: center; gap: 0.8em; margin-top: 0.6em; }
 .pcp-xp-form-status { font-size: 0.9em; opacity: 0.85; }
-.pcp-xp-form-note { font-size: 0.85em; opacity: 0.6; font-style: normal; margin: 0.4em 0 0 0; }
+.pcp-xp-form-note { font-size: var(--type-small, 12px); opacity: 0.6; font-style: normal; margin: 0.4em 0 0 0; }
 
 
 /* ===== Experience effect-chip card ===== */
@@ -1750,13 +1781,13 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     margin-bottom: 0.3em;
 }
 .pcp-xp-effect-chip .pcp-xp-chip-label { font-weight: 600; }
-.pcp-xp-effect-chip .pcp-xp-chip-label em { opacity: 0.65; font-size: 0.85em; font-weight: normal; }
+.pcp-xp-effect-chip .pcp-xp-chip-label em { opacity: 0.65; font-size: var(--type-small, 12px); font-weight: normal; }
 .pcp-xp-chip-freq-row, .pcp-xp-chip-val-row {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.25em;
     margin: 0.2em 0;
 }
 .pcp-xp-chip-rowlabel {
-    font-size: 0.85em; opacity: 0.7; margin-right: 0.3em;
+    font-size: var(--type-small, 12px); opacity: 0.7; margin-right: 0.3em;
     flex-basis: 100%;
 }
 /* Frequency row only shows in the clinical (provider) perspective. */
@@ -1770,7 +1801,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     padding: 0.12em 0.45em;
     border: 1px solid rgba(128,128,128,0.45);
     background: transparent; color: inherit;
-    border-radius: 3px; cursor: pointer; font-size: 0.82em;
+    border-radius: 3px; cursor: pointer; font-size: var(--type-small, 12px);
 }
 .pcp-xp-chip-fbtn:hover { background: rgba(127,127,127,0.18); }
 .pcp-xp-chip-fbtn.pcp-active { background: #0891b2; color: #fff; border-color: #0891b2; }
@@ -1785,7 +1816,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     margin-bottom: 0.4em;
 }
 .pcp-xp-indication-chip .pcp-xp-chip-label { font-weight: 600; }
-.pcp-xp-indication-chip .pcp-xp-chip-label em { opacity: 0.65; font-size: 0.85em; font-weight: normal; }
+.pcp-xp-indication-chip .pcp-xp-chip-label em { opacity: 0.65; font-size: var(--type-small, 12px); font-weight: normal; }
 .pcp-xp-chip-rating-row {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em 0.5em;
     margin-top: 0.15em;
@@ -1868,7 +1899,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 .pcp-classtree-n {
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     margin-left: 0.2em;
 }
 
@@ -1884,7 +1915,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     opacity: 0.85;
 }
 .pcp-lit-line { line-height: 1.45; }
-.pcp-lit-meta { font-size: 0.85em; color: #c4b5fd; margin-top: 0.15em; }
+.pcp-lit-meta { font-size: var(--type-small, 12px); color: #c4b5fd; margin-top: 0.15em; }
 .pcp-lit-byline a { color: inherit; text-decoration: underline dotted; }
 .pcp-lit-status {
     font-weight: 600;
@@ -1932,7 +1963,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     color: #c4b5fd;
 }
 .pcp-lit-req { color: #dc2626; }
-.pcp-lit-note { font-size: 0.85em; color: #c4b5fd; margin: 0.5em 0; }
+.pcp-lit-note { font-size: var(--type-small, 12px); color: #c4b5fd; margin: 0.5em 0; }
 .pcp-lit-form-actions {
     display: flex;
     align-items: center;
@@ -1940,8 +1971,8 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     margin-top: 0.6em;
 }
 .pcp-lit-status-ok { color: #15803d; }
-.pcp-lit-status-err { color: #b91c1c; }
-.pcp-lit-fileinfo { display: block; margin-top: 0.2em; font-size: 0.85em; color: #c4b5fd; }
+.pcp-lit-status-err { color: #ef4444; }
+.pcp-lit-fileinfo { display: block; margin-top: 0.2em; font-size: var(--type-small, 12px); color: #c4b5fd; }
 
 /* ===== Unified banner (grey body, purple stroke, white text) =====
    Matches the Main_Page hero. Use .pcp-banner everywhere we want
@@ -2098,7 +2129,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-pendell-voice {
     display: inline-block;
     margin-top: 0.2em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     font-style: normal;
     color: #a78bfa;
     letter-spacing: 0.06em;
@@ -2209,7 +2240,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     background: #000;
     color: #fff;
     border: 1px solid #7c3aed;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     font-weight: 600;
     margin: 0 0.1em;
 }
@@ -2317,7 +2348,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-dx-suggest-item.active,
 .pcp-dx-suggest-item.pcp-suggest-active,
 .pcp-dx-suggest-add-problem.pcp-suggest-active { background: #7c3aed; color: #fff; }
-.pcp-dx-suggest-item .meta { color: #c4b5fd; font-size: 0.85em; margin-left: 0.4em; }
+.pcp-dx-suggest-item .meta { color: #c4b5fd; font-size: var(--type-small, 12px); margin-left: 0.4em; }
 /* ===== End diagnoses editor ===== */
 
 /* ===== Medicines section on Special:MyProfile (palette: dark grey + purple + white) ===== */
@@ -2476,7 +2507,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
     margin-top: 0.3em;
 }
 .pcp-bfi10-scale-end {
-    font-size: 0.75em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
     flex: 0 0 auto;
     min-width: 5em;
@@ -2556,7 +2587,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-vis-badge {
     margin-left: 0.4em;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     cursor: help;
 }
 /* ===== End UserProfile read-out ===== */
@@ -2593,7 +2624,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-pa-table tr:last-child th,
 .pcp-pa-table tr:last-child td { border-bottom: none; }
 .pcp-pa-csv {
-    font-size: 0.75em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
     margin-left: 0.4em;
     text-decoration: none;
@@ -2621,7 +2652,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 .pcp-pf-grid label {
     display: flex;
     flex-direction: column;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
 }
 .pcp-pf-grid input,
@@ -2662,7 +2693,7 @@ details.pcp-effect-bucket-rare-severe .pcp-effect-bucket-count {
 }
 .pcp-assess-vis {
     margin-top: 0.5em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
 }
 .pcp-assess-vis select {
@@ -2807,7 +2838,7 @@ ol.pcp-assess-items {
 }
 .pcp-pid-anchor {
     color: #c4b5fd;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     flex-shrink: 0;
     min-width: 8em;
 }
@@ -2820,6 +2851,80 @@ ol.pcp-assess-items {
     cursor: pointer;
 }
 .pcp-pid-slider:disabled { cursor: not-allowed; }
+/* Mixed-model continuous slider tick marks: small violet ticks sitting just
+   beneath the track at 5-7 evenly-subdivided positions across the slider's
+   range. The slider is wrapped in .pcp-pid-slider-wrap so the ticks can be
+   absolutely positioned beneath it without distorting the flex row. */
+.pcp-pid-slider-wrap {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.pcp-pid-slider-wrap .pcp-pid-slider {
+    flex: 0 0 auto; width: 100%;
+}
+.pcp-pid-slider-ticks {
+    position: relative; height: 26px; pointer-events: none;
+}
+.pcp-pid-slider-tick {
+    position: absolute; top: 0;
+    width: 1px; height: 5px;
+    background: #7c3aed;
+    transform: translateX(-50%);
+    opacity: 0.6;
+}
+.pcp-pid-slider-ticklabel {
+    position: absolute; top: 7px; left: 0;
+    transform: translateX(-50%);
+    font-size: 1.08em;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Height item: compound std (feet+inches) vs metric (cm), with a unit toggle.
+   Only the matching .pcp-pid-height-group is visible at a time; the inline JS
+   in ext.pharmacopedia.js swaps them on the t_unit[] radio change. */
+.pcp-pid-height-row {
+    display: flex; align-items: center; gap: 0.7em; flex-wrap: wrap;
+    margin-top: 0.4em;
+}
+.pcp-pid-height-group { display: inline-flex; align-items: center; gap: 0.4em; }
+.pcp-pid-height-group[hidden] { display: none; }
+.pcp-pid-height-input {
+    border: 1px solid #2a2a2a; background: #1a1a1a;
+    color: #fff; padding: 0.3em 0.5em; width: 4.5em;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95em;
+}
+.pcp-pid-height-unit { color: #c4b5fd; font-size: var(--type-small, 12px); }
+.pcp-pid-unit-switch {
+    display: inline-flex;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+.pcp-pid-unit-opt {
+    padding: 0.5em 1em;
+    color: #c4b5fd;
+    cursor: pointer;
+    font-size: 0.9em;
+    line-height: 1;
+    border-radius: 5px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+    user-select: none;
+}
+.pcp-pid-unit-opt input {
+    position: absolute; opacity: 0; pointer-events: none;
+}
+.pcp-pid-unit-opt:hover { color: #fff; }
+.pcp-pid-unit-opt:has(input:checked) {
+    background: #7c3aed;
+    color: #fff;
+    font-weight: 500;
+}
 .pcp-pid-out {
     color: #fff;
     font-family: ui-monospace, "SF Mono", monospace;
@@ -2833,7 +2938,7 @@ ol.pcp-assess-items {
     gap: 0.3em;
     margin-top: 0.4em;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     cursor: pointer;
 }
 .pcp-pid-unsure input[type="checkbox"] {
@@ -2873,7 +2978,7 @@ ol.pcp-assess-items {
     margin-left: 0.4em;
     border: 1px solid #7c3aed;
     border-radius: 3px;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     text-transform: lowercase;
 }
 .pcp-life-vis-badge {
@@ -2883,7 +2988,7 @@ ol.pcp-assess-items {
 .pcp-life-edit {
     margin-left: 0.6em;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     text-decoration: underline dotted;
 }
 .pcp-life-title {
@@ -2914,7 +3019,7 @@ ol.pcp-assess-items {
 }
 .pcp-life-img figcaption {
     color: #c4b5fd;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     margin-top: 0.2em;
     font-style: normal;
 }
@@ -2933,7 +3038,7 @@ ol.pcp-assess-items {
     background: #2a2a2a;
     color: #c4b5fd;
     border-radius: 3px;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
 }
 
 .pcp-life-form { margin: 1em 0; }
@@ -2986,7 +3091,7 @@ ol.pcp-assess-items {
     padding: 0.2em 0.4em;
     border-bottom: 1px solid #2a2a2a;
     text-align: left;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-life-kf-table thead th { color: #c4b5fd; text-transform: lowercase; }
 .pcp-life-kf-table input {
@@ -2997,7 +3102,7 @@ ol.pcp-assess-items {
     padding: 0.2em 0.4em;
     width: 100%;
     box-sizing: border-box;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-life-existing-images ul { margin: 0.4em 0; }
 .pcp-life-img-del {
@@ -3005,7 +3110,7 @@ ol.pcp-assess-items {
     color: #ff7c8a;
     border: none;
     cursor: pointer;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     text-decoration: underline dotted;
     padding: 0;
 }
@@ -3110,11 +3215,11 @@ details.pcp-life-charts summary {
 .pcp-med-detail-grid .pcp-med-periods > label { display: block; margin-bottom: 0.3em; font-size: 0.9em; font-weight: 600; color: #c4b5fd; }
 .pcp-med-period { margin: 0.4em 0; padding: 0.3em 0; border-bottom: 1px solid #2a2a2a; }
 .pcp-med-period:last-child { border-bottom: none; }
-.pcp-med-period-head { display: flex; justify-content: space-between; align-items: center; color: #c4b5fd; font-size: 0.82em; margin-bottom: 0.2em; }
+.pcp-med-period-head { display: flex; justify-content: space-between; align-items: center; color: #c4b5fd; font-size: var(--type-small, 12px); margin-bottom: 0.2em; }
 .pcp-med-period-num { font-weight: 700; }
 .pcp-med-period-remove { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 0.9em; padding: 0 0.4em; font-family: inherit; }
 .pcp-med-period-remove:hover { text-decoration: underline; }
-.pcp-med-period-add { background: transparent; border: 1px dashed #7c3aed; color: #c4b5fd; border-radius: 3px; padding: 0.25em 0.7em; cursor: pointer; font-family: inherit; font-size: 0.85em; margin-top: 0.4em; }
+.pcp-med-period-add { background: transparent; border: 1px dashed #7c3aed; color: #c4b5fd; border-radius: 3px; padding: 0.25em 0.7em; cursor: pointer; font-family: inherit; font-size: var(--type-small, 12px); margin-top: 0.4em; }
 .pcp-med-period-add:hover { background: rgba(124,58,237,0.2); }
 /* ===== End periods ===== */
 
@@ -3133,7 +3238,7 @@ details.pcp-life-charts summary {
     padding: 0.25em 0.7em;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     z-index: 10;
     box-shadow: 0 2px 8px rgba(0,0,0,0.45);
     transition: background 0.15s, color 0.15s;
@@ -3149,7 +3254,7 @@ details.pcp-life-charts summary {
     padding: 0.3em 0.6em;
     background: #1a1a1a;
     color: #c4b5fd;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -3189,13 +3294,13 @@ details.pcp-life-charts summary {
     display: flex; align-items: center; gap: 1em; margin-bottom: 0.5em;
 }
 .pcp-problem-title { font-size: 1.05em; font-weight: 600; }
-.pcp-problem-agg { font-size: 0.85em; opacity: 0.85; margin-left: auto; }
+.pcp-problem-agg { font-size: var(--type-small, 12px); opacity: 0.85; margin-left: auto; }
 .pcp-problem-body { font-size: 0.97em; line-height: 1.5; }
 .pcp-problem-preview {
     border-left-color: #c4b5fd;
     background: rgba(156,163,175,0.05);
 }
-.pcp-problem-vote-placeholder { font-size: 0.82em; opacity: 0.6; font-style: normal; }
+.pcp-problem-vote-placeholder { font-size: var(--type-small, 12px); opacity: 0.6; font-style: normal; }
 .pcp-problem-likert {
     display: flex; align-items: center; gap: 0.4em;
     font-size: 0.9em; margin: 0.4em 0 0.5em;
@@ -3402,7 +3507,7 @@ ol.pcp-assess-items {
     font-variant-numeric: tabular-nums;
     color: #c4b5fd;
 }
-.pcp-enn-unsure { display: inline-block; margin-top: 4px; font-size: 0.85em; opacity: 0.75; }
+.pcp-enn-unsure { display: inline-block; margin-top: 4px; font-size: var(--type-small, 12px); opacity: 0.75; }
 .pcp-enn-compute {
     margin: 12px 0 4px 0;
     background: transparent;
@@ -3693,7 +3798,7 @@ body.pcp-skin-fungi {
 }
 .pcp-chip-label small {
     color: var(--pcp-chip-text-mute);
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     margin-left: 4px;
     font-feature-settings: "tnum";
     opacity: 0.85;
@@ -3736,7 +3841,7 @@ body.pcp-skin-fungi {
 .pcp-chip-marker {
     display: inline-flex;
     color: var(--pcp-chip-amber);
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     line-height: 1;
     margin-right: 2px;
 }
@@ -3825,7 +3930,7 @@ body.pcp-skin-fungi {
 }
 .pcp-chip-sug-row small {
     color: var(--pcp-chip-text-mute);
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     font-feature-settings: "tnum";
 }
 .pcp-chip-sug-selected {
@@ -3882,7 +3987,7 @@ body.pcp-skin-fungi {
 .pcp-alc-widget label,
 .pcp-political-widget label,
 .pcp-chronotype-widget label {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     opacity: 0.85;
     margin-right: 8px;
 }
@@ -3908,7 +4013,7 @@ body.pcp-skin-fungi {
     display: none;
 }
 .pcp-smoking-packyears {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
     font-weight: 600;
     margin-left: 8px;
@@ -3921,7 +4026,7 @@ body.pcp-skin-fungi {
 }
 .pcp-political-axis label {
     min-width: 12em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-political-axis input[type="range"] { flex: 1; min-width: 160px; max-width: 320px; }
 .pcp-political-axis output {
@@ -3932,7 +4037,7 @@ body.pcp-skin-fungi {
     font-weight: 600;
 }
 .pcp-political-anchor {
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     opacity: 0.7;
     min-width: 5em;
 }
@@ -4131,7 +4236,7 @@ input[type=range] + output {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-xp-sr-slider { width: 140px; }
 .pcp-xp-sr-sev output {
@@ -4143,7 +4248,7 @@ input[type=range] + output {
 
 /* Patient-count min+max pair */
 .pcp-xp-patient-count, .pcp-xp-patient-count-max { width: 7em; }
-.pcp-xp-pc-to { opacity: 0.6; font-size: 0.85em; margin: 0 4px; }
+.pcp-xp-pc-to { opacity: 0.6; font-size: var(--type-small, 12px); margin: 0 4px; }
 
 /* MBTI report Position column: letter+strength text above a positional bar */
 .pcp-mbti-pos-text {
@@ -4185,7 +4290,7 @@ input[type=range] + output {
     color: #c4b5fd;
     border: 1px solid rgba(196, 181, 253, 0.45);
     border-radius: 12px;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -4305,7 +4410,7 @@ input[type=range] + output {
 }
 .pcp-fr-card-id {
     color: #888;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     font-family: monospace;
 }
 .pcp-fr-card-title {
@@ -4323,7 +4428,7 @@ input[type=range] + output {
     display: flex;
     gap: 0.8em;
     color: #888;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     flex-wrap: wrap;
 }
 .pcp-fr-card-att {
@@ -4335,7 +4440,7 @@ input[type=range] + output {
     display: inline-block;
     padding: 0.15em 0.6em;
     border-radius: 999px;
-    font-size: 0.75em;
+    font-size: var(--type-small, 12px);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -4353,7 +4458,7 @@ input[type=range] + output {
     display: inline-block;
     padding: 0.1em 0.5em;
     border-radius: 4px;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     font-weight: 600;
     border: 1px solid;
     text-transform: uppercase;
@@ -4367,7 +4472,7 @@ input[type=range] + output {
     display: inline-block;
     padding: 0.1em 0.5em;
     border-radius: 4px;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     background: #1f1f1f;
     border: 1px dashed #888;
     color: #c4b5fd;
@@ -4413,7 +4518,7 @@ input[type=range] + output {
 }
 .pcp-fr-help {
     color: #888;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-fr-input,
 .pcp-fr-textarea {
@@ -4602,7 +4707,7 @@ input[type=range] + output {
     background: #7c3aed;
     color: #fff;
     border-radius: 4px;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     text-transform: uppercase;
     margin-left: 0.3em;
 }
@@ -4640,7 +4745,7 @@ input[type=range] + output {
     color: #fff;
 }
 .pcp-fr-counter-l {
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     color: #888;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -4696,7 +4801,7 @@ input[type=range] + output {
 .pcp-fr-rrow-title { font-weight: 600; }
 .pcp-fr-rrow-submitter { color: #cbd5e1; font-size: 0.88em; }
 .pcp-fr-anon-tag { color: #888; }
-.pcp-fr-rrow-date { color: #888; font-size: 0.85em; }
+.pcp-fr-rrow-date { color: #888; font-size: var(--type-small, 12px); }
 .pcp-fr-rrow-status,
 .pcp-fr-rrow-prio {
     background: #0f0f0f;
@@ -4704,7 +4809,7 @@ input[type=range] + output {
     color: #fff;
     padding: 0.3em 0.5em;
     border-radius: 4px;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     font-family: inherit;
 }
 .pcp-fr-rrow-savedmark {
@@ -4767,7 +4872,7 @@ input[type=range] + output {
     content: '\25BE';
     display: inline-block;
     margin-right: 0.35em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     transition: transform 0.15s ease;
     color: #7c3aed;
 }
@@ -4813,7 +4918,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-privacy-panel label { cursor: pointer; }
 .pcp-privacy-panel input[type=checkbox] { margin-right: 0.5em; vertical-align: middle; }
-.pcp-privacy-note { margin: 0.3em 0 0 1.6em; font-size: 0.85em; color: #c4b5fd; }
+.pcp-privacy-note { margin: 0.3em 0 0 1.6em; font-size: var(--type-small, 12px); color: #c4b5fd; }
 
 /* ===== Special:UserProfile assessment cards ===== */
 .pcp-up-cards {
@@ -4842,13 +4947,13 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-up-card-name {
     font-weight: 700;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
 .pcp-up-card-full {
     color: #aaa;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     margin-bottom: 0.5em;
 }
 .pcp-up-card-headline {
@@ -4866,7 +4971,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-up-of {
     color: #888;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     margin-left: 0.3em;
 }
 .pcp-up-typecode {
@@ -4880,7 +4985,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     border: 1px solid #7c3aed;
     color: #ede9fe;
     border-radius: 999px;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-up-below {
     display: inline-block;
@@ -4888,11 +4993,11 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     border: 1px solid #555;
     color: #aaa;
     border-radius: 999px;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-up-card-sub {
     color: #cbd5e1;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     line-height: 1.35;
     margin-bottom: 0.5em;
 }
@@ -4902,7 +5007,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     justify-content: space-between;
     margin-top: auto;
     padding-top: 0.4em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-up-card-link {
     color: #c4b5fd;
@@ -4914,8 +5019,8 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     text-decoration: underline;
 }
 .pcp-up-card-date {
-    color: #777;
-    font-size: 0.85em;
+    color: var(--pharma-ink-mute, #94909c);
+    font-size: var(--type-small, 12px);
     margin-left: auto;
 }
 
@@ -4924,7 +5029,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.25em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     line-height: 1;
 }
 .pcp-up-ocean-trait {
@@ -4954,7 +5059,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     color: #cbd5e1;
     font-variant-numeric: tabular-nums;
     text-align: right;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 /* ===== End assessment cards ===== */
 
@@ -5002,7 +5107,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: inline-block;
     margin-top: 0.25em;
     color: #888;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
 }
 @media (max-width: 700px) {
     .pcp-mbti-item-row {
@@ -5035,7 +5140,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     border-radius: 4px;
     padding: 0.3em 0.8em;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-life-graph-fit:hover {
     border-color: #7c3aed;
@@ -5068,7 +5173,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-trait-axis-label {
     fill: #888;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     font-family: inherit;
 }
 .pcp-trait-line {
@@ -5105,7 +5210,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     background: #1a1a1a;
     border: 1px solid #333;
     border-radius: 999px;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     color: #cbd5e1;
     cursor: pointer;
     user-select: none;
@@ -5235,7 +5340,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-vote-choice-count {
     text-align: right;
     color: #c4b5fd;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-vote-choice-actions {
     margin-top: 0.6em;
@@ -5483,7 +5588,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-vote-choice-add-meta {
     color: #888;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     white-space: nowrap;
 }
 
@@ -5524,7 +5629,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-ft-cat-block { margin: 0 0 0.8em; }
 .pcp-ft-cat-heading {
     margin: 0.6em 0 0.3em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     font-weight: 700;
     text-transform: uppercase;
     color: #b599e0;
@@ -5552,10 +5657,10 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     font-size: 0.9em;
 }
 .pcp-ft-name { color: #ddd; font-size: 0.92em; }
-.pcp-ft-year { color: #888; font-size: 0.85em; margin-left: auto; }
+.pcp-ft-year { color: #888; font-size: var(--type-small, 12px); margin-left: auto; }
 .pcp-ft-custom-badge,
 .pcp-ft-legacy-badge {
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     padding: 0.05em 0.4em;
     border-radius: 3px;
     text-transform: uppercase;
@@ -5565,7 +5670,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-ft-legacy-badge { background: #3a3a3a; color: #aaa; }
 .pcp-ft-card-scores { color: #c4b5fd; font-size: 0.9em; margin-top: 0.3em; }
 .pcp-ft-card-scores b { color: #fff; }
-.pcp-ft-card-notes { color: #aaa; font-size: 0.85em; font-style: normal; margin-top: 0.2em; }
+.pcp-ft-card-notes { color: #aaa; font-size: var(--type-small, 12px); font-style: normal; margin-top: 0.2em; }
 .pcp-ft-card-actions {
     margin-top: 0.4em;
     display: flex;
@@ -5579,7 +5684,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     padding: 0.15em 0.6em;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-ft-card-actions button:hover { background: #2a2a2a; color: #fff; }
 .pcp-ft-delete:hover { border-color: #dc2626; color: #ff8a8a; }
@@ -5648,7 +5753,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     font-size: 0.92em;
 }
 .pcp-ft-selected-abbrev { background: #5d3b8e; padding: 0.1em 0.5em; border-radius: 3px; font-weight: 700; }
-.pcp-ft-selected-hint { color: #888; font-size: 0.85em; font-style: normal; margin-left: auto; }
+.pcp-ft-selected-hint { color: #888; font-size: var(--type-small, 12px); font-style: normal; margin-left: auto; }
 .pcp-ft-selected-clear { background: transparent; border: none; color: #888; cursor: pointer; font-size: 1.1em; }
 .pcp-ft-selected-clear:hover { color: #fff; }
 
@@ -5665,7 +5770,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     padding: 0;
     margin: 0;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     text-decoration: underline dotted;
     font-style: normal;
 }
@@ -5681,7 +5786,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
 }
 
@@ -5696,7 +5801,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
 }
 .pcp-ft-form input[type=text],
@@ -5714,7 +5819,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
 }
 .pcp-ft-notes-wrap textarea { width: 100%; box-sizing: border-box; resize: vertical; }
@@ -5769,7 +5874,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
 }
 .pcp-ft-card-edit input[type=number],
@@ -5787,7 +5892,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
     margin-bottom: 0.4em;
 }
@@ -5809,7 +5914,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-ft-edit-save:hover { background: #4a2e72; }
 .pcp-ft-edit-cancel {
@@ -5819,7 +5924,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     padding: 0.3em 0.8em;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-ft-edit-cancel:hover { background: #2a2a2a; color: #fff; }
 
@@ -6098,7 +6203,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-cati-modern-row-of {
     color: #777;
     font-weight: 400;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     margin-left: 0.1em;
 }
 .pcp-cati-modern-row-meta {
@@ -6113,7 +6218,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-cati-modern-row-incomplete .pcp-cati-modern-row-incomplete-msg {
     color: #666;
     font-style: normal;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 
 .pcp-cati-modern-pctchip {
@@ -6122,7 +6227,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     border-radius: 999px;
     border: 1px solid #444;
     color: #aaa;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     font-variant-numeric: tabular-nums;
 }
 .pcp-cati-modern-pctchip-na {
@@ -6137,7 +6242,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: inline-block;
     padding: 0.08em 0.6em;
     border-radius: 999px;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: 600;
 }
 .pcp-cati-modern-chip-pronounced {
@@ -6153,7 +6258,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 
 .pcp-cati-modern-caption {
     color: #888;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     margin: 0.4em 0 0.8em;
     font-style: normal;
 }
@@ -6190,7 +6295,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-cati-modern-help {
     color: #888;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     margin: -0.2em 0 0.5em;
     font-style: normal;
 }
@@ -6226,7 +6331,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-cati-modern-narrative-meta {
     color: #888;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     margin-left: auto;
     font-variant-numeric: tabular-nums;
 }
@@ -6277,7 +6382,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-cati-modern-topcard-item-meta {
     color: #888;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-cati-modern-topcard-item-meta em {
     color: #c4b5fd;
@@ -6366,7 +6471,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     font-weight: 700;
     color: #c4b5fd;
     text-align: center;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.05em;
 }
 .pcp-up-cati-bar {
@@ -6430,7 +6535,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     grid-template-columns: 1.2em 6.4em 1fr 2.4em auto;
     align-items: center;
     gap: 0.35em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     line-height: 1.1;
 }
 .pcp-up-enneagram-num {
@@ -6495,7 +6600,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     margin-top: 0.6em;
     padding-top: 0.4em;
     border-top: 1px solid #2a2a2a;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     color: #888;
 }
 .pcp-up-enneagram-legend > span {
@@ -6533,7 +6638,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 .pcp-up-nfcs-caption {
     color: #888;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     text-align: center;
     margin: 0 0 0.4em;
     font-style: normal;
@@ -6565,7 +6670,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     grid-template-columns: 6.4em 1fr 2.4em;
     align-items: center;
     gap: 0.4em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     line-height: 1.1;
 }
 .whoqol-name { color: #999; }
@@ -6594,7 +6699,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     margin-top: 0.6em;
     padding-top: 0.4em;
     border-top: 1px solid #2a2a2a;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     color: #888;
 }
 .whoqol-legend > span {
@@ -6659,7 +6764,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     grid-template-columns: 1.1em 1fr 1.1em 4.6em;
     align-items: center;
     gap: 0.4em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
 }
 .mbti-axis-letter {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -6697,7 +6802,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     z-index: 2;
 }
 .mbti-axis-strength {
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     color: #888;
     text-align: right;
     letter-spacing: 0.02em;
@@ -6705,7 +6810,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .mbti-axis-strength.is-strong   { color: #ede9fe; font-weight: 700; }
 .mbti-axis-strength.is-clear    { color: #c4b5fd; font-weight: 600; }
 .mbti-axis-strength.is-slight   { color: #aaa; }
-.mbti-axis-strength.is-balanced { color: #777; font-style: normal; }
+.mbti-axis-strength.is-balanced { color: var(--pharma-ink-mute, #94909c); font-style: normal; }
 
 /* Cognitive function stack. */
 .mbti-funcs {
@@ -6721,7 +6826,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     grid-template-columns: 2.6em 2.4em 1fr;
     align-items: baseline;
     gap: 0.5em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     padding: 0.18em 0.3em;
     border-radius: 3px;
     background: #1f1f1f;
@@ -6731,7 +6836,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .mbti-func-role {
     color: #888;
     text-transform: uppercase;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.06em;
     font-weight: 700;
 }
@@ -6815,7 +6920,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: block;
     margin-top: 0.15em;
     color: var(--pharma-ink-mute);
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: 400;
     font-style: normal;
 }
@@ -6875,7 +6980,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: block;
     margin-top: 0.15em;
     color: var(--pharma-ink-mute);
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: 400;
     font-style: normal;
 }
@@ -6939,7 +7044,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: block;
     margin-top: 0.2em;
     color: var(--pharma-ink-mute);
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: 400;
     font-style: normal;
 }
@@ -7002,7 +7107,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     display: block;
     margin-top: 0.15em;
     color: var(--pharma-ink-mute);
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     font-weight: 400;
     font-style: normal;
 }
@@ -7024,7 +7129,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     color: #ede9fe; font-weight: 700; font-size: 1.1em;
 }
 .pcp-pgx-header-meta {
-    color: #888; font-size: 0.78em; font-style: normal;
+    color: #888; font-size: var(--type-small, 12px); font-style: normal;
 }
 
 .pcp-pgx-section { margin: 1.2em 0; }
@@ -7038,7 +7143,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     text-transform: uppercase; letter-spacing: 0.08em;
 }
 .pcp-pgx-tier-sub {
-    color: #888; font-size: 0.78em; font-style: normal;
+    color: #888; font-size: var(--type-small, 12px); font-style: normal;
 }
 .pcp-pgx-tier-1 .pcp-pgx-tier-title { color: #fca5a5; }
 .pcp-pgx-tier-2 .pcp-pgx-tier-title { color: #c4b5fd; }
@@ -7073,7 +7178,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-pgx-counterparty.is-variant   { color: #fcd34d; }
 .pcp-pgx-counterparty.is-category  { color: #cbd5e1; font-style: normal; }
 .pcp-pgx-counterparty .ns-prefix {
-    color: var(--pharma-ink-mute); font-weight: 400; font-size: 0.82em;
+    color: var(--pharma-ink-mute); font-weight: 400; font-size: var(--type-small, 12px);
     text-transform: uppercase; letter-spacing: 0.04em;
     margin-right: 0.15em;
 }
@@ -7081,7 +7186,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-pgx-rel {
     display: inline-block; padding: 0.08em 0.55em;
     border-radius: 999px;
-    font-size: 0.78em; font-weight: 600;
+    font-size: var(--type-small, 12px); font-weight: 600;
     background: rgba(124, 58, 237, 0.18);
     border: 1px solid #7c3aed;
     color: #ede9fe;
@@ -7096,7 +7201,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .pcp-pgx-evid {
     display: inline-block; padding: 0.08em 0.5em;
     border-radius: 3px;
-    font-size: 0.72em; font-weight: 700;
+    font-size: var(--type-small, 12px); font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.05em;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -7110,7 +7215,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 
 .pcp-pgx-intensity-wrap {
     display: inline-flex; align-items: center; gap: 0.5em;
-    font-size: 0.78em; color: #888;
+    font-size: var(--type-small, 12px); color: #888;
 }
 .pcp-pgx-intensity {
     position: relative; width: 90px; height: 6px;
@@ -7127,7 +7232,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 
 .pcp-pgx-mech {
-    color: #cbd5e1; font-size: 0.84em; line-height: 1.45;
+    color: #cbd5e1; font-size: var(--type-small, 12px); line-height: 1.45;
 }
 .pcp-pgx-kinetics {
     display: inline-flex; align-items: center; gap: 0.35em;
@@ -7136,7 +7241,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
     background: rgba(167, 139, 250, 0.08);
     border: 1px solid #4b3a6a;
     border-radius: 4px;
-    color: #ddd6fe; font-size: 0.78em;
+    color: #ddd6fe; font-size: var(--type-small, 12px);
 }
 .pcp-pgx-kinetics .clock { opacity: 0.7; }
 .pcp-pgx-kinetics.is-persistent {
@@ -7145,7 +7250,7 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 }
 
 .pcp-pgx-provenance {
-    color: var(--pharma-ink-mute); font-size: 0.78em; font-style: normal;
+    color: var(--pharma-ink-mute); font-size: var(--type-small, 12px); font-style: normal;
     border-top: 1px dashed #2a2a2a; padding-top: 0.35em; margin-top: 0.2em;
 }
 .pcp-pgx-provenance a { color: #9ca3af; }
@@ -7253,7 +7358,7 @@ body:not(.pcp-skin-plants) .mw-heading {
 /* hero */
 .pcp-mainpage .hero { padding: 30px 0 0; border-bottom: 1px solid var(--pharma-line); }
 .pcp-mainpage .hero-eyebrow {
-    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.2em; text-transform: uppercase;
     color: var(--pharma-violet-bright); margin: 0 0 10px;
 }
 .pcp-mainpage .hero-title {
@@ -7278,14 +7383,14 @@ body:not(.pcp-skin-plants) .mw-heading {
     color: var(--pharma-ink); font-variant-numeric: tabular-nums; line-height: 1;
 }
 .pcp-mainpage .stat .l {
-    font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.13em; text-transform: uppercase;
     color: var(--pharma-ink-mute); margin-top: 6px;
 }
 
 /* status strip */
 .pcp-mainpage .strip {
     display: flex; gap: 22px; align-items: center; padding: 7px 14px;
-    border-bottom: 1px solid var(--pharma-line); font-size: 11px;
+    border-bottom: 1px solid var(--pharma-line); font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute); background: var(--pharma-bg-2);
 }
 .pcp-mainpage .strip .mature { color: var(--pharma-violet-bright); }
@@ -7306,14 +7411,14 @@ body:not(.pcp-skin-plants) .mw-heading {
 .pcp-mainpage .mod-head { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 0 0 13px; }
 .pcp-mainpage .mod-no { font-family: 'Newsreader', Georgia, serif; font-size: 13px; color: var(--pharma-violet-bright); }
 .pcp-mainpage .mod-label {
-    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--pharma-ink-mute);
 }
-.pcp-mainpage .mod-more { font-size: 11px; color: var(--pharma-violet-ink); }
+.pcp-mainpage .mod-more { font-size: var(--type-small, 12px); color: var(--pharma-violet-ink); }
 
 /* featured */
 .pcp-mainpage .feat-title { font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500; margin: 0 0 4px; }
-.pcp-mainpage .feat-meta { font-size: 10.5px; color: var(--pharma-ink-mute); margin: 0 0 10px; }
+.pcp-mainpage .feat-meta { font-size: var(--type-small, 12px); color: var(--pharma-ink-mute); margin: 0 0 10px; }
 .pcp-mainpage .feat-prose { font-family: 'Newsreader', Georgia, serif; font-size: 14px; line-height: 1.6; color: var(--pharma-ink-dim); margin: 0; }
 
 /* index (browse by class) */
@@ -7323,7 +7428,7 @@ body:not(.pcp-skin-plants) .mw-heading {
     border-bottom: 1px solid var(--pharma-line-faint); break-inside: avoid;
 }
 .pcp-mainpage .ix-row a { font-family: 'Newsreader', Georgia, serif; font-size: 13.5px; }
-.pcp-mainpage .ix-row .ct { font-size: 11px; color: var(--pharma-ink-mute); font-variant-numeric: tabular-nums; }
+.pcp-mainpage .ix-row .ct { font-size: var(--type-small, 12px); color: var(--pharma-ink-mute); font-variant-numeric: tabular-nums; }
 
 /* lists */
 .pcp-mainpage .list { display: flex; flex-direction: column; }
@@ -7337,7 +7442,7 @@ body:not(.pcp-skin-plants) .mw-heading {
 /* portals */
 .pcp-mainpage .portal-h3 { font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; margin: 0 0 5px; }
 .pcp-mainpage .portal-p { font-size: 12px; color: var(--pharma-ink-dim); margin: 0 0 8px; line-height: 1.5; }
-.pcp-mainpage .go { font-size: 11px; color: var(--pharma-violet-ink); }
+.pcp-mainpage .go { font-size: var(--type-small, 12px); color: var(--pharma-violet-ink); }
 .pcp-mainpage .about-prose { font-family: 'Newsreader', Georgia, serif; font-size: 13px; line-height: 1.6; color: var(--pharma-ink-dim); margin: 0; }
 
 @media (max-width: 880px) {
@@ -7362,7 +7467,7 @@ body:has(.medpage) #firstHeading { display: none; }
     border-bottom: 1px solid var(--pharma-line);
 }
 .medpage .tb-eyebrow {
-    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.18em; text-transform: uppercase;
     color: var(--pharma-violet-bright); margin-bottom: 9px;
 }
 .medpage .tb-row { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
@@ -7376,7 +7481,7 @@ body:has(.medpage) #firstHeading { display: none; }
     font-size: 20px; color: var(--pharma-ink-dim);
 }
 .medpage .tb-brand::before {
-    content: 'also '; font-size: 11px; color: var(--pharma-ink-mute);
+    content: 'also '; font-size: var(--type-small, 12px); color: var(--pharma-ink-mute);
     font-family: 'Geist', sans-serif;
 }
 
@@ -7393,7 +7498,7 @@ body:has(.medpage) #firstHeading { display: none; }
     font-size: 14px; color: var(--pharma-violet-bright);
 }
 .medpage .med-sec-head .sec-title {
-    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.18em; text-transform: uppercase;
     color: var(--pharma-ink-mute);
 }
 .medpage .med-subhead {
@@ -7439,7 +7544,7 @@ body:has(.medpage) #firstHeading { display: none; }
 }
 .medpage .ch-mark { width: 4px; height: 14px; background: var(--pharma-violet); }
 .medpage .ch-name {
-    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--pharma-ink);
 }
 .medpage .ch-summary      .ch-mark { background: var(--pharma-ch-summary, #5b7fc7); }
@@ -7453,12 +7558,44 @@ body:has(.medpage) #firstHeading { display: none; }
     font-size: 12px; line-height: 1.5;
 }
 .medpage .med-field .fl {
-    color: var(--pharma-ink-mute); font-size: 10px;
+    color: var(--pharma-ink-mute); font-size: var(--type-small, 12px);
     letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px;
 }
 .medpage .med-field .fv { color: var(--pharma-ink); }
 .medpage .med-field .fv a { color: var(--pharma-violet-ink); }
-.medpage .med-field .pcp-pill-id { font-size: 11px; }
+.medpage .med-field .pcp-pill-id { font-size: var(--type-small, 12px); }
+
+/* datasheet "Common uses": a full-width ranked-list field - the
+   label sits above the list, not in the 96px grid column. Built
+   from ProblemStore::medicineUses via <pharmaCommonUses>; markup
+   follows design/pharma_sidebar_uses.html (read-only, no widget). */
+.medpage .med-field-uses { padding: 8px 20px 7px; }
+.medpage .med-field-uses .fl {
+    display: block; margin-bottom: 6px;
+    color: var(--pharma-ink-mute); font-size: var(--type-small, 12px);
+    letter-spacing: 0.06em; text-transform: uppercase;
+}
+.medpage .med-field-uses .uses { list-style: none; margin: 0; padding: 0; }
+.medpage .med-field-uses .use {
+    display: flex; align-items: center; gap: 8px;
+    min-height: 28px;
+    border-bottom: 1px solid var(--pharma-line-faint);
+}
+.medpage .med-field-uses .use:last-child { border-bottom: 0; }
+.medpage .med-field-uses .use-n {
+    flex: 1; min-width: 0; font-size: 12px;
+    color: var(--pharma-violet-ink);
+}
+.medpage .med-field-uses .use-n:hover {
+    text-decoration: underline; text-underline-offset: 2px;
+}
+.medpage .med-field-uses .use-more {
+    display: inline-block; margin-top: 7px;
+    font-size: var(--type-small, 12px); color: var(--pharma-violet-ink);
+}
+.medpage .med-field-uses .use-more:hover {
+    text-decoration: underline; text-underline-offset: 2px;
+}
 
 /* narrow viewports: the rail (key-facts datasheet) leads ABOVE
    the main column. Desktop two-column order is unaffected - the
@@ -7532,7 +7669,7 @@ body:has(.medpage) #firstHeading { display: none; }
 }
 .medpage .pcp-anecdote-badge {
     text-transform: uppercase; letter-spacing: 0.1em;
-    font-size: 9px; font-weight: 600; padding: 2px 7px;
+    font-size: var(--type-small, 12px); font-weight: 600; padding: 2px 7px;
 }
 .medpage .pcp-anecdote-badge-personal {
     background: transparent; color: var(--pharma-tier-strong, #c7884a);
@@ -7577,11 +7714,7 @@ body:has(.medpage) #firstHeading { display: none; }
 /* small coloured aggregate numbers -> redesign violet */
 .medpage .pcp-effect-vmean { color: var(--pharma-violet-ink, #b9a4f0); }
 
-/* vote widget chip -> square hairline */
-.medpage .pcp-vote-controls {
-    background: var(--pharma-bg-3, #18171c);
-    border: 1px solid var(--pharma-line);
-}
+/* vote widget: borderless, no chip background (ADA S1) */
 
 /* per-page suggest links -> square, violet dashed, eyebrow type */
 .medpage .pcp-titration-suggest,
@@ -7595,7 +7728,7 @@ body:has(.medpage) #firstHeading { display: none; }
     color: var(--pharma-violet-ink, #b9a4f0) !important;
     border-radius: 0;
     padding: 5px 12px;
-    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.12em; text-transform: uppercase;
     text-decoration: none !important;
 }
 .medpage .pcp-titration-suggest:hover,
@@ -7620,7 +7753,7 @@ body:has(.medpage) #firstHeading { display: none; }
 .medpage .pcp-pgx-tier-1 { --tc: var(--pharma-tier-boxed, #c25a52); }
 .medpage .pcp-pgx-tier-2 { --tc: var(--pharma-tier-strong, #c7884a); }
 .medpage .pcp-pgx-tier-3 { --tc: var(--pharma-tier-primary, #8b5cf6); }
-.medpage .pcp-pgx-tier-4 { --tc: var(--pharma-tier-derived, #6c6877); }
+.medpage .pcp-pgx-tier-4 { --tc: var(--pharma-tier-derived, #94909c); }
 
 /* header band */
 .medpage .pcp-pgx-header-band {
@@ -7629,11 +7762,11 @@ body:has(.medpage) #firstHeading { display: none; }
     border-bottom: 1px solid var(--pharma-line);
 }
 .medpage .pcp-pgx-header-title {
-    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--pharma-ink);
 }
 .medpage .pcp-pgx-header-meta {
-    margin-left: auto; font-size: 10.5px; color: var(--pharma-ink-mute);
+    margin-left: auto; font-size: var(--type-small, 12px); color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
 
@@ -7649,11 +7782,11 @@ body:has(.medpage) #firstHeading { display: none; }
     background: var(--tc, var(--pharma-violet));
 }
 .medpage .pcp-pgx-tier-title {
-    font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.13em; text-transform: uppercase;
     color: var(--pharma-ink);
 }
 .medpage .pcp-pgx-tier-sub {
-    margin-left: auto; font-size: 10.5px; color: var(--pharma-ink-mute);
+    margin-left: auto; font-size: var(--type-small, 12px); color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
 
@@ -7672,7 +7805,7 @@ body:has(.medpage) #firstHeading { display: none; }
 }
 .medpage .pcp-pgx-counterparty:hover { color: var(--pharma-violet-ink, #b9a4f0); }
 .medpage .pcp-pgx-rel {
-    font-size: 10px; letter-spacing: 0.04em; color: var(--pharma-ink-mute);
+    font-size: var(--type-small, 12px); letter-spacing: 0.04em; color: var(--pharma-ink-mute);
 }
 .medpage .pcp-pgx-rel.is-risk { color: var(--pharma-tier-boxed, #c25a52); }
 .medpage .pcp-pgx-rel.is-safe { color: var(--pharma-ch-pharmacy, #57a065); }
@@ -7692,7 +7825,7 @@ body:has(.medpage) #firstHeading { display: none; }
     background: var(--tc, var(--pharma-violet));
 }
 .medpage .pcp-pgx-intensity-val {
-    font-size: 9.5px; color: var(--pharma-ink-mute);
+    font-size: var(--type-small, 12px); color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
 
@@ -7706,7 +7839,7 @@ body:has(.medpage) #firstHeading { display: none; }
 /* evidence chip */
 .medpage .pcp-pgx-evid {
     display: inline-flex; align-items: center;
-    font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.07em; text-transform: uppercase;
     padding: 1px 5px; white-space: nowrap;
 }
 .medpage .pcp-pgx-evid.is-fda-box,
@@ -7725,7 +7858,7 @@ body:has(.medpage) #firstHeading { display: none; }
 /* kinetics chip */
 .medpage .pcp-pgx-kinetics {
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 9.5px; margin-top: 5px;
+    font-size: var(--type-small, 12px); margin-top: 5px;
     color: var(--pharma-ink-mute);
     border: 1px solid var(--pharma-line); padding: 1px 6px;
 }
@@ -7736,7 +7869,7 @@ body:has(.medpage) #firstHeading { display: none; }
 
 /* derived-edge provenance line */
 .medpage .pcp-pgx-provenance {
-    font-size: 10px; color: var(--pharma-ink-mute); margin-top: 4px;
+    font-size: var(--type-small, 12px); color: var(--pharma-ink-mute); margin-top: 4px;
 }
 
 
@@ -7880,7 +8013,7 @@ body:not(.pcp-skin-plants)::before {
 .pcp-perspective-rel label {
     display: block;
     margin: 0 0 6px;
-    font-size: 10px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--pharma-ink-mute);
@@ -7916,7 +8049,7 @@ body:not(.pcp-skin-plants)::before {
     align-items: center;
     gap: 10px;
     margin: 18px 0;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
@@ -7960,7 +8093,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .pcp-perspective-anchor {
     flex: 0 0 auto;
-    font-size: 10px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
 }
 
@@ -8007,7 +8140,7 @@ body:not(.pcp-skin-plants)::before {
     flex: 0 0 auto;
     min-width: 3em;
     text-align: right;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
@@ -8018,7 +8151,7 @@ body:not(.pcp-skin-plants)::before {
     align-items: center;
     gap: 6px;
     margin: 11px 0 0;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     cursor: pointer;
 }
@@ -8148,7 +8281,7 @@ body:not(.pcp-skin-plants)::before {
     word-break: break-all;
 }
 .pcp-perspectives-link-meta {
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
@@ -8183,12 +8316,12 @@ body:not(.pcp-skin-plants)::before {
     color: var(--pharma-ink);
 }
 .pcp-perspective-card-who {
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
 }
 .pcp-perspective-card-date {
     margin-left: auto;
-    font-size: 10.5px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
@@ -8196,7 +8329,7 @@ body:not(.pcp-skin-plants)::before {
 /* validity: three distinct states, each its own treatment */
 .pcp-perspective-card-validity {
     margin: 8px 0;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     line-height: 1.5;
 }
 .pcp-perspective-card-validity::before { margin-right: 6px; }
@@ -8225,7 +8358,7 @@ body:not(.pcp-skin-plants)::before {
     border-top: 1px solid var(--pharma-line-faint);
 }
 .pcp-perspective-card-state {
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
 }
 .pcp-perspective-card-actions .pcp-perspectives-inline-form:last-child {
@@ -8260,7 +8393,7 @@ body:not(.pcp-skin-plants)::before {
 .pcp-pgx-vote { font-size: 0.92em; }
 .pcp-pgx-vote-intro {
     margin: 0 0 0.6em;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute, #8a8794);
 }
 .pcp-pgx-vote-dim {
@@ -8286,7 +8419,7 @@ body:not(.pcp-skin-plants)::before {
     gap: 0.3em;
 }
 .pcp-pgx-vote-scale-end {
-    font-size: 0.74em;
+    font-size: var(--type-small, 12px);
     font-style: italic;
     color: var(--pharma-ink-mute, #8a8794);
 }
@@ -8330,7 +8463,7 @@ body:not(.pcp-skin-plants)::before {
     font-weight: 600;
 }
 .pcp-pgx-vote-agg {
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute, #8a8794);
     font-variant-numeric: tabular-nums;
 }
@@ -8366,7 +8499,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .pcp-pgx-vote-vanchor,
 .pcp-pgx-vote-vout {
-    font-size: 0.76em;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute, #8a8794);
     font-variant-numeric: tabular-nums;
 }
@@ -8378,7 +8511,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .pcp-pgx-vote-status {
     margin-top: 0.5em;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute, #8a8794);
 }
 .pcp-pgx-vote-status[hidden] { display: none; }
@@ -8413,7 +8546,7 @@ body:not(.pcp-skin-plants)::before {
     display: block;
 }
 .pcp-shulgin-title {
-    font-size: 9.5px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.17em;
     text-transform: uppercase;
     font-weight: 500;
@@ -8432,7 +8565,7 @@ body:not(.pcp-skin-plants)::before {
 .pcp-shulgin-attr {
     padding: 13px 18px 2px;
     text-align: right;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute);
     font-variant-numeric: tabular-nums;
 }
@@ -8441,7 +8574,7 @@ body:not(.pcp-skin-plants)::before {
 .pcp-shulgin-voice {
     padding: 0 18px 13px;
     text-align: right;
-    font-size: 9px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--pharma-ink-mute);
@@ -8476,7 +8609,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .verdict .v-head { padding: 14px 16px 0; }
 .verdict .v-code {
-    font-size: 9.5px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--pharma-violet-bright);
@@ -8491,7 +8624,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .verdict .v-word.neg { color: var(--pharma-green); }
 .verdict .v-pre {
-    font-size: 10px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--pharma-ink-mute);
@@ -8499,7 +8632,7 @@ body:not(.pcp-skin-plants)::before {
     margin-bottom: 5px;
 }
 .verdict .v-detail {
-    font-size: 11.5px;
+    font-size: var(--type-small, 12px);
     color: var(--pharma-ink-dim);
 }
 .verdict .v-foot {
@@ -8507,7 +8640,7 @@ body:not(.pcp-skin-plants)::before {
     border-top: 1px solid var(--pharma-line);
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
 }
 .verdict .v-foot a { color: var(--pharma-violet-ink); }
 .verdict .v-foot .d { color: var(--pharma-ink-mute); }
@@ -8546,7 +8679,7 @@ body:not(.pcp-skin-plants)::before {
     border-bottom: 1px solid var(--pharma-line-faint);
 }
 .fc-code {
-    font-size: 9.5px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--pharma-violet-bright);
@@ -8570,7 +8703,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .fc .viz-cap {
     text-align: center;
-    font-size: 10px;
+    font-size: var(--type-small, 12px);
     line-height: 1.45;
     color: var(--pharma-ink-mute);
     margin: 7px 0 0;
@@ -8588,7 +8721,7 @@ body:not(.pcp-skin-plants)::before {
 }
 .fc-facts .fact:last-child { border-right: 0; }
 .fc-facts .fact .fl {
-    font-size: 9px;
+    font-size: var(--type-small, 12px);
     letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var(--pharma-ink-mute);
@@ -8606,7 +8739,7 @@ body:not(.pcp-skin-plants)::before {
     border-top: 1px solid var(--pharma-line);
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--type-small, 12px);
 }
 .fc-foot a { color: var(--pharma-violet-ink); }
 .fc-foot .d { color: var(--pharma-ink-mute); }
@@ -8822,7 +8955,7 @@ body[data-rail="open"] .mw-footer-container {
     border-width: 0 1.6px 1.6px 0; transform: rotate(135deg);
 }
 .pcp-rail-tab-label {
-    writing-mode: vertical-rl; font-size: 9.5px; letter-spacing: 0.22em;
+    writing-mode: vertical-rl; font-size: var(--type-small, 12px); letter-spacing: 0.22em;
     text-transform: uppercase; color: var(--pharma-ink-mute);
 }
 .pcp-rail-tab:hover .pcp-rail-tab-label { color: var(--pharma-ink-dim); }
@@ -8862,13 +8995,13 @@ body[data-rail="open"] .pcp-rail-panel { transform: translateX(0); }
 }
 .pcp-rail-body { padding: 20px; }
 .pcp-rail-label {
-    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--pharma-ink-mute); margin-bottom: 9px;
 }
 .pcp-rail-seg { display: flex; border: 1px solid var(--pharma-line); }
 .pcp-rail-seg-btn {
     flex: 1; padding: 8px 6px; background: var(--pharma-bg-3); cursor: pointer;
-    font-family: 'Geist', sans-serif; font-size: 11.5px;
+    font-family: 'Geist', sans-serif; font-size: var(--type-small, 12px);
     color: var(--pharma-ink-dim); border: 0;
     border-right: 1px solid var(--pharma-line);
 }
@@ -8880,8 +9013,48 @@ body[data-rail="open"] .pcp-rail-panel { transform: translateX(0); }
 }
 .pcp-rail-seg-btn:focus-visible { outline: 2px solid var(--pharma-violet); outline-offset: -2px; }
 .pcp-rail-note {
-    margin: 13px 0 0; font-size: 10.5px;
+    margin: 13px 0 0; font-size: var(--type-small, 12px);
     color: var(--pharma-ink-mute); line-height: 1.55;
+}
+
+/* ===== Skin switch (designer-claude 2026-05-22): the rail's second
+   control. A radiogroup swatch list; the row chrome adapts per skin
+   via the --pharma-* tokens, the swatch discs are fixed skin-identity
+   marks (the same colours in every skin). ===== */
+.pcp-rail-group + .pcp-rail-group { margin-top: 22px; }
+.pcp-sklist { display: flex; flex-direction: column; gap: 6px; }
+.pcp-skrow {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    padding: 9px 11px; text-align: left; cursor: pointer;
+    font-family: 'Geist', sans-serif;
+    background: var(--pharma-bg-3); border: 1px solid var(--pharma-line);
+}
+.pcp-skrow:hover { border-color: var(--pharma-violet); }
+.pcp-skrow:focus-visible { outline: 2px solid var(--pharma-violet); outline-offset: 2px; }
+.pcp-skrow.pcp-on {
+    border-color: var(--pharma-violet);
+    background: color-mix(in srgb, var(--pharma-violet) 12%, transparent);
+}
+.pcp-sksw { width: 22px; height: 22px; border-radius: 50%; flex: none; }
+.pcp-sksw-pharma { background: #0e0d0f; border: 2px solid #8b5cf6; }
+.pcp-sksw-plants { background: #221610; border: 2px solid #cdb27c; }
+.pcp-sksw-fungi  { background: #0a0c0b; border: 2px solid #6878b8; }
+.pcp-sksw-auto {
+    background: conic-gradient(#8b5cf6 0deg 120deg,
+        #cdb27c 120deg 240deg, #6878b8 240deg 360deg);
+}
+.pcp-skmeta { flex: 1; min-width: 0; }
+.pcp-skname { display: block; font-size: 12.5px; color: var(--pharma-ink); }
+.pcp-skdesc { display: block; font-size: var(--type-small, 12px); color: var(--pharma-ink-mute); margin-top: 2px; }
+.pcp-skrow.pcp-on .pcp-skdesc { color: var(--pharma-ink-dim); }
+.pcp-skradio {
+    width: 15px; height: 15px; border-radius: 50%; flex: none;
+    border: 1.5px solid var(--pharma-line); position: relative;
+}
+.pcp-skrow.pcp-on .pcp-skradio { border-color: var(--pharma-violet); }
+.pcp-skrow.pcp-on .pcp-skradio::after {
+    content: ''; position: absolute; inset: 3px; border-radius: 50%;
+    background: var(--pharma-violet);
 }
 
 /* below 880px: the rail folds away (a topbar Text-size affordance
@@ -8980,3 +9153,125 @@ body.pcp-diptych-page .mw-page-container {
     background: var(--pharma-bg);
 }
 
+/* ============================================================
+   Special:CreateAccount - the "username available" check is a
+   positive state. The createaccount JS (appearance.js) re-types
+   Codex's mis-flavoured warning box to a success message + the
+   pcp-username-available marker; this retunes it to the pharma
+   C/Specimen positive palette: a calm green confirmation chip,
+   not an alert bar. (designer-claude 2026-05-22)
+   ============================================================ */
+.cdx-message.pcp-username-available {
+    background-color: rgba(46,194,110,0.10);
+    border-color: rgba(46,194,110,0.34);
+    border-radius: 3px;
+    color: var(--pharma-ink, #ece9f2);
+}
+.cdx-message.pcp-username-available .cdx-message__icon {
+    background-color: #2ec26e;
+    background-image: none;
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 L8.4 14.8 L16 5.6"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 L8.4 14.8 L16 5.6"/></svg>');
+}
+
+/* ============================================================
+   Problem-card precise star rating (parser-claude data +
+   designer mock problem_star_rating.html). The 0-100 likert
+   mean is the SVG fill width; mean/20 is the visible 0-5
+   number. Per-skin warm fill = each skin's featured-emphasis.
+   ============================================================ */
+.pcp-rating { display: inline-flex; align-items: center; gap: 8px; }
+.pcp-stars { width: 70px; height: 14px; flex: none; display: block; }
+.pcp-stars-empty path { fill: #4f4d59; }
+.pcp-stars-fill path  { fill: #c89968; }
+.pcp-rating-num {
+    font-size: 12px; font-weight: 600;
+    color: var(--pharma-ink, #ece9f2); font-variant-numeric: tabular-nums;
+}
+.pcp-rating-n { font-size: var(--type-small, 12px); color: var(--pharma-ink-mute, #94909c); }
+body.pcp-skin-plants .pcp-stars-empty path { fill: #3a2e22; }
+body.pcp-skin-plants .pcp-stars-fill path  { fill: #b67a44; }
+body.pcp-skin-plants.pcp-skin-fungi .pcp-stars-empty path { fill: #2f3338; }
+body.pcp-skin-plants.pcp-skin-fungi .pcp-stars-fill path  { fill: #c2965a; }
+
+/* ============================================================
+   .pcp-rate - the 0-5 mouseover-rate star widget (designer-
+   claude 2026-05-22). Display + input in one component, on the
+   0-5 scale. Used on problem cards (ProblemTag) and in the
+   COMMON USES sidebar rows (CommonUsesTag). JS in
+   ext.pharmacopedia.js; data via LikertStore (0-5).
+   ============================================================ */
+.pcp-rate {
+    position: relative; display: inline-flex; align-items: center; gap: 7px;
+    flex: none; padding: 3px 4px; margin: -3px -4px; border-radius: 3px;
+    cursor: pointer; outline: none;
+}
+.pcp-rate:hover { background: rgba(200,153,104,0.09); }
+.pcp-rate:focus-visible { outline: 1px solid var(--pharma-violet, #8b5cf6); outline-offset: 1px; }
+.pcp-rate-stars { position: relative; display: inline-block; font-size: 13px; line-height: 1; letter-spacing: 2px; }
+.pcp-rate-stars .row { white-space: nowrap; }
+.pcp-rate-empty { color: var(--pharma-ink-mute, #94909c); }
+.pcp-rate-fill {
+    position: absolute; top: 0; left: 0; overflow: hidden;
+    color: #c89968; pointer-events: none;
+    transition: width .04s linear;
+}
+.pcp-rate-num {
+    font-size: var(--type-small, 12px); font-weight: 600; color: var(--pharma-ink, #ece9f2);
+    font-variant-numeric: tabular-nums; min-width: 21px; text-align: right;
+}
+.pcp-rate.is-rating .pcp-rate-num { color: #c89968; }
+.pcp-rate.is-committed { background: rgba(200,153,104,0.20); }
+.pcp-rate.is-committed .pcp-rate-num { color: #c89968; }
+.pcp-rate-n { font-size: var(--type-small, 12px); color: var(--pharma-ink-mute, #94909c); margin-left: 4px; }
+/* COMMON USES row: name + widget on one line */
+.medpage .med-field-uses .use { gap: 8px; }
+.medpage .med-field-uses .use-n { flex: 1; min-width: 0; }
+/* per-skin warm fill */
+body.pcp-skin-plants .pcp-rate-fill  { color: #b67a44; }
+body.pcp-skin-plants .pcp-rate:hover { background: rgba(182,122,68,0.10); }
+body.pcp-skin-plants .pcp-rate.is-rating .pcp-rate-num,
+body.pcp-skin-plants .pcp-rate.is-committed .pcp-rate-num { color: #b67a44; }
+body.pcp-skin-plants .pcp-rate.is-committed { background: rgba(182,122,68,0.22); }
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-fill  { color: #c2965a; }
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.is-rating .pcp-rate-num,
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.is-committed .pcp-rate-num { color: #c2965a; }
+
+/* a11y chrome floor (designer-claude 2026-05-22, a11y-claude xpath
+   re-run): every chrome text source surfaced below 12px lifts to 12px
+   here in the Pharmacopedia skin layer (do not edit inside
+   extensions/SocialProfile/, per the standing rule). Reading text and
+   semantic headings unaffected; this targets named chrome selectors
+   plus a universal sweep for inline style="font-size:Npx" with N<12. */
+
+/* SocialProfile -- named CSS-source offenders */
+.random-featured-user,
+.user-board-message-time,
+.user-board-message-links a,
+.user-page-message-count,
+.profile-update-unit-small { font-size: 12px !important; }
+
+/* SocialProfile UserProfilePage.php inline-style offenders */
+[style*="font-size:7px"],
+[style*="font-size: 7px"],
+[style*="font-size:8px"],
+[style*="font-size: 8px"],
+[style*="font-size:9px"],
+[style*="font-size: 9px"],
+[style*="font-size:10px"],
+[style*="font-size: 10px"],
+[style*="font-size:11px"],
+[style*="font-size: 11px"] { font-size: 12px !important; }
+
+/* a11y kill Vector clientPreferences picker (designer-claude 2026-05-22,
+   locked spec in DESIGN_TOKENS.md 2026-05-21). Vector's native picker
+   exposes radios for text size, page width, and color theme - violating
+   three locked rules at once. Extension's own Appearance rail (task #2)
+   is the replacement. Hide the dropdown trigger, the pinned container,
+   and the landmark wrapper. AT loses an empty 'Appearance' landmark
+   pointing at nothing; users lose access to controls they should not
+   have had. */
+#vector-appearance-dropdown,
+#vector-appearance-pinned-container,
+#vector-appearance-unpinned-container,
+.vector-appearance-landmark { display: none !important; }

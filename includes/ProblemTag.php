@@ -77,29 +77,19 @@ class ProblemTag {
 
         // Aggregate one-liner
         $dk = (int)( $agg['n_dontknow'] ?? 0 );
-        if ( $agg['n'] > 0 ) {
-            $aggText = '' .
-                '<svg class="pcp-star-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 L14.6 9 L22 9.3 L16.2 14 L18.3 21.6 L12 17.3 L5.7 21.6 L7.8 14 L2 9.3 L9.4 9 Z" fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg> ' . number_format( (float)$agg['mean'], 1 ) .
-                ' <span class="pcp-likert-n">(n=' . (int)$agg['n'] . ')</span>';
-            if ( $dk > 0 ) {
-                $aggText .= ' <span class="pcp-likert-dk-count">' . $dk . ' don\'t know</span>';
-            }
-        } elseif ( $dk > 0 ) {
-            $aggText = '<span class="pcp-likert-dk-count">' . $dk . ' don\'t know</span>';
-        } else {
-            $aggText = '<span class="pcp-likert-noreports">no ratings yet</span>';
+        // Always render the rate widget (display + mouseover input);
+        // it shows empty stars at n=0 and remains rateable.
+        $rMean   = max( 0.0, min( 5.0, (float)( $agg['mean'] ?? 0 ) ) );
+        $rN      = (int)$agg['n'];
+        $aggText = RateWidget::render( (int)$elementId, $rMean, $rN, $title );
+        if ( $rN > 0 ) {
+            $aggText .= ' <span class="pcp-rate-n">n=' . $rN . '</span>';
+        }
+        if ( $dk > 0 ) {
+            $aggText .= ' <span class="pcp-likert-dk-count">' . $dk . ' don\'t know</span>';
         }
 
-        // Likert slider 0–100 (replaces the 6-button row). -1 "Don't know"
-        // stays as a separate toggle that dims the slider when active.
-        $initRating = ( $userRating !== null && $userRating >= 0 ) ? (int)$userRating : 50;
-        $isDk       = ( $userRating === -1 );
-        $dkActiveCls = $isDk ? ' pcp-likert-active' : '';
-        $likertBtns  = '<span class="pcp-likert-slider-wrap' . ( $isDk ? ' pcp-likert-dk-on' : '' ) . '">';
-        $likertBtns .= '<input type="range" class="pcp-likert-slider" aria-label="Your rating for this problem" min="0" max="100" step="1" value="' . $initRating . '" oninput="this.nextElementSibling.value=this.value">';
-        $likertBtns .= '<output class="pcp-likert-slider-out">' . $initRating . '</output>';
-        $likertBtns .= '</span>';
-        $likertBtns .= '<button type="button" class="pcp-likert-btn pcp-likert-btn-dk' . $dkActiveCls . '" data-value="-1">Don\'t know</button>';
+
 
         $h  = '<div class="pcp-row pcp-row-problem pcp-problem" id="problem-' . htmlspecialchars( $normSlug ) .
               '" data-slug="' . htmlspecialchars( $normSlug ) .
@@ -113,16 +103,10 @@ class ProblemTag {
         $h .= '<span class="pcp-row-title">' . htmlspecialchars( $title ) . '</span>';
         $h .= '<span class="pcp-row-aggs"><span class="pcp-row-agg pcp-problem-agg">' . $aggText . '</span></span>';
         $h .= '<span class="pcp-row-actions">';
-        $h .= '<button type="button" class="pcp-row-action pcp-row-action-toggle" data-target="rate" aria-expanded="false">Rate</button>';
         $h .= SpecialDeletePharmaElement::buttonHtml( 'problem', $normSlug, $author );
         $h .= '</span>';
         $h .= '</div>';
 
-        // RATE panel (folded)
-        $h .= '<div class="pcp-row-panel pcp-row-rate-panel pcp-problem-likert" hidden>';
-        $h .= '<span class="pcp-likert-q">Efficacy:</span>';
-        $h .= $likertBtns;
-        $h .= '</div>';
 
         // BODY (always visible)
         if ( $body !== '' ) {

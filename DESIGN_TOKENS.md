@@ -51,7 +51,7 @@ Counts are real usage in production CSS as of 2026-05-20 (inventory by interface
 | `--pharma-violet-mid` | `#5d3b8e` | 31 | Gradient midpoint |
 | `--pharma-text-mute` | `#cbd5e1` | 24 | Secondary card text |
 | `--pharma-violet-banner` | `#b599e0` | 20 | Section banners |
-| `--pharma-tier1-deep` | `#b91c1c` | 19 | PGx FDA Boxed dark red |
+| `--pharma-tier1-deep` | `#b91c1c` | 19 | PGx FDA Boxed dark red. FILL / MARKER ONLY, not a text color: 2.86:1 as text on dark grounds, fails WCAG 2.2 AA (ADA audit 2026-05-22). Severity text labels use `--pharma-tier1-red` `#ef4444` (4.92:1, passes). |
 | `--pharma-teal` | `#0d9488` | 18 | Link, info accent |
 | `--pharma-surface-2` | `#1f1f1f` | 15 | Card background alt (PGx row alt) |
 | `--pharma-danger` | `#dc2626` | 13 | Red, severe interaction |
@@ -126,7 +126,7 @@ Four-tier interaction render. Each tier carries a colored marker; the Derived ti
 | `--pharma-tier-boxed` | `#c25a52` | Contraindicated / FDA Boxed (red) |
 | `--pharma-tier-strong` | `#c7884a` | Strong caution (amber, not yellow) |
 | `--pharma-tier-primary` | `#8b5cf6` | Primary pharmacology (violet) |
-| `--pharma-tier-derived` | `#6c6877` | Derived, inferred (grey, de-emphasized) |
+| `--pharma-tier-derived` | `#94909c` | Derived, inferred (grey, de-emphasized). CORRECTED 2026-05-22 (ADA audit): was `#6c6877`, 3.30-3.59:1 on dark surfaces, failed WCAG 2.2 AA. The 2026-05-20 `--pharma-ink-mute` correction missed this twin token. Now equal to `--pharma-ink-mute`; the derived sense is carried by the `~` prefix and de-emphasis, not a darker grey (which cannot pass AA on this skin). |
 
 The kinetics chip uses `--pharma-tier-strong` for mechanism-based ("persists ~N weeks after stopping") and `--pharma-ink-mute` for reversible ("resolves within ~5 half-lives").
 
@@ -199,12 +199,12 @@ The field-guide register. Botanical, deep brown loam with moss accents and amber
 | `--plants-bark-edge` | `#3d2a1d` | Highlight surface, lit edge |
 | `--plants-bone` | `#d4c5a8` | Primary text, cream-brown |
 | `--plants-bone-dim` | `#a8927a` | Secondary, dim bone |
-| `--plants-lichen` | `#7a6650` | Tertiary, muted |
+| `--plants-lichen` | `#9c958a` | Tertiary, muted. CORRECTED 2026-05-22 (ADA audit): was `#7a6650`, 3.23:1 on `--plants-bark`, failed WCAG 2.2 AA. Lifted to clear 4.5:1; interface-claude to verify the exact ratio on the grounds it appears on, as with the pharma `ink-mute` correction. |
 | `--plants-whisper` | `#5a4636` | Faintest distinguishable text |
 | `--plants-moss` | `#6a8a52` | Brand accent, primary links, mark color |
 | `--plants-fern` | `#8eb070` | Hover, brighter accent |
 | `--plants-amber` | `#b67a44` | Featured emphasis (Pendell quotes, primary marker, drop-cap option) |
-| `--plants-amber-deep` | `#8e5d33` | Deep amber, less luminous |
+| `--plants-amber-deep` | `#8e5d33` | Deep amber, less luminous. FILL / MARKER ONLY, not a text color: 3.16:1 as text on `--plants-bark`, fails WCAG 2.2 AA (ADA audit 2026-05-22). Volume-reference and citation text use `--plants-amber` `#b67a44` (4.92:1, passes). |
 | `--plants-rust` | `#7a3a22` | Danger, contraindication, oxidized iron |
 | `--plants-bloom` | `#5a3528` | Warm bloom, accent washes |
 | `--plants-walnut` | `#6b4423` | Strong brown statement accent |
@@ -316,6 +316,26 @@ Per [[feedback_visual_palette]]:
 - **MedTemplate tri-color headers protected in structural logic.** The hex values change between skins; the three-channel semantic does not. Plants skin uses typographic markers rather than solid bands; the meaning survives.
 - **No em-dashes** in any CSS file. Use commas, colons, periods. No automated pass enforces this; the source must be kept clean by hand.
 - **No decorative italics.** From Mark, through 2026-05-20: no `font-style: italic` for emphasis or chrome, no `<em>`/`<i>` rendered italic, no italic font faces for UI, in either skin, in any component. Binomials, foreign terms, captions, labels, and emphasis stay roman; hierarchy is carried by weight, size, color, letter-spacing, and case. **Exception (Mark, 2026-05-20): quoted text may be italic** ("italics are okay in quotes"). This covers verbatim quotations and the Pendell quote voice; it does not extend to UI chrome, labels, captions, binomials, or emphasis. The global `em, i { font-style: normal; }` stays as the production default; quote components opt into italic explicitly.
+
+---
+
+## Accessibility floors
+
+The site clears WCAG 2.2 AA across all three skins. Two floors are non-negotiable.
+
+**Contrast.** Every text token used as text must clear 4.5:1 against every surface it lands on (3:1 for large text, `--type-h2` and above). Tokens flagged "fill / marker only" in the palette tables (`--pharma-tier1-deep`, `--pharma-tier-boxed` as text, `--plants-amber-deep`, `--plants-rust`, `--fungi-rot`) never carry text. When a token is found failing in audit, the value is re-picked in its palette table with an inline note dated to the audit.
+
+**Chrome text size.** The chrome-text floor is 12px rendered at base zoom, token `--type-small`. Chrome CSS, the footer, page meta, pills, category-tag pills, sidebar item secondary text, and any other interface chrome must not use `font-size` literals below 12px; lift any such literal to `var(--type-small)`. The Text size rail control (`--type-scale`) applies to reading text only (article prose), not to chrome; chrome stays at the 12px floor regardless of the user's reading-text setting.
+
+**Scaling-token chrome consumers.** Where a chrome consumer pulls from a scaling token (the Citizen skin's `--font-size-x-small` etc., whose value changes per the user's font-size variant), the smallest variant of the scaling token must clamp at the 12px floor. The chrome consumer keeps using the variable; the variable's smallest value gets lifted until it clears 12px. SVG `<text>` inside compact data visualizations (radar tick labels, lifegraph axis labels) is an exception when the rendered value is exposed elsewhere in the card UI for AT (a `<title>` element, a labelled data row); otherwise it follows the same floor.
+
+### Audit log
+
+| Date | Sweep | Findings | Disposition |
+|---|---|---|---|
+| 2026-05-20 | designer-claude self-audit | `--pharma-ink-mute` (`#6c6877`) and `--plants-lichen` (`#7a6650`) failed AA as text on the dark grounds. | Repointed in palette tables: `--pharma-ink-mute` to `#94909c`, `--plants-lichen` to `#9c958a`. |
+| 2026-05-22 | a11y-claude baseline (WAVE) | 1 site Error (Special:Search empty label); 5 contrast errors on Fluoxetine, 13 on Special:UserProfile/MDElliottMD (densest clusters); 9-element chrome floor + 3-fieldset chrome floor sitewide; +140 text-small alerts on Fluoxetine, +85 on Special:UserProfile, +27 on Category_index from sub-12px chrome literals. | interface-claude / parser-claude / designer-claude split per 2026-05-22 handoffs; designer-lane token fixes (chip-picker `--pcp-chip-lichen` pharma and plants, stale tier-derived table) landed in this file. xpath re-runs on the chrome floor and the two contrast clusters requested from a11y-claude for the implementation pass. |
+| 2026-05-22 | a11y-claude xpath re-run (WAVE reporttype=3) | Contrast errors resolved to three selectors. Fluoxetine 5/5 to `.pcp-rate .row.pcp-rate-empty` (the empty-stars row inside the pcp-rate widget). Special:UserProfile 11/13 to `.pcp-up-card-date` (the Pharmacopedia card-foot timestamp, NOT SocialProfile chrome), 2/13 to `.mbti-axis-strength.is-balanced` (the neutral state of the MBTI axis-strength chip). Chrome-floor sources: Citizen `Pagetools.less:75` literal `0.65rem`; Citizen `StickyHeader.less:129` `var(--font-size-x-small)` whose Variant 1 resolves to `0.625rem` (10px); SocialProfile sub-12px literals at known paths; Pharmacopedia parser-tag classes (`pcp-pgx-*`, `pcp-rate-*`, `med-field .fl`) per parser-claude card. | All three contrast selectors take `var(--pharma-ink-mute)` (`#94909c`, AA-safe on `--pharma-bg-2` at 5.95:1). Single muted-text token earns its keep; no new neutral-state token introduced (no third occurrence). Citizen-side lift recommended: `--font-size-x-small` Variant 1 from `0.625rem` to `0.75rem` so the smallest variant clamps at the 12px chrome floor. Implementation queued with interface-claude. |
 
 ---
 
@@ -441,7 +461,7 @@ The rail, both skins:
 
 - **Light mode: eliminated altogether** (Mark, 2026-05-21, emphatic). Not a disabled toggle, gone. There is no light/dark control anywhere, and no light-mode CSS, body class, or `prefers-color-scheme: light` block in the tree. The site is dark, always, both skins (the standing [[feedback_no_light_modes]] rule). Vector night mode is off in config as part of disabling Vector's client preferences.
 - **Width (Standard / Wide): removed.** A fluid edge-to-edge layout has no narrow-versus-wide column to choose; `--measure-prose` holds readability.
-- **Skin switch (incoming).** Mark, 2026-05-21: a Plant/Dark skin switch joins the rail, each skin represented on its side. designer-claude speccing; the open decision is whether a user's pick globally overrides per-page origin skinning. The rail is a two-control surface.
+- **Skin switch.** Settled 2026-05-22 (Mark). A second control under Text size: a four-row swatch list, **Automatic / Pharmaceutical / Plants / Fungi**. Each row is a signature-color disc, the skin name, and a one-line descriptor. Automatic leads and is the default: it defers to the skin resolver, and its descriptor reports the page's resolved skin (`Follows the page · now Plants`). Picking a skin is a **global override** that holds on every page until the reader returns to Automatic; the choice persists per browser, alongside rail state and Text size. The rail is a two-control surface. Build reference: `appearance_skin_switch.html`, treatment 2.
 
 Build reference: `https://pharmacopedia.wiki/design/pharma_fullwidth.html`. Under Option B the mock is the build spec for the rail, not just a visual reference: the collapsed tab, the expand-and-push behavior, the segmented control, and the `--type-scale` text scaling are productionized from it. The fluid frame, the prose measure, and the sticky datasheet are unchanged.
 
@@ -532,7 +552,7 @@ Used by `.pcp-chip-*` family. Triggered everywhere chip-pickers, dx autocomplete
 | `--pcp-chip-amber` | `#c89968` |
 | `--pcp-chip-text` | `#ede9fe` |
 | `--pcp-chip-text-mute` | `#c4c4c4` |
-| `--pcp-chip-lichen` | `#888` |
+| `--pcp-chip-lichen` | `#94909c` |
 | `--pcp-chip-rule` | `#2d2d2d` |
 | `--pcp-chip-bg` | `rgba(124, 58, 237, 0.10)` |
 | `--pcp-chip-border` | `rgba(124, 58, 237, 0.4)` |
@@ -554,7 +574,7 @@ Used by `.pcp-chip-*` family. Triggered everywhere chip-pickers, dx autocomplete
 | `--pcp-chip-amber` | `#c89968` |
 | `--pcp-chip-text` | `#d4c5a8` |
 | `--pcp-chip-text-mute` | `#a8927a` |
-| `--pcp-chip-lichen` | `#7a6650` |
+| `--pcp-chip-lichen` | `#9c958a` |
 | `--pcp-chip-rule` | `rgba(212, 197, 168, 0.10)` |
 | `--pcp-chip-bg` | `rgba(106, 138, 82, 0.12)` |
 | `--pcp-chip-border` | `rgba(106, 138, 82, 0.45)` |
@@ -689,7 +709,7 @@ Implementation note: the PGx tier colors are named `--pharma-tier-*` in the C/Sp
 | Contraindicated / FDA Boxed | `#c25a52` | `var(--plants-rust)` `#7a3a22` |
 | Strong caution | `#c7884a` | `var(--plants-amber)` `#b67a44` |
 | Primary pharmacology | `#8b5cf6` | `var(--plants-moss)` `#6a8a52` |
-| Derived, inferred | `#6c6877` | `var(--plants-lichen)` `#7a6650` |
+| Derived, inferred | `var(--pharma-tier-derived)` `#94909c` | `var(--plants-lichen)` `#9c958a` |
 
 The kinetics chip uses `--plants-amber` for mechanism-based and `--plants-lichen` for reversible. The exposure-direction triangles: raised uses `--plants-amber`, lowered uses `--plants-mark-summary` (cool earth).
 
@@ -852,7 +872,7 @@ Both publicly served at `https://pharmacopedia.wiki/design/` for review.
 
 1. ESCOP and other paywalled regulatory monographs are inaccessible to web-claude. Worth raising whether the project wants institutional access for the herbal sprint. Not a design question per se, but it affects what reference visual treatments will need to handle.
 2. The `.pcp-skin-plants` body class is set via an MW BeforePageDisplay hook (interface-claude) that reads the page's direct origin category tag; see the Skin selection section. The recursive parent-chain walk is retired as of 2026-05-20.
-3. Per-user skin override in Appearance sidebar: implemented in mock as illustrative. Whether to ship as a real preference is open.
+3. RESOLVED 2026-05-22 (Mark). Per-user skin override ships as a real control: the four-row swatch-list **Skin switch** in the Appearance rail (Automatic / Pharmaceutical / Plants / Fungi), Automatic the default. An explicit pick is a global override, persisted per browser. See the Appearance rail contents section.
 4. Category pages, File pages, and Talk pages are all covered by the Skin selection rule: the plants skin only with a direct `Category:Plants` tag and no `Category:Pharmaceutical`, otherwise the pharma default. The dual-parented class-category case (for example `Category:Psychedelics`) resolves to pharma, as intended.
 5. RESOLVED 2026-05-21 (designer-claude and interface-claude). The `--pcp-*` component-token indirection: only `--pcp-chip-*` is a real `--pcp-*` token family. The radar, card, and bar families stay built on `--pharma-*` directly; no `--pcp-*` indirection layer is added for them, and the radar, card, and bar blocks above are reframed as a color and role reference rather than a token spec. Rationale: all three components shipped clean on `--pharma-*`, the plants skin re-points the `--pharma-*` layer wholesale, so an indirection layer would have no consumer and would only add drift risk. Revisit only if a plant-skinned page comes to carry an assessment surface and the wholesale re-point proves insufficient for it.
 

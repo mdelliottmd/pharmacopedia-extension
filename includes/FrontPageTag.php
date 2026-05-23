@@ -2,6 +2,7 @@
 namespace MediaWiki\Extension\Pharmacopedia;
 
 use MediaWiki\MediaWikiServices;
+use MediaWiki\SiteStats\SiteStats;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
 
@@ -74,18 +75,53 @@ class FrontPageTag {
     }
 
     private static function strip( $dbr ) {
-        $meds = (int)$dbr->selectField( 'page', 'COUNT(*)',
-            [ 'page_namespace' => NS_MAIN, 'page_is_redirect' => 0 ], __METHOD__ );
+        $meds = (int)SiteStats::articles();
         $cats = (int)$dbr->selectField( 'page', 'COUNT(*)',
             [ 'page_namespace' => NS_CATEGORY ], __METHOD__ );
-        $users = (int)$dbr->selectField( 'user', 'COUNT(*)', [], __METHOD__ );
+        $users = self::contributorCount( $dbr );
         $fmt = static function ( $n ) { return number_format( $n ); };
         return '<div class="strip">'
             . '<span class="mature">Mature audiences only</span>'
-            . '<span class="build">In construction, nothing reliable yet</span>'
+            . '<span class="build">Under construction. Nothing is reliable (yet)</span>'
             . '<span class="stats">' . $fmt( $meds ) . ' pages &middot; '
             . $fmt( $cats ) . ' categories &middot; ' . $fmt( $users )
             . ' contributors</span></div>';
+    }
+
+    /**
+     * Distinct registered users who have contributed to the site:
+     * a page edit, or an authored problem / effect / interaction.
+     * Votes, comments and literature are stored against a one-way
+     * voter hash (the privacy design) and carry no user id, so a
+     * vote-only / comment-only contributor cannot be counted.
+     */
+    private static function contributorCount( $dbr ) {
+        $ids = [];
+        $collect = static function ( $res, $col ) use ( &$ids ) {
+            foreach ( $res as $row ) {
+                $uid = (int)$row->$col;
+                if ( $uid > 0 ) {
+                    $ids[ $uid ] = true;
+                }
+            }
+        };
+        // page editors
+        $collect( $dbr->select(
+            [ 'revision', 'actor' ],
+            [ 'uid' => 'actor_user' ],
+            [ 'actor_user IS NOT NULL' ],
+            __METHOD__,
+            [ 'DISTINCT' ],
+            [ 'actor' => [ 'JOIN', 'actor_id = rev_actor' ] ]
+        ), 'uid' );
+        // problem / effect / interaction authors
+        $collect( $dbr->select( 'pcp_problem',
+            [ 'uid' => 'p_created_by' ], [], __METHOD__, [ 'DISTINCT' ] ), 'uid' );
+        $collect( $dbr->select( 'pcp_effects',
+            [ 'uid' => 'e_created_by' ], [], __METHOD__, [ 'DISTINCT' ] ), 'uid' );
+        $collect( $dbr->select( 'pcp_interactions',
+            [ 'uid' => 'pi_created_user_id' ], [], __METHOD__, [ 'DISTINCT' ] ), 'uid' );
+        return count( $ids );
     }
 
     private static function seam() {
@@ -142,11 +178,12 @@ class FrontPageTag {
         $catIndex = htmlspecialchars(
             Title::newFromText( 'Category index' )->getLocalURL() );
         $assess = htmlspecialchars(
-            SpecialPage::getTitleFor( 'TakeAssessment' )->getLocalURL() );
+            SpecialPage::getTitleFor( 'MyProfile' )->getLocalURL() )
+            . '#pcp-assessments';
 
         $h  = '<div class="col col-pharma"><div class="col-inner">';
         $h .= '<div class="p-head"><div class="rk">Origin</div>'
-            . '<div class="nm serif">Pharmaceutical</div>'
+            . '<div class="nm serif"><a href="' . self::catUrl( 'Pharmaceutical' ) . '">Pharmaceutical</a></div>'
             . '<div class="fr">The prescriber\'s reference, clinical-first.</div>'
             . '<div class="mt">23 classes &middot; indexed by therapeutic use</div></div>';
 
@@ -180,8 +217,8 @@ class FrontPageTag {
             . '<p>Every pharmacological class and plant lineage on the wiki, the two '
             . 'origins side by side.</p><span class="p-go">Open the category index</span></a>'
             . '<a class="p-portal" href="' . $assess . '"><h3>Self-assessments</h3>'
-            . '<p>CATI, CAT-Q, PID-5-BF and more, scored privately and saved to your '
-            . 'profile.</p><span class="p-go">Take an assessment</span></a></div>';
+            . '<p>Enneagram, MBTI, and many more, stored with top-tier '
+            . 'encryption only you can access.</p><span class="p-go">Take an assessment</span></a></div>';
 
         // 04 recently updated
         $h .= '<div class="p-mod"><div class="p-mod-h"><span class="p-mod-no">04</span>'
@@ -206,7 +243,7 @@ class FrontPageTag {
         $h .= '<div class="l-head">'
             . '<svg class="lr-sprig" viewBox="0 0 46 46" aria-hidden="true"><use href="#pl-sprig"/></svg>'
             . '<div><div class="rk">Origin</div>'
-            . '<div class="nm">Plant <span class="nm-aux">(and fungi and animals)</span></div>'
+            . '<div class="nm"><a href="' . self::catUrl( 'Plants' ) . '">Plant</a> <span class="nm-aux">(and fungi and animals)</span></div>'
             . '<div class="fr">The poison path, the field guide.</div>'
             . '<div class="mt">3 Pharmako volumes &middot; 11 classes</div></div></div>';
 
@@ -236,7 +273,7 @@ class FrontPageTag {
         // explore portals
         $h .= '<div class="l-mod"><div class="l-mod-h"><span class="l-mod-bar"></span>'
             . '<span class="l-mod-label">Explore the plant world</span></div>'
-            . '<a class="l-portal" href="' . $catIndex . '"><h3>The Pendell axis</h3>'
+            . '<a class="l-portal" href="' . $catIndex . '#pendell-axis"><h3>The Pendell axis</h3>'
             . '<p>Dale Pendell\'s ordering of the plant medicines across the three '
             . 'Pharmako volumes, the long human acquaintance with these plants.</p>'
             . '<span class="l-go">Enter by the Pendell axis</span></a>'

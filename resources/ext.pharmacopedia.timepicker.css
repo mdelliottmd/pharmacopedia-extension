@@ -22,7 +22,7 @@
     box-shadow: 0 0 0 2px rgba(93, 59, 142, 0.2);
 }
 .pcp-time-input .pcp-time-preview {
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #5d3b8e;
     margin-top: 0.25em;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

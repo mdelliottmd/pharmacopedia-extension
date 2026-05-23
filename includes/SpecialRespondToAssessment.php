@@ -25,7 +25,9 @@ use MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry;
  *
  * The rendering model for each instrument comes from AssessmentRegistry:
  * 'radio' (discrete options), 'slider' (one continuous slider per item),
- * 'bipolar' (a slider between the two phrases of an MBTI item).
+ * 'bipolar' (a slider between the two phrases of an MBTI item), or 'mixed'
+ * (per-item heterogeneous; each item carries its own type tag and the
+ * renderer dispatches per item).
  */
 class SpecialRespondToAssessment extends SpecialPage {
 
@@ -177,19 +179,33 @@ class SpecialRespondToAssessment extends SpecialPage {
             return;
         }
         $spec = AssessmentRegistry::spec( $slug ) ?? [];
-        $isFloat = ( AssessmentRegistry::model( $slug ) !== 'radio' );
+        $model = AssessmentRegistry::model( $slug );
+        $isFloat = ( $model !== 'radio' );
         $min = (float)( $spec['min'] ?? 0 );
         $max = (float)( $spec['max'] ?? 100 );
 
         // Collect responses (r[<itemNumber>]) and "Not sure" items (unsure[<n>]).
+        // gated_count, numeric, and height items carry side-channel fields
+        // (r_gate, r_unit, r_feet, r_inches); their parsers read them here.
         $raw    = $req->getArray( 'r' ) ?: [];
         $unsure = $req->getArray( 'unsure' ) ?: [];
+        $gate   = $req->getArray( 'r_gate' ) ?: [];
+        $units  = $req->getArray( 'r_unit' ) ?: [];
+        $feet   = $req->getArray( 'r_feet' ) ?: [];
+        $inches = $req->getArray( 'r_inches' ) ?: [];
         $responses = [];
         $idkItems  = [];
-        foreach ( array_keys( $scorer::ITEMS ) as $n ) {
+        foreach ( $scorer::ITEMS as $n => $itemData ) {
             $n = (int)$n;
             if ( !empty( $unsure[ $n ] ) ) {
                 $idkItems[] = $n;
+                continue;
+            }
+            if ( $model === 'mixed' ) {
+                $parsed = self::parseMixedItem( $itemData, $n, $raw, $gate, $units, $feet, $inches );
+                if ( $parsed !== null ) {
+                    $responses[ $n ] = $parsed;
+                }
                 continue;
             }
             if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' || $raw[ $n ] === null ) {
@@ -341,6 +357,10 @@ class SpecialRespondToAssessment extends SpecialPage {
         if ( $model === 'radio' ) {
             $h .= '<p class="rp-note">Choose the answer that fits best for each item. '
                 . 'If an item truly does not apply, tick "Not sure".</p>';
+        } elseif ( $model === 'mixed' ) {
+            $h .= '<p class="rp-note">Each item below is asked in the way that fits it best: '
+                . 'some are buttons, some are numbers. If an item truly does not apply, tick '
+                . '"Not sure".</p>';
         } else {
             $h .= '<p class="rp-note">Move each slider to where it fits. If an item truly '
                 . 'does not apply, tick "Not sure".</p>';
@@ -361,6 +381,18 @@ class SpecialRespondToAssessment extends SpecialPage {
 
     /** Dispatch one item to the renderer for its model. */
     private function renderItem( string $model, array $spec, string $scorer, int $n, $itemData ): string {
+        if ( $model === 'mixed' && is_array( $itemData ) ) {
+            $type = (string)( $itemData['type'] ?? '' );
+            switch ( $type ) {
+                case 'slider':      return $this->renderMixedSliderItem( $n, $itemData );
+                case 'likert6':     return $this->renderLikert6Item( $n, $itemData );
+                case 'count':       return $this->renderCountItem( $n, $itemData );
+                case 'gated_count': return $this->renderGatedCountItem( $n, $itemData );
+                case 'numeric':     return $this->renderNumericItem( $n, $itemData );
+                case 'height':      return $this->renderHeightItem( $n, $itemData );
+            }
+            return '';
+        }
         if ( $model === 'radio' ) {
             $stem = is_array( $itemData ) ? (string)( $itemData[0] ?? '' ) : (string)$itemData;
             return $this->renderRadioItem( $scorer, $n, $stem );
@@ -375,6 +407,112 @@ class SpecialRespondToAssessment extends SpecialPage {
         $stem = is_array( $itemData ) ? (string)( $itemData[0] ?? '' ) : (string)$itemData;
         return $this->renderSliderItem( $spec, $n, $stem,
             (string)( $spec['lo'] ?? '' ), (string)( $spec['hi'] ?? '' ) );
+    }
+
+    /**
+     * Parse one item in a mixed-model scale, returning a numeric value for
+     * storage in $responses, or null if the item was not answered. Each item
+     * type has its own wire shape:
+     *   likert6      r[n] = 0..6
+     *   count        r[n] = integer
+     *   gated_count  r_gate[n] = 'yes'|'no'; if yes, r[n] = integer count
+     *   numeric      r[n] = float; r_unit[n] = unit code; canonicalized here
+     *   height       r_unit[n] = 'std' | 'metric'; if std then r_feet[n] +
+     *                r_inches[n], else r[n] = cm. Canonicalized to cm.
+     */
+    private static function parseMixedItem( $itemData, int $n, array $raw, array $gate, array $units, array $feet = [], array $inches = [] ) {
+        if ( !is_array( $itemData ) ) {
+            return null;
+        }
+        $type = (string)( $itemData['type'] ?? '' );
+
+        if ( $type === 'slider' ) {
+            if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                return null;
+            }
+            $lo = (float)( $itemData['min'] ?? 0 );
+            $hi = (float)( $itemData['max'] ?? 100 );
+            $v = (float)$raw[ $n ];
+            if ( $v < $lo ) { $v = $lo; }
+            if ( $v > $hi ) { $v = $hi; }
+            return $v;
+        }
+
+        if ( $type === 'likert6' ) {
+            if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                return null;
+            }
+            return max( 0, min( 6, (int)$raw[ $n ] ) );
+        }
+
+        if ( $type === 'count' ) {
+            if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                return null;
+            }
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? PHP_INT_MAX );
+            return max( $lo, min( $hi, (int)$raw[ $n ] ) );
+        }
+
+        if ( $type === 'gated_count' ) {
+            $g = strtolower( (string)( $gate[ $n ] ?? '' ) );
+            if ( $g === 'no' ) {
+                return 0;
+            }
+            if ( $g !== 'yes' ) {
+                return null;
+            }
+            if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                return null;
+            }
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? PHP_INT_MAX );
+            return max( $lo, min( $hi, (int)$raw[ $n ] ) );
+        }
+
+        if ( $type === 'numeric' ) {
+            if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                return null;
+            }
+            $v = (float)$raw[ $n ];
+            $kind = (string)( $itemData['kind'] ?? '' );
+            $unit = (string)( $units[ $n ] ?? '' );
+            // Hard-coded canonical conversions; the scorer exposes the same
+            // factors as constants (Edeq::POUND_TO_KG, Edeq::INCH_TO_CM) but
+            // we keep this parser self-contained.
+            if ( $kind === 'weight' && $unit === 'lb' ) {
+                $v = $v * 0.45359237;
+            } elseif ( $kind === 'height' && $unit === 'in' ) {
+                $v = $v * 2.54;
+            }
+            return $v > 0 ? $v : null;
+        }
+
+        if ( $type === 'height' ) {
+            $unit = strtolower( trim( (string)( $units[ $n ] ?? 'std' ) ) );
+            if ( $unit === 'metric' ) {
+                if ( !isset( $raw[ $n ] ) || $raw[ $n ] === '' ) {
+                    return null;
+                }
+                $cm = (float)$raw[ $n ];
+                return $cm > 0 ? $cm : null;
+            }
+            // std: feet + inches -> cm. Either field alone is enough; the
+            // other treats as zero. Both blank means unanswered.
+            $ftStr = isset( $feet[ $n ] )   ? trim( (string)$feet[ $n ] )   : '';
+            $inStr = isset( $inches[ $n ] ) ? trim( (string)$inches[ $n ] ) : '';
+            if ( $ftStr === '' && $inStr === '' ) {
+                return null;
+            }
+            $totalInches = ( $ftStr !== '' ? (int)$ftStr * 12 : 0 )
+                + ( $inStr !== '' ? (int)$inStr : 0 );
+            if ( $totalInches <= 0 ) {
+                return null;
+            }
+            return $totalInches * 2.54;
+        }
+
+        return null;
     }
 
     /** A discrete radio-button item. */
@@ -420,6 +558,312 @@ class SpecialRespondToAssessment extends SpecialPage {
             . 'value="' . htmlspecialchars( (string)$default ) . '">';
         $h .= '<output class="pcp-adm-sliderval">' . htmlspecialchars( (string)$default ) . '</output>';
         $h .= '<span class="pcp-adm-anchor pcp-adm-anchor-hi">' . htmlspecialchars( $hi ) . '</span>';
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /**
+     * A per-item continuous slider with its own min/max/anchors and an
+     * optional precision attribute (read by the take-flow JS to round the
+     * live numeric readout). Stored value is full slider precision; the
+     * readout is just for human eyes. Items may carry a 'unit' string
+     * appended to the readout (e.g. "days", "%") and a 'default' starting
+     * position; default falls back to min so the slider starts at the
+     * floor rather than the midpoint.
+     *
+     * Tick marks below the slider come from the item's 'ticks' or 'tick_step'
+     * fields, falling back to an auto-derived 5-7 segment subdivision based
+     * on the slider's range. See computeSliderTicks() for the rules.
+     */
+    private function renderMixedSliderItem( int $n, array $itemData ): string {
+        $stem = (string)( $itemData['stem'] ?? '' );
+        $min  = $itemData['min'] ?? 0;
+        $max  = $itemData['max'] ?? 100;
+        $step = $itemData['step'] ?? 'any';
+        $lo   = (string)( $itemData['lo'] ?? '' );
+        $hi   = (string)( $itemData['hi'] ?? '' );
+        $unit = (string)( $itemData['unit'] ?? '' );
+        $default = $itemData['default'] ?? $min;
+        $precision = isset( $itemData['precision'] ) ? (int)$itemData['precision'] : null;
+        $valDisplay = $precision !== null
+            ? number_format( (float)$default, $precision )
+            : (string)$default;
+        $ticks = self::computeSliderTicks( $itemData, (float)$min, (float)$max );
+
+        $h = '<fieldset class="pcp-assess-item pcp-adm-slideritem" data-itemnum="' . $n . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $stem ) . '</legend>';
+        $h .= '<div class="pcp-adm-slider-row">';
+        $h .= '<span class="pcp-adm-anchor pcp-adm-anchor-lo">' . htmlspecialchars( $lo ) . '</span>';
+        $h .= '<div class="pcp-adm-slider-wrap">';
+        $h .= '<input type="range" class="pcp-adm-slider" name="r[' . $n . ']" '
+            . 'min="' . htmlspecialchars( (string)$min ) . '" '
+            . 'max="' . htmlspecialchars( (string)$max ) . '" '
+            . 'step="' . htmlspecialchars( (string)$step ) . '" '
+            . ( $precision !== null
+                ? 'data-precision="' . $precision . '" '
+                : '' )
+            . ( $unit !== ''
+                ? 'data-unit="' . htmlspecialchars( $unit ) . '" '
+                : '' )
+            . 'value="' . htmlspecialchars( (string)$default ) . '">';
+        if ( $ticks && ( $max - $min ) > 0 ) {
+            $h .= '<div class="pcp-adm-slider-ticks" aria-hidden="true">';
+            foreach ( $ticks as $tickVal ) {
+                $pct = ( ( $tickVal - $min ) / ( $max - $min ) ) * 100.0;
+                $label = self::formatTickLabel( (float)$tickVal, $itemData );
+                $h .= '<span class="pcp-adm-slider-tick" style="left:'
+                    . number_format( $pct, 4, '.', '' ) . '%">'
+                    . '<span class="pcp-adm-slider-ticklabel">'
+                    . htmlspecialchars( $label ) . '</span>'
+                    . '</span>';
+            }
+            $h .= '</div>';
+        }
+        $h .= '</div>';
+        $h .= '<output class="pcp-adm-sliderval">' . htmlspecialchars( $valDisplay )
+            . ( $unit !== '' ? ' ' . htmlspecialchars( $unit ) : '' )
+            . '</output>';
+        $h .= '<span class="pcp-adm-anchor pcp-adm-anchor-hi">' . htmlspecialchars( $hi ) . '</span>';
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /**
+     * Tick-mark positions for a continuous slider, in slider units. Returns
+     * either the explicit 'ticks' array, or values stepped by 'tick_step',
+     * or an auto-derived 5-7 segment subdivision based on the slider's range
+     * (range <= 6 -> every 1; <= 30 -> every 5; <= 100 -> every 20; else
+     * five equal segments). Empty array means "no ticks rendered".
+     */
+    public static function computeSliderTicks( array $itemData, float $min, float $max ): array {
+        if ( isset( $itemData['ticks'] ) && is_array( $itemData['ticks'] ) ) {
+            return array_values( array_map( 'floatval', $itemData['ticks'] ) );
+        }
+        $range = $max - $min;
+        if ( $range <= 0 ) {
+            return [];
+        }
+        if ( isset( $itemData['tick_step'] ) ) {
+            $step = (float)$itemData['tick_step'];
+        } elseif ( $range <= 6 ) {
+            $step = 1.0;
+        } elseif ( $range <= 30 ) {
+            $step = 5.0;
+        } elseif ( $range <= 100 ) {
+            $step = 20.0;
+        } else {
+            $step = $range / 5.0;
+        }
+        if ( $step <= 0 ) {
+            return [];
+        }
+        $ticks = [];
+        // The +epsilon catches floating-point ticks landing just past $max.
+        for ( $v = $min; $v <= $max + 0.000001; $v += $step ) {
+            $ticks[] = $v;
+        }
+        return $ticks;
+    }
+
+    /**
+     * Short label for one tick mark, e.g. "5d", "20%", "3". Auto-derived
+     * from the item's existing 'unit' field via a short-form map:
+     *   days    -> "d"      weeks   -> "w"
+     *   hours   -> "h"      minutes -> "min"
+     *   times   -> "x"      %       -> "%"
+     * An item may carry a 'tick_suffix' override for any other unit.
+     * Tick values that are whole numbers display as integers ("5"), others
+     * with up to two decimal places.
+     */
+    public static function formatTickLabel( float $tickVal, array $itemData ): string {
+        $valStr = $tickVal == (int)$tickVal
+            ? (string)(int)$tickVal
+            : rtrim( rtrim( number_format( $tickVal, 2, '.', '' ), '0' ), '.' );
+        if ( isset( $itemData['tick_suffix'] ) ) {
+            return $valStr . (string)$itemData['tick_suffix'];
+        }
+        $abbrev = [
+            'days'    => 'd',
+            'weeks'   => 'w',
+            'hours'   => 'h',
+            'minutes' => 'min',
+            'times'   => 'x',
+            '%'       => '%',
+        ];
+        $unit = (string)( $itemData['unit'] ?? '' );
+        if ( isset( $abbrev[ $unit ] ) ) {
+            return $valStr . $abbrev[ $unit ];
+        }
+        return $valStr . $unit;
+    }
+
+    /**
+     * A 7-button 0-6 Likert row with per-item anchor labels. Each item carries
+     * its own labels array, since one mixed-model scale may use several
+     * anchor sets (frequency, proportion, intensity).
+     */
+    private function renderLikert6Item( int $n, array $itemData ): string {
+        $stem = (string)( $itemData['stem'] ?? '' );
+        $labels = (array)( $itemData['labels'] ?? [] );
+        $h = '<fieldset class="pcp-assess-item pcp-adm-likert6" data-itemnum="' . $n . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $stem ) . '</legend>';
+        $h .= '<div class="pcp-adm-likert6-row">';
+        for ( $v = 0; $v <= 6; $v++ ) {
+            $id = 'r_' . $n . '_' . $v;
+            $label = (string)( $labels[ $v ] ?? (string)$v );
+            $h .= '<label for="' . $id . '" class="pcp-adm-likert6-opt">'
+                . '<input type="radio" id="' . $id . '" name="r[' . $n . ']" '
+                . 'value="' . $v . '" required>'
+                . '<span class="pcp-adm-likert6-num">' . $v . '</span>'
+                . '<span class="pcp-adm-likert6-label">' . htmlspecialchars( $label ) . '</span>'
+                . '</label>';
+        }
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /** A plain integer-count item with a unit suffix (e.g. "times", "days"). */
+    private function renderCountItem( int $n, array $itemData ): string {
+        $stem = (string)( $itemData['stem'] ?? '' );
+        $unit = (string)( $itemData['unit'] ?? '' );
+        $lo = (int)( $itemData['min'] ?? 0 );
+        $hi = (int)( $itemData['max'] ?? 9999 );
+        $h = '<fieldset class="pcp-assess-item pcp-adm-count" data-itemnum="' . $n . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $stem ) . '</legend>';
+        $h .= '<div class="pcp-adm-count-row">';
+        $h .= '<input type="number" name="r[' . $n . ']" '
+            . 'min="' . $lo . '" max="' . $hi . '" step="1" '
+            . 'inputmode="numeric" class="pcp-adm-count-input">';
+        if ( $unit !== '' ) {
+            $h .= ' <span class="pcp-adm-count-unit">' . htmlspecialchars( $unit ) . '</span>';
+        }
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /**
+     * A gated-count item: a yes/no question, with a count field that reveals
+     * when yes is selected (handled by the take-flow JS). The wire shape is
+     * r_gate[n] = 'yes'|'no' and r[n] = count when yes; the server packs no
+     * as 0 and yes-with-N as N.
+     */
+    private function renderGatedCountItem( int $n, array $itemData ): string {
+        $gate = (string)( $itemData['gate_stem'] ?? '' );
+        $cnt  = (string)( $itemData['count_stem'] ?? 'How many?' );
+        $unit = (string)( $itemData['unit'] ?? '' );
+        $lo = (int)( $itemData['min'] ?? 0 );
+        $hi = (int)( $itemData['max'] ?? 9999 );
+        $h = '<fieldset class="pcp-assess-item pcp-adm-gated" data-itemnum="' . $n . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $gate ) . '</legend>';
+        $h .= '<div class="pcp-adm-opts pcp-adm-gated-opts">';
+        $h .= '<label class="pcp-adm-opt"><input type="radio" name="r_gate[' . $n . ']" '
+            . 'value="no" required> No</label>';
+        $h .= '<label class="pcp-adm-opt"><input type="radio" name="r_gate[' . $n . ']" '
+            . 'value="yes" required> Yes</label>';
+        $h .= '</div>';
+        $h .= '<div class="pcp-adm-gated-reveal" hidden>';
+        $h .= '<label class="pcp-adm-gated-cntlabel">'
+            . htmlspecialchars( $cnt ) . ' '
+            . '<input type="number" name="r[' . $n . ']" '
+            . 'min="' . $lo . '" max="' . $hi . '" step="1" '
+            . 'inputmode="numeric" class="pcp-adm-count-input">';
+        if ( $unit !== '' ) {
+            $h .= ' <span class="pcp-adm-count-unit">' . htmlspecialchars( $unit ) . '</span>';
+        }
+        $h .= '</label>';
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /**
+     * A decimal-numeric item with a per-item unit switch (e.g. weight in
+     * kg/lb, height in cm/in). The selected unit is sent in r_unit[n] and
+     * the server canonicalizes; the first unit listed in the item's
+     * 'units' array is the default-selected option.
+     */
+    private function renderNumericItem( int $n, array $itemData ): string {
+        $stem = (string)( $itemData['stem'] ?? '' );
+        $kind = (string)( $itemData['kind'] ?? '' );
+        $units = (array)( $itemData['units'] ?? [] );
+        $min = (float)( $itemData['min'] ?? 0 );
+        $max = (float)( $itemData['max'] ?? 9999 );
+        $step = (float)( $itemData['step'] ?? 0.1 );
+        $h = '<fieldset class="pcp-assess-item pcp-adm-numeric" data-itemnum="' . $n
+            . '" data-kind="' . htmlspecialchars( $kind ) . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $stem ) . '</legend>';
+        $h .= '<div class="pcp-adm-numeric-row">';
+        $h .= '<input type="number" name="r[' . $n . ']" '
+            . 'min="' . htmlspecialchars( (string)$min ) . '" '
+            . 'max="' . htmlspecialchars( (string)$max ) . '" '
+            . 'step="' . htmlspecialchars( (string)$step ) . '" '
+            . 'inputmode="decimal" class="pcp-adm-numeric-input">';
+        if ( $units ) {
+            $h .= '<div class="pcp-adm-unit-switch" role="radiogroup">';
+            $first = true;
+            foreach ( $units as $code => $label ) {
+                $checked = $first ? ' checked' : '';
+                $first = false;
+                $id = 'u_' . $n . '_' . htmlspecialchars( (string)$code );
+                $h .= '<label class="pcp-adm-unit-opt" for="' . $id . '">'
+                    . '<input type="radio" id="' . $id . '" name="r_unit[' . $n . ']" '
+                    . 'value="' . htmlspecialchars( (string)$code ) . '"' . $checked . '>'
+                    . htmlspecialchars( (string)$label ) . '</label>';
+            }
+            $h .= '</div>';
+        }
+        $h .= '</div>';
+        $h .= $this->unsureControl( $n );
+        $h .= '</fieldset>';
+        return $h;
+    }
+
+    /**
+     * A height item with an "std" / "metric" toggle:
+     *   std     two integer inputs side by side (feet, inches)
+     *   metric  one decimal input in cm
+     * Canonical storage is cm; the std mode is converted server-side. The
+     * take-flow JS shows/hides the matching group on toggle.
+     */
+    private function renderHeightItem( int $n, array $itemData ): string {
+        $stem = (string)( $itemData['stem'] ?? '' );
+        $h = '<fieldset class="pcp-assess-item pcp-adm-height" data-itemnum="' . $n . '">';
+        $h .= '<legend>' . $n . '. ' . htmlspecialchars( $stem ) . '</legend>';
+        $h .= '<div class="pcp-adm-height-row">';
+
+        $h .= '<div class="pcp-adm-height-group" data-height-unit="std">';
+        $h .= '<input type="number" name="r_feet[' . $n . ']" '
+            . 'min="0" max="9" step="1" inputmode="numeric" class="pcp-adm-height-input">';
+        $h .= '<span class="pcp-adm-count-unit">ft</span>';
+        $h .= '<input type="number" name="r_inches[' . $n . ']" '
+            . 'min="0" max="11" step="1" inputmode="numeric" class="pcp-adm-height-input">';
+        $h .= '<span class="pcp-adm-count-unit">in</span>';
+        $h .= '</div>';
+
+        $h .= '<div class="pcp-adm-height-group" data-height-unit="metric" hidden>';
+        $h .= '<input type="number" name="r[' . $n . ']" '
+            . 'min="50" max="300" step="0.1" inputmode="decimal" class="pcp-adm-numeric-input">';
+        $h .= '<span class="pcp-adm-count-unit">cm</span>';
+        $h .= '</div>';
+
+        $h .= '<div class="pcp-adm-unit-switch" role="radiogroup">';
+        $h .= '<label class="pcp-adm-unit-opt" for="u_' . $n . '_std">'
+            . '<input type="radio" id="u_' . $n . '_std" name="r_unit[' . $n . ']" '
+            . 'value="std" checked>std</label>';
+        $h .= '<label class="pcp-adm-unit-opt" for="u_' . $n . '_metric">'
+            . '<input type="radio" id="u_' . $n . '_metric" name="r_unit[' . $n . ']" '
+            . 'value="metric">metric</label>';
+        $h .= '</div>';
+
         $h .= '</div>';
         $h .= $this->unsureControl( $n );
         $h .= '</fieldset>';

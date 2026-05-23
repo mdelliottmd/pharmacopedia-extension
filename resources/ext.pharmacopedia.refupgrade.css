@@ -25,7 +25,7 @@
 }
 .pcp-reflinks-card-head { margin-bottom: 0.4em; }
 .pcp-reflinks-card-head strong { color: #fff; font-size: 1.05em; }
-.pcp-reflinks-meta { color: #888; font-size: 0.85em; }
+.pcp-reflinks-meta { color: #888; font-size: var(--type-small, 12px); }
 .pcp-reflinks-matches {
     display: flex;
     flex-wrap: wrap;
@@ -39,7 +39,7 @@
     border-radius: 6px;
     padding: 0.3em 0.7em;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-reflinks-match-btn:hover { background: #4a2e72; }
 .pcp-reflinks-dismiss-btn { margin-left: auto; }

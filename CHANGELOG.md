@@ -7,6 +7,203 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
+## [0.9.8.5] - 2026-05-22
+
+A consolidation release on a busy day. The 0-5 mouseover rating
+widget replaces the legacy slider on problem cards and lands on
+COMMON USES rows. OAuth 2.0 and PharmaAppSync go live on prod,
+unblocking the iOS app. The WAVE accessibility audit closes its
+first full pass: 18 hard contrast fails fixed, three sitewide
+fieldset gaps closed, Vector's native client-preferences picker
+removed (which restored three locked house rules at once), and
+a 12px chrome text floor enforced across the site. A new seat,
+a11y-claude, opens for continuous WCAG monitoring. About:Privacy
+is published. One in-flight fatal on Special:MyProfile is fixed.
+
+### Added
+- `.pcp-rate` widget: a single 0-5 component that is both display
+  (aggregate fill + 0-5 number) and input (mouseover, keyboard
+  arrows step 0.1, touch press-and-drag, click to commit). Used
+  on problem cards (`ProblemTag`) and on COMMON USES sidebar rows
+  (`CommonUsesTag`). New shared renderer `RateWidget.php`. Commits
+  via `action=pharmacopedialikert`. JS interaction lives in
+  `ext.pharmacopedia.js`.
+- COMMON USES rows now sort by aggregate rating descending and
+  each row carries the inline rate widget.
+- OAuth 2.0 provider (MWOAuth REL1_46) loaded on prod against
+  MediaWiki 1.46.0-beta. Special pages live, consumer registration
+  works, mobile consumer for the iOS app proposed and approved.
+  Authorization-code + refresh-token grants, basic scope. Per-page
+  settings: `$wgMWOAuthSharedUserIDs = true`,
+  `$wgMWOAuthSharedUserSource = 'local'`. The `authorize` and
+  `token` endpoints await JWT signing keypair installation (see
+  Audit follow-ups below) before a sign-in round-trip works
+  end-to-end.
+- PharmaAppSync extension live on prod: four `pharma_*` tables
+  (favorites, recently-viewed, annotations, widget-responses)
+  serving the iOS app over eight REST routes under
+  `/rest.php/pharmacopedia/v1/`. SyncHandler joins `page` for
+  `page_title` so the app keys annotations by title.
+- HTML+JS OAuth callback bridge served at
+  `https://pharmacopedia.wiki/app/oauth-callback`, forwarding
+  `?code=` + `?state=` to the `pharmacopedia://oauth` deep-link
+  scheme registered by the iOS app.
+- Sidebar entry "My Assessments" links to
+  `Special:MyProfile#pcp-assessments` and an on-load /
+  on-`hashchange` JS hook auto-expands the targeted
+  `.pcp-prof-section` fieldset.
+- About:Privacy: a brief, plain-language privacy policy covering
+  the website and the iOS app. Encryption, retention, third
+  parties, deletion, no age restriction.
+- a11y-claude seat (the eighth claudefam seat): continuous WCAG /
+  WAVE monitoring of the site. Brief at
+  `/home/claude/a11y_claude_seat.md`, WAVE API key in
+  `/home/claude/wave_api_key` (mode 600), sweep workspace at
+  `/home/claude/a11y_sweeps/`.
+
+### Changed
+- Star rating component re-unit from 0-100 to 0-5. The aggregate
+  `mean` returned by `LikertStore::getAggregates()` is now a 0-5
+  value; existing scores rescaled in place. Old per-skin
+  `.pcp-rate-empty` color literals dropped in favor of a uniform
+  `var(--pharma-ink-mute)` cascade.
+- `--pharma-ink-mute` re-points under `.pcp-skin-plants` to
+  `#9c958a` (warm-loam local muted) and under
+  `body.pcp-skin-fungi` to `#888a7d` (cool-flesh local muted).
+  Every muted-text consumer picks up the skin-local hue
+  automatically.
+- Main Page: text in both origin columns centered. Plant header
+  centered as a group via `justify-content`. The large
+  "Pharmaceutical" and "Plant" origin titles now link to
+  `Category:Pharmaceutical` and `Category:Plants` respectively.
+- Main Page Self-assessments portal rewritten: blurb is now
+  "Enneagram, MBTI, and many more, stored with top-tier
+  encryption only you can access." The "Take an assessment ->"
+  link points to `Special:MyProfile#pcp-assessments` (auto-opens
+  the assessments section via the hash hook).
+- Vector's native client-preferences picker is hidden site-wide
+  (`#vector-appearance-dropdown`, `#vector-appearance-pinned-container`,
+  `#vector-appearance-unpinned-container`,
+  `.vector-appearance-landmark` to `display: none`). This restores
+  three locked house rules in one move: no light modes, no width
+  toggle, extension owns the text-size control via its own
+  Appearance rail.
+
+### Accessibility (WAVE pass 1)
+- All 18 hard AA contrast fails fixed: `.pcp-rate-empty` (5 on
+  Fluoxetine), `.pcp-up-card-date` (11 on Special:UserProfile),
+  `.mbti-axis-strength.is-balanced` (2 on Special:UserProfile)
+  all to `var(--pharma-ink-mute)`.
+- Chrome 12px text floor enforced site-wide: 21 sub-12px font-size
+  declarations in `ext.pharmacopedia.frontpage.css` lifted to 12px;
+  five named SocialProfile selectors lifted via skin-layer override;
+  universal inline-style sweep catches `style="font-size:Npx"` for
+  N in 7..11.
+- Pendell-axis Main Page card disambiguated to
+  `Category_index#pendell-axis` to clear the WAVE redundant-link
+  alert.
+- `pcpA11yNitpicks` universal JS pass (runs on every page from
+  `ext.pharmacopedia.appearance.js`): strips `accesskey` attributes
+  (Vector ships 13), strips `title="X"` attributes when they equal
+  the link text (clears the footer Pharmacopedia:Copyrights and
+  similar), removes empty `<label for=X>` elements when the target
+  input has another accessible-name source, normalizes positive
+  `tabindex` values to 0 (Special:CreateAccount ships 6), adds
+  `role="heading" aria-level="2"` to SocialProfile's `#profile-title`
+  on Special:UserProfile, and wraps the three Vector Appearance
+  picker radio groups in `<fieldset>` + `<legend
+  class="visuallyhidden">` (idempotent via `.pcp-a11y-fs-wrap`
+  marker; soft-no-op since the picker itself is now hidden).
+- Special:CreateAccount "Username available" message reads as a
+  positive confirmation (Codex `--success` styling) instead of a
+  warning chip.
+
+### Fixed
+- Special:MyProfile rendered only the first three sections,
+  cutting off the Save button and everything after Personality/
+  Assessments. Root cause: `Assessments\Hyd` (shipped same day)
+  was missing the `SUBSCALES` const that the shared
+  `renderInlineAssessment` iterates. Added
+  `public const SUBSCALES = []` (HYD-PCP has no multi-item
+  subscales, mirrors Asrs). Also made
+  `SpecialMyProfile::renderInlineAssessment` (and the parallel
+  block in `renderAssessments`) tolerate an array-shaped
+  `interpret()` return; `Hyd::interpret()` returns
+  `[ 'overall' => str, 'low_domains' => str[] ]` while every
+  other assessment returns string.
+- WAVE "very small text" reports on Main Page were stale-cache
+  artifacts after the chrome floor lift; verified zero sub-12px
+  in the live DOM via Chrome MCP.
+
+### Audit follow-ups (2026-05-22 sweep)
+
+Closed in this tag:
+- **H1**: `$wgUpgradeKey` rotated from 16 hex chars (64 bits) to
+  64 hex chars. The `/mw-config/` 403 at vhost layer was already
+  closing the realistic attack path; this hardens the key itself.
+- **M2**: `/var/log/mediawiki/` tightened to 750 with files
+  0640 and group `adm`, matching the Apache log pattern. Two
+  human seat accounts (debian, claude) lose tail access; sysop
+  reads continue via sudo.
+- **L3**: `$wgEnableUploads` dedup'd in LocalSettings.php. The
+  earlier `= false` assignment was dead (line 171 `= true` won);
+  earlier line removed so the live value reads truthfully in
+  one place.
+
+Deferred to the next release (0.9.8.6):
+- **M3**: `pcp_perspective_invite.pvi_token` cleartext at rest.
+  Schema migration (add `pvi_token_hash binary(32) UNI`, dual-
+  write through one rotation, drop the cleartext column),
+  ~half a day, parser-claude (schema) + interface-claude (code).
+  Severity caveat: an attacker with DB read can submit
+  perspectives under a planted invite identity; not access to
+  medical data, but worth fixing on its own tag.
+- **OAuth2 JWT signing keypair**: install
+  `$wgOAuth2PrivateKey` / `$wgOAuth2PublicKey` (or the default
+  `/var/lib/mwoauth2/oauth-{public,private}.key` paths), private
+  key 600 www-data:www-data, restart FPM, exercise the
+  authorize+token round-trip. ~30 min, server-claude. Launch-
+  blocker for the iOS app sign-in; surfaced by server-claude's
+  post-upgrade log review (two `LogicException: Invalid key
+  supplied` at /rest.php/oauth2/authorize from 19:35 PDT today,
+  predating the audit upgrades). Loading the extension and
+  registering the consumer never exercises this code path; the
+  first sign-in attempt does.
+
+Monitoring (no action this tag):
+- **L1**: a single `ClientEntityInterface not found` exception
+  fired at 01:19:43 UTC during the OAuth2 rollout; League is
+  installed and OAuth endpoints respond healthily now. Almost
+  certainly a stale opcache snapshot mid-deploy. If it recurs,
+  force opcache reset post-deploy.
+- **L2**: AdminCrypto `master.key` absent on disk is the
+  correct lazy state (Mode A users only today; directory exists
+  with 700 perms ready for the first Mode B write).
+- **M1**: 9 packages upgradable (libgcrypt, krb5 set, php-apcu,
+  libgd3, three oldstable-security). `apt full-upgrade` waits
+  on a maintenance window; tracked separately, not extension
+  scope.
+
+### Deploy notes
+- Empirical OAuth test (path C): MWOAuth REL1_46's loose
+  `"requires": ">= 1.46"` accepts the 1.46.0-beta core; no core
+  upgrade required. Verified clean on staging, then on prod.
+- League OAuth2 server Composer dependency only loads on actual
+  propose-submit, not on page render. Staging smoke that only
+  checks renders will miss the missing dependency; running
+  `composer install` inside `extensions/OAuth/` is required as
+  part of the prod cutover. Logged for future deploys.
+- PharmaAppSync's REST routes declare three `*ItemHandler` classes
+  bundled inside their plural sibling files; the v1 upload was
+  bounced back to app-claude for PSR-4-compliant splitting before
+  the prod load. Lesson: declaring an autoload namespace does not
+  validate the class-per-file shape; check file layout on extension
+  intake.
+- OAuth 2.0 callback URLs are required to be HTTPS by MWOAuth core;
+  the `pharmacopedia://` scheme is reached via the
+  `/app/oauth-callback` HTML+JS bridge. Apple Universal Link is a
+  future migration; the registered callback URL does not change.
+
 ## [0.9.8.0] - 2026-05-22
 
 A feature release: the "Administer to others" subsystem, the

@@ -243,8 +243,14 @@ class SpecialMyProfile extends SpecialPage {
         echo '<div class="pcp-assess-body" data-pcp-save-block="assessment-' . htmlspecialchars( $key ) . '">';
         echo '<p class="pcp-prof-help"><small>' . htmlspecialchars( $cls::DESCRIPTION )
              . ' <em>Source: ' . htmlspecialchars( $cls::CITATION ) . '</em>';
-        // Rich-report link + share chip folded into the description paragraph (mirrors Enneagram/MBTI style).
-        if ( in_array( $cls::KEY, [ 'cati', 'catq', 'pid5bf', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'asrs', 'ocipcp', 'hyd' ], true ) ) {
+        // Rich-report link + share chip folded into the description paragraph
+        // (mirrors Enneagram/MBTI style). Any self-takeable scale registered
+        // in AssessmentRegistry that goes through this generic inline path
+        // gets the report link automatically; OCEAN/MBTI/Enneagram have
+        // their own bespoke renderers and are skipped here.
+        if ( \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::has( $cls::KEY )
+            && \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::selfTakeable( $cls::KEY )
+        ) {
             $reportUrl = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getLocalURL();
             $shareUrl  = \MediaWiki\SpecialPage\SpecialPage::getTitleFor( 'MyAssessment', $cls::KEY )->getFullURL( [ 'user' => $this->getUser()->getName() ] );
             echo ' <a class="pcp-cati-report-link" href="' . htmlspecialchars( $reportUrl ) . '">View full ' . htmlspecialchars( $cls::NAME ) . ' report →</a>';
@@ -270,7 +276,10 @@ class SpecialMyProfile extends SpecialPage {
                 echo '<tr><th>Total</th><td>' . htmlspecialchars( (string)$scores["total"] ) . '</td></tr>';
             }
             echo '</tbody></table>';
-            echo '<p><em>' . htmlspecialchars( $cls::interpret( $scores ) ) . '</em></p>';
+            // Hyd::interpret() returns array; the rest return string. Take 'overall' if array.
+            $reading = $cls::interpret( $scores );
+            if ( is_array( $reading ) ) { $reading = (string)( $reading['overall'] ?? '' ); }
+            echo '<p><em>' . htmlspecialchars( (string)$reading ) . '</em></p>';
             // (Rich-report link is now rendered at the top of the body, see above.)
             echo '</div>';
         }
@@ -301,69 +310,40 @@ class SpecialMyProfile extends SpecialPage {
         echo '</select></label>';
         echo '</div>';
 
-        // Items: PID-5-BF and CAT-Q use continuous sliders + Not sure; others use radio buttons
-        $sliderTests = [
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::class => [
-                'min' => 0, 'max' => 3, 'step' => 0.01, 'default' => 1.5,
-                'lo' => 'Completely false', 'hi' => 'Completely true',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::class => [
-                'min' => 1, 'max' => 7, 'step' => 0.01, 'default' => 4,
-                'lo' => 'Strongly disagree', 'hi' => 'Strongly agree',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::class => [
-                'min' => 1, 'max' => 5, 'step' => 0.01, 'default' => 3,
-                'lo' => 'Definitely Disagree', 'hi' => 'Definitely Agree',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class => [
-                'min' => 1, 'max' => 6, 'step' => 0.01, 'default' => 3.5,
-                'lo' => 'Strongly disagree', 'hi' => 'Strongly agree',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class => [
-                'min' => 1, 'max' => 7, 'step' => 0.01, 'default' => 4,
-                'lo' => 'Not at all true', 'hi' => 'Very true',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class => [
-                'min' => 1, 'max' => 5, 'step' => 0.01, 'default' => 3,
-                'lo' => 'Very poor / dissatisfied / not at all', 'hi' => 'Very good / satisfied / completely',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class => [
-                'min' => 0, 'max' => 100, 'step' => 1, 'default' => 50,
-                'lo' => 'Never (0%)', 'hi' => 'Always (100%)',
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class => [
-                'min' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::SCALE_MIN,
-                'max' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::SCALE_MAX,
-                'step' => 1, 'default' => 0,
-                'lo' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ANCHOR_LOW,
-                'hi' => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ANCHOR_HIGH,
-            ],
-            \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class => [
-                'min' => 0, 'max' => 4, 'step' => 0.01, 'default' => 2,
-                'lo' => 'Not at all', 'hi' => 'Extremely',
-            ],
-        ];
-        if ( isset( $sliderTests[ $cls ] ) ) {
-            $sp = $sliderTests[ $cls ];
+        // Items dispatch from the AssessmentRegistry inline spec:
+        //   inline.as = 'slider'   one uniform slider per item
+        //   inline.as = 'mixed'    per-item heterogeneous (each item declares
+        //                          its own type: slider, count, gated_count,
+        //                          numeric)
+        //   (no inline override)   the formal model.radio fallback below
+        $inline = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::inline( $cls::KEY );
+        $renderAs = $inline['as'] ?? \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::model( $cls::KEY );
+
+        if ( $renderAs === 'slider' && $inline ) {
+            $sp = $inline;
             echo '<ol class="pcp-assess-items">';
             foreach ( $cls::ITEMS as $n => $text ) {
                 $entry    = $rawByN[ $n ] ?? null;
                 $isUnsure = is_array( $entry ) && (string)( $entry['text'] ?? '' ) === 'unsure';
                 $hasNum   = is_array( $entry ) && $entry['num'] !== null;
-                $val      = $hasNum && !$isUnsure ? (float)$entry['num'] : (float)$sp['default'];
-                $valStr   = number_format( $val, 2 );
+                $val      = $hasNum && !$isUnsure ? (float)$entry['num'] : (float)( $sp['default'] ?? $sp['min'] );
+                $prec     = isset( $sp['precision'] ) ? (int)$sp['precision'] : 2;
+                $valStr   = number_format( $val, $prec );
                 $unsureCls = $isUnsure ? ' pcp-unsure' : '';
                 $disabled  = $isUnsure ? ' disabled' : '';
                 $checkAttr = $isUnsure ? ' checked' : '';
+                $stem = is_array( $text ) ? (string)( $text['stem'] ?? $text[0] ?? '' ) : (string)$text;
                 echo '<li class="pcp-pid-item' . $unsureCls . '" data-itemnum="' . (int)$n . '">';
-                echo '<div class="pcp-assess-item-text">' . (int)$n . '. ' . htmlspecialchars( $text ) . '</div>';
+                echo '<div class="pcp-assess-item-text">' . (int)$n . '. ' . htmlspecialchars( $stem ) . '</div>';
                 echo '<div class="pcp-pid-slider-row">';
-                echo '<span class="pcp-pid-anchor pcp-pid-anchor-low">' . htmlspecialchars( $sp['lo'] ) . '</span>';
+                echo '<span class="pcp-pid-anchor pcp-pid-anchor-low">' . htmlspecialchars( (string)( $sp['lo'] ?? '' ) ) . '</span>';
                 echo '<input type="range" class="pcp-pid-slider" name="t[' . $key . '][' . $n . ']" '
-                    . 'min="' . $sp['min'] . '" max="' . $sp['max'] . '" step="' . $sp['step'] . '" '
+                    . 'min="' . htmlspecialchars( (string)$sp['min'] ) . '" '
+                    . 'max="' . htmlspecialchars( (string)$sp['max'] ) . '" '
+                    . 'step="' . htmlspecialchars( (string)( $sp['step'] ?? 'any' ) ) . '" '
                     . 'value="' . $valStr . '"' . $disabled . '>';
                 echo '<output class="pcp-pid-out">' . $valStr . '</output>';
-                echo '<span class="pcp-pid-anchor pcp-pid-anchor-high">' . htmlspecialchars( $sp['hi'] ) . '</span>';
+                echo '<span class="pcp-pid-anchor pcp-pid-anchor-high">' . htmlspecialchars( (string)( $sp['hi'] ?? '' ) ) . '</span>';
                 echo '</div>';
                 echo '<label class="pcp-pid-unsure">';
                 echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
@@ -371,20 +351,27 @@ class SpecialMyProfile extends SpecialPage {
                 echo '</li>';
             }
             echo '</ol>';
+        } elseif ( $renderAs === 'mixed' ) {
+            echo '<ol class="pcp-assess-items">';
+            foreach ( $cls::ITEMS as $n => $itemData ) {
+                $this->renderInlineMixedItem( $key, (int)$n, $itemData, $rawByN[ $n ] ?? null );
+            }
+            echo '</ol>';
         } else {
             echo '<ol class="pcp-assess-items">';
             foreach ( $cls::ITEMS as $n => $text ) {
                 $entry = $rawByN[ $n ] ?? null;
                 $cur   = is_array( $entry ) && $entry['num'] !== null ? (string)(int)$entry['num'] : '';
+                $stem = is_array( $text ) ? (string)( $text['stem'] ?? $text[0] ?? '' ) : (string)$text;
                 echo '<li class="pcp-assess-item-inline" data-itemnum="' . (int)$n . '">';
-                echo '<div class="pcp-assess-item-text">' . (int)$n . '. ' . htmlspecialchars( $text ) . '</div>';
+                echo '<div class="pcp-assess-item-text">' . (int)$n . '. ' . htmlspecialchars( $stem ) . '</div>';
                 echo '<div class="pcp-assess-item-choices">';
                 foreach ( $cls::RESPONSE_LABELS as $val => $label ) {
                     $id = 'inl_' . $key . '_' . $n . '_' . $val;
                     $checked = ( (string)$cur === (string)$val ) ? ' checked' : '';
                     echo '<label for="' . $id . '">'
                         . '<input type="radio" id="' . $id . '" name="t[' . $key . '][' . $n . ']" value="' . $val . '"' . $checked . '> '
-                        . htmlspecialchars( $label ) . '</label>';
+                        . htmlspecialchars( (string)$label ) . '</label>';
                 }
                 echo '</div>';
                 echo '</li>';
@@ -393,6 +380,349 @@ class SpecialMyProfile extends SpecialPage {
         }
         echo '<p class="pcp-prof-help"><small>Responses are saved when you click <strong>Save profile</strong> at the bottom of the page. Partial responses are allowed; subscale scores are computed from whatever items you have answered.</small></p>';
         echo '</div></details>';
+    }
+
+    /**
+     * Render one item of a mixed-model inline assessment. Dispatches on the
+     * item's 'type' field:
+     *   slider       continuous slider with per-item anchors and units
+     *   count        plain integer input with a unit suffix
+     *   gated_count  yes/no, with a count field that reveals on yes
+     *   numeric      decimal input with a per-item unit switch (kg/lb, cm/in)
+     *
+     * Wire format on save:
+     *   t[<key>][<n>]        the main value (or count when gated yes)
+     *   t_gate[<key>][<n>]   gated_count gate state ('yes' | 'no')
+     *   t_unit[<key>][<n>]   numeric unit choice (e.g. 'kg' | 'lb')
+     *   t_unsure[<key>][<n>] "Not sure" checkbox (uniform across types)
+     */
+    private function renderInlineMixedItem( string $key, int $n, $itemData, $existingEntry ): void {
+        if ( !is_array( $itemData ) ) {
+            return;
+        }
+        $type = (string)( $itemData['type'] ?? '' );
+        $isUnsure = is_array( $existingEntry ) && (string)( $existingEntry['text'] ?? '' ) === 'unsure';
+        $existingNum = is_array( $existingEntry ) && $existingEntry['num'] !== null
+            ? (float)$existingEntry['num']
+            : null;
+        $unsureCls = $isUnsure ? ' pcp-unsure' : '';
+        $disabled  = $isUnsure ? ' disabled' : '';
+        $checkAttr = $isUnsure ? ' checked' : '';
+
+        if ( $type === 'slider' ) {
+            $min = $itemData['min'] ?? 0;
+            $max = $itemData['max'] ?? 100;
+            $step = $itemData['step'] ?? 'any';
+            $lo = (string)( $itemData['lo'] ?? '' );
+            $hi = (string)( $itemData['hi'] ?? '' );
+            $unit = (string)( $itemData['unit'] ?? '' );
+            $default = $existingNum ?? $itemData['default'] ?? $min;
+            $precision = isset( $itemData['precision'] ) ? (int)$itemData['precision'] : null;
+            $valDisplay = $precision !== null
+                ? number_format( (float)$default, $precision )
+                : (string)$default;
+            $stem = (string)( $itemData['stem'] ?? '' );
+            $ticks = \MediaWiki\Extension\Pharmacopedia\SpecialRespondToAssessment::computeSliderTicks(
+                $itemData, (float)$min, (float)$max );
+            echo '<li class="pcp-pid-item' . $unsureCls . '" data-itemnum="' . $n . '">';
+            echo '<div class="pcp-assess-item-text">' . $n . '. ' . htmlspecialchars( $stem ) . '</div>';
+            echo '<div class="pcp-pid-slider-row">';
+            echo '<span class="pcp-pid-anchor pcp-pid-anchor-low">' . htmlspecialchars( $lo ) . '</span>';
+            echo '<div class="pcp-pid-slider-wrap">';
+            echo '<input type="range" class="pcp-pid-slider" name="t[' . $key . '][' . $n . ']" '
+                . 'min="' . htmlspecialchars( (string)$min ) . '" '
+                . 'max="' . htmlspecialchars( (string)$max ) . '" '
+                . 'step="' . htmlspecialchars( (string)$step ) . '" '
+                . ( $precision !== null ? 'data-precision="' . $precision . '" ' : '' )
+                . ( $unit !== '' ? 'data-unit="' . htmlspecialchars( $unit ) . '" ' : '' )
+                . 'value="' . htmlspecialchars( (string)$default ) . '"' . $disabled . '>';
+            if ( $ticks && ( $max - $min ) > 0 ) {
+                echo '<div class="pcp-pid-slider-ticks" aria-hidden="true">';
+                foreach ( $ticks as $tickVal ) {
+                    $pct = ( ( $tickVal - $min ) / ( $max - $min ) ) * 100.0;
+                    $label = \MediaWiki\Extension\Pharmacopedia\SpecialRespondToAssessment::formatTickLabel(
+                        (float)$tickVal, $itemData );
+                    echo '<span class="pcp-pid-slider-tick" style="left:'
+                        . number_format( $pct, 4, '.', '' ) . '%">'
+                        . '<span class="pcp-pid-slider-ticklabel">'
+                        . htmlspecialchars( $label ) . '</span>'
+                        . '</span>';
+                }
+                echo '</div>';
+            }
+            echo '</div>';
+            echo '<output class="pcp-pid-out">' . htmlspecialchars( $valDisplay )
+                . ( $unit !== '' ? ' ' . htmlspecialchars( $unit ) : '' ) . '</output>';
+            echo '<span class="pcp-pid-anchor pcp-pid-anchor-high">' . htmlspecialchars( $hi ) . '</span>';
+            echo '</div>';
+            echo '<label class="pcp-pid-unsure">';
+            echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
+            echo '</label>';
+            echo '</li>';
+            return;
+        }
+
+        if ( $type === 'count' ) {
+            $unit = (string)( $itemData['unit'] ?? '' );
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? 9999 );
+            $stem = (string)( $itemData['stem'] ?? '' );
+            $val = $existingNum !== null && !$isUnsure ? (string)(int)$existingNum : '';
+            echo '<li class="pcp-pid-item pcp-adm-count' . $unsureCls . '" data-itemnum="' . $n . '">';
+            echo '<div class="pcp-assess-item-text">' . $n . '. ' . htmlspecialchars( $stem ) . '</div>';
+            echo '<div class="pcp-adm-count-row">';
+            echo '<input type="number" name="t[' . $key . '][' . $n . ']" '
+                . 'min="' . $lo . '" max="' . $hi . '" step="1" inputmode="numeric" '
+                . 'value="' . htmlspecialchars( $val ) . '" class="pcp-adm-count-input"' . $disabled . '>';
+            if ( $unit !== '' ) {
+                echo ' <span class="pcp-adm-count-unit">' . htmlspecialchars( $unit ) . '</span>';
+            }
+            echo '</div>';
+            echo '<label class="pcp-pid-unsure">';
+            echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
+            echo '</label>';
+            echo '</li>';
+            return;
+        }
+
+        if ( $type === 'gated_count' ) {
+            $gate = (string)( $itemData['gate_stem'] ?? '' );
+            $cnt  = (string)( $itemData['count_stem'] ?? 'How many?' );
+            $unit = (string)( $itemData['unit'] ?? '' );
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? 9999 );
+            // Reconstruct gate from existing value: stored 0 = no, positive = yes/N.
+            $gateState = '';
+            $countVal = '';
+            if ( $existingNum !== null && !$isUnsure ) {
+                if ( $existingNum > 0 ) {
+                    $gateState = 'yes';
+                    $countVal = (string)(int)$existingNum;
+                } else {
+                    $gateState = 'no';
+                }
+            }
+            echo '<li class="pcp-pid-item pcp-adm-gated' . $unsureCls . '" data-itemnum="' . $n . '">';
+            echo '<div class="pcp-assess-item-text">' . $n . '. ' . htmlspecialchars( $gate ) . '</div>';
+            echo '<div class="pcp-adm-opts pcp-adm-gated-opts">';
+            $noChecked  = $gateState === 'no'  ? ' checked' : '';
+            $yesChecked = $gateState === 'yes' ? ' checked' : '';
+            echo '<label class="pcp-adm-opt"><input type="radio" name="t_gate[' . $key . '][' . $n . ']" '
+                . 'value="no"' . $noChecked . $disabled . '> No</label>';
+            echo '<label class="pcp-adm-opt"><input type="radio" name="t_gate[' . $key . '][' . $n . ']" '
+                . 'value="yes"' . $yesChecked . $disabled . '> Yes</label>';
+            echo '</div>';
+            $revealHidden = $gateState === 'yes' ? '' : ' hidden';
+            echo '<div class="pcp-adm-gated-reveal"' . $revealHidden . '>';
+            echo '<label class="pcp-adm-gated-cntlabel">' . htmlspecialchars( $cnt ) . ' ';
+            echo '<input type="number" name="t[' . $key . '][' . $n . ']" '
+                . 'min="' . $lo . '" max="' . $hi . '" step="1" inputmode="numeric" '
+                . 'value="' . htmlspecialchars( $countVal ) . '" class="pcp-adm-count-input"' . $disabled . '>';
+            if ( $unit !== '' ) {
+                echo ' <span class="pcp-adm-count-unit">' . htmlspecialchars( $unit ) . '</span>';
+            }
+            echo '</label>';
+            echo '</div>';
+            echo '<label class="pcp-pid-unsure">';
+            echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
+            echo '</label>';
+            echo '</li>';
+            return;
+        }
+
+        if ( $type === 'height' ) {
+            $stem = (string)( $itemData['stem'] ?? '' );
+            // Reconstruct std fields from the canonical cm value, if any.
+            $stdFeet = ''; $stdInches = ''; $metricCm = '';
+            if ( $existingNum !== null && !$isUnsure && $existingNum > 0 ) {
+                $totalInches = (int)round( $existingNum / 2.54 );
+                $stdFeet     = (string)intdiv( $totalInches, 12 );
+                $stdInches   = (string)( $totalInches % 12 );
+                $metricCm    = rtrim( rtrim( number_format( $existingNum, 1, '.', '' ), '0' ), '.' );
+            }
+            echo '<li class="pcp-pid-item pcp-pid-height' . $unsureCls . '" data-itemnum="' . $n . '">';
+            echo '<div class="pcp-assess-item-text">' . $n . '. ' . htmlspecialchars( $stem ) . '</div>';
+            echo '<div class="pcp-pid-height-row">';
+            echo '<div class="pcp-pid-height-group" data-height-unit="std">';
+            echo '<input type="number" name="t_feet[' . $key . '][' . $n . ']" '
+                . 'min="0" max="9" step="1" inputmode="numeric" '
+                . 'value="' . htmlspecialchars( $stdFeet ) . '" class="pcp-pid-height-input"' . $disabled . '>';
+            echo '<span class="pcp-pid-height-unit">ft</span>';
+            echo '<input type="number" name="t_inches[' . $key . '][' . $n . ']" '
+                . 'min="0" max="11" step="1" inputmode="numeric" '
+                . 'value="' . htmlspecialchars( $stdInches ) . '" class="pcp-pid-height-input"' . $disabled . '>';
+            echo '<span class="pcp-pid-height-unit">in</span>';
+            echo '</div>';
+            echo '<div class="pcp-pid-height-group" data-height-unit="metric" hidden>';
+            echo '<input type="number" name="t[' . $key . '][' . $n . ']" '
+                . 'min="50" max="300" step="0.1" inputmode="decimal" '
+                . 'value="' . htmlspecialchars( $metricCm ) . '" class="pcp-pid-height-input"' . $disabled . '>';
+            echo '<span class="pcp-pid-height-unit">cm</span>';
+            echo '</div>';
+            echo '<div class="pcp-pid-unit-switch" role="radiogroup">';
+            echo '<label class="pcp-pid-unit-opt">'
+                . '<input type="radio" name="t_unit[' . $key . '][' . $n . ']" value="std" checked' . $disabled . '>std</label>';
+            echo '<label class="pcp-pid-unit-opt">'
+                . '<input type="radio" name="t_unit[' . $key . '][' . $n . ']" value="metric"' . $disabled . '>metric</label>';
+            echo '</div>';
+            echo '</div>';
+            echo '<label class="pcp-pid-unsure">';
+            echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
+            echo '</label>';
+            echo '</li>';
+            return;
+        }
+
+        if ( $type === 'numeric' ) {
+            $kind = (string)( $itemData['kind'] ?? '' );
+            $units = (array)( $itemData['units'] ?? [] );
+            $min = (float)( $itemData['min'] ?? 0 );
+            $max = (float)( $itemData['max'] ?? 9999 );
+            $step = (float)( $itemData['step'] ?? 0.1 );
+            $stem = (string)( $itemData['stem'] ?? '' );
+            // Canonical value (kg/cm) on disk: display as-is in the canonical unit.
+            $val = $existingNum !== null && !$isUnsure ? rtrim( rtrim( number_format( $existingNum, 2, '.', '' ), '0' ), '.' ) : '';
+            echo '<li class="pcp-pid-item pcp-adm-numeric' . $unsureCls . '" data-itemnum="' . $n . '" data-kind="' . htmlspecialchars( $kind ) . '">';
+            echo '<div class="pcp-assess-item-text">' . $n . '. ' . htmlspecialchars( $stem ) . '</div>';
+            echo '<div class="pcp-adm-numeric-row">';
+            echo '<input type="number" name="t[' . $key . '][' . $n . ']" '
+                . 'min="' . htmlspecialchars( (string)$min ) . '" '
+                . 'max="' . htmlspecialchars( (string)$max ) . '" '
+                . 'step="' . htmlspecialchars( (string)$step ) . '" '
+                . 'inputmode="decimal" '
+                . 'value="' . htmlspecialchars( $val ) . '" class="pcp-adm-numeric-input"' . $disabled . '>';
+            if ( $units ) {
+                echo '<div class="pcp-adm-unit-switch" role="radiogroup">';
+                $first = true;
+                foreach ( $units as $code => $label ) {
+                    $checked = $first ? ' checked' : '';
+                    $first = false;
+                    $id = 'u_inline_' . $key . '_' . $n . '_' . htmlspecialchars( (string)$code );
+                    echo '<label class="pcp-adm-unit-opt" for="' . $id . '">'
+                        . '<input type="radio" id="' . $id . '" name="t_unit[' . $key . '][' . $n . ']" '
+                        . 'value="' . htmlspecialchars( (string)$code ) . '"' . $checked . $disabled . '>'
+                        . htmlspecialchars( (string)$label ) . '</label>';
+                }
+                echo '</div>';
+            }
+            echo '</div>';
+            echo '<label class="pcp-pid-unsure">';
+            echo '<input type="checkbox" name="t_unsure[' . $key . '][' . $n . ']" value="1"' . $checkAttr . '> Not sure';
+            echo '</label>';
+            echo '</li>';
+            return;
+        }
+    }
+
+    /**
+     * Parse one item submission for a mixed-model inline scale. Returns the
+     * numeric value to store in the raw namespace, or null if the item was
+     * not answered. Mirrors SpecialRespondToAssessment::parseMixedItem but
+     * reads from MyProfile's per-scale t[<key>][<n>] wire format with the
+     * t_gate[]/t_unit[]/t_feet[]/t_inches[] side channels.
+     */
+    private static function parseInlineMixedValue( $itemData, int $n, array $items, array $gateMap, array $unitMap, array $feetMap = [], array $inchesMap = [] ) {
+        if ( !is_array( $itemData ) ) {
+            return null;
+        }
+        $type = (string)( $itemData['type'] ?? '' );
+
+        if ( $type === 'slider' ) {
+            if ( !array_key_exists( $n, $items ) ) {
+                return null;
+            }
+            $valStr = trim( (string)$items[ $n ] );
+            if ( $valStr === '' ) {
+                return null;
+            }
+            $lo = (float)( $itemData['min'] ?? 0 );
+            $hi = (float)( $itemData['max'] ?? 100 );
+            $v = (float)$valStr;
+            if ( $v < $lo ) { $v = $lo; }
+            if ( $v > $hi ) { $v = $hi; }
+            return $v;
+        }
+
+        if ( $type === 'count' ) {
+            if ( !array_key_exists( $n, $items ) ) {
+                return null;
+            }
+            $valStr = trim( (string)$items[ $n ] );
+            if ( $valStr === '' ) {
+                return null;
+            }
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? PHP_INT_MAX );
+            return max( $lo, min( $hi, (int)$valStr ) );
+        }
+
+        if ( $type === 'gated_count' ) {
+            $g = strtolower( trim( (string)( $gateMap[ $n ] ?? '' ) ) );
+            if ( $g === 'no' ) {
+                return 0;
+            }
+            if ( $g !== 'yes' ) {
+                return null;
+            }
+            if ( !array_key_exists( $n, $items ) ) {
+                return null;
+            }
+            $valStr = trim( (string)$items[ $n ] );
+            if ( $valStr === '' ) {
+                return null;
+            }
+            $lo = (int)( $itemData['min'] ?? 0 );
+            $hi = (int)( $itemData['max'] ?? PHP_INT_MAX );
+            return max( $lo, min( $hi, (int)$valStr ) );
+        }
+
+        if ( $type === 'numeric' ) {
+            if ( !array_key_exists( $n, $items ) ) {
+                return null;
+            }
+            $valStr = trim( (string)$items[ $n ] );
+            if ( $valStr === '' ) {
+                return null;
+            }
+            $v = (float)$valStr;
+            $unit = trim( (string)( $unitMap[ $n ] ?? '' ) );
+            $kind = (string)( $itemData['kind'] ?? '' );
+            // Canonicalize: weight to kg, height to cm.
+            if ( $kind === 'weight' && $unit === 'lb' ) {
+                $v = $v * 0.45359237;
+            } elseif ( $kind === 'height' && $unit === 'in' ) {
+                $v = $v * 2.54;
+            }
+            return $v > 0 ? $v : null;
+        }
+
+        if ( $type === 'height' ) {
+            $unit = strtolower( trim( (string)( $unitMap[ $n ] ?? 'std' ) ) );
+            if ( $unit === 'metric' ) {
+                if ( !array_key_exists( $n, $items ) ) {
+                    return null;
+                }
+                $valStr = trim( (string)$items[ $n ] );
+                if ( $valStr === '' ) {
+                    return null;
+                }
+                $cm = (float)$valStr;
+                return $cm > 0 ? $cm : null;
+            }
+            $ftStr = isset( $feetMap[ $n ] )   ? trim( (string)$feetMap[ $n ] )   : '';
+            $inStr = isset( $inchesMap[ $n ] ) ? trim( (string)$inchesMap[ $n ] ) : '';
+            if ( $ftStr === '' && $inStr === '' ) {
+                return null;
+            }
+            $totalInches = ( $ftStr !== '' ? (int)$ftStr * 12 : 0 )
+                + ( $inStr !== '' ? (int)$inStr : 0 );
+            if ( $totalInches <= 0 ) {
+                return null;
+            }
+            return $totalInches * 2.54;
+        }
+
+        return null;
     }
 
     /**
@@ -784,15 +1114,25 @@ class SpecialMyProfile extends SpecialPage {
 
     // ===== OCEAN section =====
 
-    /** Assessment keys in display order, for the Personality/Assessments picker. */
-    private const ASSESSMENT_KEYS = [
-        'ocean', 'mbti', 'enneagram', 'pid5bf', 'cati',
-        'catq', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'hyd', 'asrs', 'ocipcp',
-    ];
+    /**
+     * Assessment keys in display order for the Personality/Assessments picker.
+     * Source of truth is AssessmentRegistry::keysSelfTakeable(); any scale
+     * registered as self-takeable appears here automatically.
+     */
+    private static function assessmentKeys(): array {
+        return \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::keysSelfTakeable();
+    }
 
-    /** Add-an-assessment catalog: key => [ label, blurb, item count, ~minutes ]. */
+    /**
+     * Add-an-assessment catalog: key => [ label, blurb, item count, ~minutes ].
+     *
+     * Per-scale curated copy lives in the catalog map below; any key that is
+     * registered and self-takeable but missing from the map is auto-filled
+     * from the scorer's NAME (label) and DESCRIPTION (blurb) so a new scale
+     * shows up in the picker the moment it is registered.
+     */
     private function assessmentCatalog(): array {
-        return [
+        $curated = [
             'ocean'      => [ 'Big Five (OCEAN)', 'The five broad personality dimensions, via the brief BFI-10.', 10, 1 ],
             'mbti'       => [ 'MBTI / Jungian Type', 'Four bipolar Jungian dichotomies, scored dimensionally.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Mbti::ITEMS ), 8 ],
             'enneagram'  => [ 'Enneagram of Personality', 'The nine-type personality model, scored dimensionally.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Enneagram::ITEMS ), 8 ],
@@ -804,9 +1144,31 @@ class SpecialMyProfile extends SpecialPage {
             'whoqolbref' => [ 'WHO Quality of Life (Brief)', 'Quality of life across four broad domains.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::ITEMS ), 6 ],
             'amaas'      => [ 'AMAAS-PCP-SR', 'Attention and motivation, self-reported.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::ITEMS ), 5 ],
             'hyd'        => [ 'HYD-PCP', 'A quick wellbeing check-in across eight everyday domains, taken again over time.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::ITEMS ), 3 ],
+            'bsl23'      => [ 'BSL-23-PCP', 'A 23-item check-in on borderline-spectrum symptoms over the past week.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Bsl23::ITEMS ), 5 ],
+            'ess'        => [ 'ESS-PCP', 'A quick check on how easily you doze off during the day, across eight everyday situations.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Ess::ITEMS ), 2 ],
             'asrs'       => [ 'ASRS', 'Adult ADHD self-report screener.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::ITEMS ), 4 ],
             'ocipcp'     => [ 'OCI-PCP', 'Obsessive-compulsive symptoms across six domains. Adapted from OCI-R.', count( \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::ITEMS ), 5 ],
         ];
+        // Autopopulate any registered self-takeable scale that isn't curated.
+        foreach ( self::assessmentKeys() as $k ) {
+            if ( isset( $curated[ $k ] ) ) {
+                continue;
+            }
+            $cls = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::scorerClass( $k );
+            if ( !$cls ) {
+                continue;
+            }
+            $items = count( $cls::ITEMS );
+            // Rough estimate: ~8 items per minute, minimum 1.
+            $minutes = max( 1, (int)ceil( $items / 8 ) );
+            $blurb = (string)( defined( $cls . '::DESCRIPTION' ) ? $cls::DESCRIPTION : '' );
+            // Trim a very long blurb so the picker tile stays tidy.
+            if ( strlen( $blurb ) > 180 ) {
+                $blurb = substr( $blurb, 0, 177 ) . '...';
+            }
+            $curated[ $k ] = [ (string)$cls::NAME, $blurb, $items, $minutes ];
+        }
+        return $curated;
     }
 
     /** True if the user has any stored data for this assessment. */
@@ -828,11 +1190,11 @@ class SpecialMyProfile extends SpecialPage {
         foreach ( $store->getFields( $profileId, 'assessment_picks', 0 ) as $r ) {
             $k = (string)$r->pf_key;
             if ( $k === '_initialized' ) { $initialized = true; continue; }
-            if ( in_array( $k, self::ASSESSMENT_KEYS, true ) ) { $picked[] = $k; }
+            if ( in_array( $k, self::assessmentKeys(), true ) ) { $picked[] = $k; }
         }
         if ( $initialized ) { return $picked; }
         $seed = [];
-        foreach ( self::ASSESSMENT_KEYS as $k ) {
+        foreach ( self::assessmentKeys() as $k ) {
             if ( $this->assessmentHasData( $store, $profileId, $k ) ) { $seed[] = $k; }
         }
         return $seed;
@@ -847,17 +1209,17 @@ class SpecialMyProfile extends SpecialPage {
             if ( (string)$r->pf_key === '_initialized' ) { $initialized = true; break; }
         }
         if ( !$initialized ) {
-            foreach ( self::ASSESSMENT_KEYS as $k ) {
+            foreach ( self::assessmentKeys() as $k ) {
                 if ( $this->assessmentHasData( $store, $profileId, $k ) ) {
                     $store->setField( $profileId, 'assessment_picks', $k, null, 1.0, 0 );
                 }
             }
             $store->setField( $profileId, 'assessment_picks', '_initialized', null, 1.0, 0 );
         }
-        if ( $add !== '' && in_array( $add, self::ASSESSMENT_KEYS, true ) ) {
+        if ( $add !== '' && in_array( $add, self::assessmentKeys(), true ) ) {
             $store->setField( $profileId, 'assessment_picks', $add, null, 1.0, 0 );
         }
-        if ( $remove !== '' && in_array( $remove, self::ASSESSMENT_KEYS, true ) ) {
+        if ( $remove !== '' && in_array( $remove, self::assessmentKeys(), true ) ) {
             $store->deleteField( $profileId, 'assessment_picks', $remove );
         }
     }
@@ -873,7 +1235,7 @@ class SpecialMyProfile extends SpecialPage {
 
         // ---- Add-an-assessment catalog (the not-yet-picked tests) ----
         $unpicked = [];
-        foreach ( self::ASSESSMENT_KEYS as $k ) {
+        foreach ( self::assessmentKeys() as $k ) {
             if ( !in_array( $k, $picks, true ) ) { $unpicked[] = $k; }
         }
         if ( $unpicked ) {
@@ -893,24 +1255,25 @@ class SpecialMyProfile extends SpecialPage {
         }
 
         // ---- Picked assessments, in display order, each with a remove control ----
-        foreach ( self::ASSESSMENT_KEYS as $k ) {
+        // OCEAN, MBTI, and Enneagram each have a bespoke inline renderer
+        // (their own subscale visualisations); every other registered scale
+        // dispatches through the generic renderInlineAssessment path.
+        $bespoke = [
+            'ocean'     => 'renderBfi10',
+            'mbti'      => 'renderMbti',
+            'enneagram' => 'renderEnneagram',
+        ];
+        foreach ( self::assessmentKeys() as $k ) {
             if ( !in_array( $k, $picks, true ) ) { continue; }
             echo '<div class="pcp-assess-picked" id="pcp-assessment-' . htmlspecialchars( $k ) . '">';
             echo '<button type="submit" name="pcp_pick_remove" value="' . htmlspecialchars( $k ) . '" class="pcp-assess-remove" title="Remove this assessment from your profile" aria-label="Remove this assessment">&#x2716;</button>';
-            switch ( $k ) {
-                case 'ocean':      $this->renderBfi10( $byKey ); break;
-                case 'mbti':       $this->renderMbti( $byKey ); break;
-                case 'enneagram':  $this->renderEnneagram( $byKey ); break;
-                case 'pid5bf':     $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::class ); break;
-                case 'cati':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::class ); break;
-                case 'catq':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::class ); break;
-                case 'nfcs':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class ); break;
-                case 'bpns':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class ); break;
-                case 'whoqolbref': $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class ); break;
-                case 'amaas':      $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class ); break;
-                case 'hyd':        $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class ); break;
-                case 'asrs':       $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class ); break;
-                case 'ocipcp':     $this->renderInlineAssessment( \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class ); break;
+            if ( isset( $bespoke[ $k ] ) ) {
+                $this->{ $bespoke[ $k ] }( $byKey );
+            } else {
+                $cls = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::scorerClass( $k );
+                if ( $cls ) {
+                    $this->renderInlineAssessment( $cls );
+                }
             }
             echo '</div>';
         }
@@ -1301,8 +1664,13 @@ class SpecialMyProfile extends SpecialPage {
         $store->updateProfileMeta( $profileId, $alias === '' ? null : $alias, $showDefault, $showXrOnProfile );
 
         // Per-test visibility for summary scores (tv[test_key]).
+        // Source of truth: AssessmentRegistry::keysSelfTakeable(); plus the
+        // 'bfi10' OCEAN raw-storage alias and the archived 'raadsr' namespace
+        // so visibility updates on legacy data still apply.
         $tv = $request->getArray( 'tv' ) ?: [];
-        $allowedTests = [ 'pid5bf', 'raadsr', 'catq', 'cati', 'mbti', 'enneagram', 'ocean', 'bfi10', 'nfcs', 'bpns', 'whoqolbref', 'amaas', 'hyd', 'asrs', 'ocipcp' ];
+        $allowedTests = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::keysSelfTakeable();
+        $allowedTests[] = 'bfi10';
+        $allowedTests[] = 'raadsr';
         foreach ( $tv as $testKey => $visVal ) {
             $visVal = max( 0, min( 3, (int)$visVal ) );
             if ( !in_array( $testKey, $allowedTests, true ) ) continue;
@@ -1361,28 +1729,30 @@ class SpecialMyProfile extends SpecialPage {
             }
         }
 
-        // Inline assessment responses: t[<key>][<itemN>] = response value
+        // Inline assessment responses: t[<key>][<itemN>] = response value.
+        // The scorer class, render mode, and per-item bounds all come from
+        // AssessmentRegistry, so a new self-takeable scale autosaves with no
+        // changes here. The mixed-model branch reads t_gate[] and t_unit[]
+        // side channels for gated_count and numeric items.
         $t = $request->getArray( 't' ) ?: [];
-        $clsMap = [
-            'pid5bf' => \MediaWiki\Extension\Pharmacopedia\Assessments\Pid5bf::class,
-            'raadsr' => \MediaWiki\Extension\Pharmacopedia\Assessments\Raadsr::class,
-            'catq'   => \MediaWiki\Extension\Pharmacopedia\Assessments\Catq::class,
-            'cati'   => \MediaWiki\Extension\Pharmacopedia\Assessments\Cati::class,
-            'mbti'   => \MediaWiki\Extension\Pharmacopedia\Assessments\Mbti::class,
-            'enneagram' => \MediaWiki\Extension\Pharmacopedia\Assessments\Enneagram::class,
-            'nfcs'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Nfcs::class,
-            'bpns'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Bpns::class,
-            'whoqolbref' => \MediaWiki\Extension\Pharmacopedia\Assessments\WhoqolBref::class,
-            'amaas'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Amaas::class,
-            'hyd'        => \MediaWiki\Extension\Pharmacopedia\Assessments\Hyd::class,
-            'asrs'       => \MediaWiki\Extension\Pharmacopedia\Assessments\Asrs::class,
-            'ocipcp'     => \MediaWiki\Extension\Pharmacopedia\Assessments\Ocipcp::class,
-        ];
         $tUnsureAll = $request->getArray( 't_unsure' ) ?: [];
+        $tGateAll   = $request->getArray( 't_gate' ) ?: [];
+        $tUnitAll   = $request->getArray( 't_unit' ) ?: [];
+        $tFeetAll   = $request->getArray( 't_feet' ) ?: [];
+        $tInchesAll = $request->getArray( 't_inches' ) ?: [];
+        // Legacy class lookup for keys that aren't (or aren't yet) in the
+        // registry but still have UI surfaces in MyProfile (raadsr is archival,
+        // mbti and enneagram have bespoke renderers but submit via t[] too).
+        $legacyClsMap = [
+            'raadsr'    => \MediaWiki\Extension\Pharmacopedia\Assessments\Raadsr::class,
+            'mbti'      => \MediaWiki\Extension\Pharmacopedia\Assessments\Mbti::class,
+            'enneagram' => \MediaWiki\Extension\Pharmacopedia\Assessments\Enneagram::class,
+        ];
         foreach ( $t as $testKey => $items ) {
             if ( !is_array( $items ) ) continue;
-            if ( !isset( $clsMap[ $testKey ] ) ) continue;
-            $cls = $clsMap[ $testKey ];
+            $cls = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::scorerClass( $testKey )
+                ?? ( $legacyClsMap[ $testKey ] ?? null );
+            if ( !$cls ) continue;
             $rawNs = $testKey . '_raw';
             $touched = false;
             // Pick the visibility to apply to each saved raw row. Prefer
@@ -1400,22 +1770,34 @@ class SpecialMyProfile extends SpecialPage {
                 }
             }
 
-            $sliderBounds = [
-                'pid5bf' => [ 0.0, 3.0 ],
-                'catq'   => [ 1.0, 7.0 ],
-                'cati'   => [ 1.0, 5.0 ],
-                'mbti'   => [ 1.0, 5.0 ],
-                'enneagram' => [ 1.0, 5.0 ],
-                'nfcs'      => [ 1.0, 6.0 ],
-                'bpns'      => [ 1.0, 7.0 ],
-                'whoqolbref' => [ 1.0, 5.0 ],
-                'amaas'      => [ 0.0, 100.0 ],
-                'hyd'        => [ -100.0, 100.0 ],
-                'ocipcp'     => [ 0.0, 4.0 ],
-            ];
-            if ( isset( $sliderBounds[ $testKey ] ) ) {
-                [ $lo, $hi ] = $sliderBounds[ $testKey ];
-                $unsureFlags = $tUnsureAll[ $testKey ] ?? [];
+            $inline = \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::inline( $testKey );
+            $renderAs = $inline['as']
+                ?? \MediaWiki\Extension\Pharmacopedia\Assessments\AssessmentRegistry::model( $testKey );
+            $unsureFlags = $tUnsureAll[ $testKey ] ?? [];
+
+            if ( $renderAs === 'mixed' ) {
+                $gateMap   = $tGateAll[ $testKey ] ?? [];
+                $unitMap   = $tUnitAll[ $testKey ] ?? [];
+                $feetMap   = $tFeetAll[ $testKey ] ?? [];
+                $inchesMap = $tInchesAll[ $testKey ] ?? [];
+                foreach ( $cls::ITEMS as $itemN => $itemData ) {
+                    $itemN = (int)$itemN;
+                    $isUnsure = isset( $unsureFlags[ $itemN ] ) && (string)$unsureFlags[ $itemN ] === '1';
+                    if ( $isUnsure ) {
+                        $store->setField( $profileId, $rawNs, 'item_' . $itemN, 'unsure', null, $rawVis );
+                        $touched = true;
+                        continue;
+                    }
+                    $parsed = self::parseInlineMixedValue( $itemData, $itemN, $items, $gateMap, $unitMap, $feetMap, $inchesMap );
+                    if ( $parsed === null ) {
+                        continue;
+                    }
+                    $store->setField( $profileId, $rawNs, 'item_' . $itemN, null, (float)$parsed, $rawVis );
+                    $touched = true;
+                }
+            } elseif ( $renderAs === 'slider' || $renderAs === 'bipolar' ) {
+                $lo = (float)( $inline['min'] ?? 0 );
+                $hi = (float)( $inline['max'] ?? 100 );
                 foreach ( $cls::ITEMS as $itemN => $_ ) {
                     $isUnsure = isset( $unsureFlags[ $itemN ] ) && (string)$unsureFlags[ $itemN ] === '1';
                     if ( $isUnsure ) {
@@ -1433,7 +1815,7 @@ class SpecialMyProfile extends SpecialPage {
                     $touched = true;
                 }
             } else {
-                // Radio (discrete), existing behavior
+                // Radio (discrete). Store raw value as float; integer codes round-trip cleanly.
                 foreach ( $items as $itemN => $val ) {
                     $itemN = (int)$itemN;
                     $valStr = trim( (string)$val );
@@ -1538,7 +1920,9 @@ class SpecialMyProfile extends SpecialPage {
                     echo '<tr><th>Total</th><td>' . htmlspecialchars( (string)$scores["total"] ) . '</td></tr>';
                 }
                 echo '</tbody></table>';
-                echo '<p><em>' . htmlspecialchars( $cls::interpret( $scores ) ) . '</em></p>';
+                $reading = $cls::interpret( $scores );
+                if ( is_array( $reading ) ) { $reading = (string)( $reading['overall'] ?? '' ); }
+                echo '<p><em>' . htmlspecialchars( (string)$reading ) . '</em></p>';
                 echo '<p><small>Last completed: ' . htmlspecialchars( $takenAt ) . '</small></p>';
                 echo '</div>';
             } else {

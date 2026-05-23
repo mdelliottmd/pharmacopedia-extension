@@ -18,8 +18,8 @@ class LikertApi extends ApiBase {
         $params = $this->extractRequestParams();
         $elementId = (int)$params['element_id'];
         $valRaw = $params['value'];
-        $value = ( $valRaw === '' || $valRaw === null ) ? null : (int)$valRaw;
-        if ( $value !== null && ( $value < -1 || $value > 100 ) ) {
+        $value = ( $valRaw === '' || $valRaw === null ) ? null : (float)$valRaw;
+        if ( $value !== null && ( $value < -1 || $value > 5 ) ) {
             $this->dieWithError( 'pharmacopedia-invalid-likert', 'badvalue' );
         }
 

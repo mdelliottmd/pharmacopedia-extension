@@ -1,6 +1,6 @@
 {
     "name": "Pharmacopedia",
-    "version": "0.9.8.0",
+    "version": "0.9.8.5",
     "author": [
         "MDElliottMD"
     ],
@@ -52,6 +52,13 @@
         "pharmacopediaformaltest": "MediaWiki\\Extension\\Pharmacopedia\\Api\\FormalTestApi",
         "pcp-interaction-flag": "MediaWiki\\Extension\\Pharmacopedia\\Api\\InteractionFlagApi"
     },
+    "RestRoutes": [
+        {
+            "path": "/pharmacopedia/v0/medicine/{title}",
+            "method": "GET",
+            "class": "MediaWiki\\Extension\\Pharmacopedia\\MedicineDatasheetHandler"
+        }
+    ],
     "SpecialPages": {
         "RespondToAssessment": "MediaWiki\\Extension\\Pharmacopedia\\SpecialRespondToAssessment",
         "AdministerAssessments": "MediaWiki\\Extension\\Pharmacopedia\\SpecialAdministerAssessments",
@@ -92,7 +99,8 @@
         "RequestReview": "MediaWiki\\Extension\\Pharmacopedia\\SpecialRequestReview",
         "MyCohorts": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyCohorts",
         "MyShareLog": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyShareLog",
-        "MyRefLinks": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyRefLinks"
+        "MyRefLinks": "MediaWiki\\Extension\\Pharmacopedia\\SpecialMyRefLinks",
+        "Overlinked": "MediaWiki\\Extension\\Pharmacopedia\\SpecialOverlinked"
     },
     "ResourceModules": {
         "ext.pharmacopedia.styles": {
@@ -391,6 +399,14 @@
         "PharmacopediaAdminKeyDir": {
             "value": "/var/lib/pharmacopedia-adminkeys",
             "description": "Filesystem path holding the server master key for the Administer-to-others feature (Mode B). Outside web root, mode 700, www-data owned, inside open_basedir."
+        },
+        "PharmacopediaOverlinkedThreshold": {
+            "value": 10,
+            "description": "Special:Overlinked lists external-wiki pages linked from more than this many distinct local pages. Above this count a term is treated as proven in-scope and a candidate for its own local article."
+        },
+        "PharmacopediaOverlinkedWikiDomains": {
+            "value": [ "en.wikipedia.org", "psychonautwiki.org" ],
+            "description": "External-wiki hostnames whose inbound links Special:Overlinked counts. A bare host matches that host and its subdomains. All other external links (citations, agency sites, and so on) are ignored."
         }
     },
     "manifest_version": 2,

@@ -26,7 +26,7 @@
     border-radius: 3px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     text-transform: lowercase;
     letter-spacing: 0.02em;
 }
@@ -63,7 +63,7 @@
     border: none;
     color: #ef4444;
     cursor: pointer;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     padding: 0.15em 0.4em;
     font-family: inherit;
 }
@@ -87,7 +87,7 @@
     padding: 0.3em 0.7em;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     margin-top: 0.4em;
 }
 .pcp-dt-add:hover {
@@ -107,7 +107,7 @@
 .pcp-dt-col label {
     display: block;
     color: #c4b5fd;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     margin-bottom: 0.1em;
     text-transform: lowercase;
     letter-spacing: 0.02em;
@@ -139,7 +139,7 @@
 .pcp-dt-time-prev,
 .pcp-dt-date-prev {
     color: #c4b5fd;
-    font-size: 0.72em;
+    font-size: var(--type-small, 12px);
     margin-top: 0.15em;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     min-height: 1.1em;
@@ -185,7 +185,7 @@
 .pcp-dt-cal-title {
     font-weight: 700;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-dt-cal-grid {
     display: grid;
@@ -204,7 +204,7 @@
     cursor: pointer;
     color: #fff;
     border-radius: 2px;
-    font-size: 0.78em;
+    font-size: var(--type-small, 12px);
     background: transparent;
     border: 1px solid transparent;
     user-select: none;
@@ -251,7 +251,7 @@
 .pcp-dt-range-text::placeholder { color: #6b6b6b; }
 .pcp-dt-range-text:focus { outline: none; border-color: #c4b5fd; box-shadow: 0 0 0 2px rgba(124,58,237,0.35); }
 .pcp-dt-range-preview {
-    color: #c4b5fd; font-size: 0.72em; margin-top: 0.2em;
+    color: #c4b5fd; font-size: var(--type-small, 12px); margin-top: 0.2em;
     font-family: ui-monospace, "SF Mono", Menlo, monospace; min-height: 1.1em;
 }
 .pcp-dt-range-preview.bad { color: #ef4444; }

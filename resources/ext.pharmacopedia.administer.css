@@ -31,13 +31,13 @@
     color: var(--a-violet-ink); padding: 8px 16px; cursor: pointer;
     display: inline-block;
 }
-.pcp-adm .btn-primary { background: var(--a-violet); color: #160d28; border-color: var(--a-violet); font-weight: 500; }
+.pcp-adm .btn-primary { background: var(--a-violet-bright); color: #0a0a0b; border-color: var(--a-violet-bright); font-weight: 500; }
 .pcp-adm .btn-ghost { background: transparent; border-color: var(--a-line); color: var(--a-ink-dim); }
 .pcp-adm .btn-row { display: flex; gap: 10px; margin-top: 16px; }
 
 /* ===== surface 1: entry-point control ===== */
 .pcp-adm .ep-control {
-    font-size: 11.5px; color: var(--a-violet-ink); cursor: pointer;
+    font-size: var(--type-small, 12px); color: var(--a-violet-ink); cursor: pointer;
     display: inline-flex; align-items: center; gap: 6px;
 }
 .pcp-adm .ec-mark {
@@ -58,12 +58,12 @@
     border-bottom: 1px solid var(--a-line-faint); padding-bottom: 7px;
 }
 .pcp-adm .block-h .bh-name { font-family: 'Newsreader', Georgia, serif; font-size: 15px; }
-.pcp-adm .block-h .bh-more { margin-left: auto; font-size: 11px; color: var(--a-violet-ink); }
-.pcp-adm .block-copy { font-size: 11.5px; color: var(--a-ink-mute); margin: 9px 0 13px; max-width: 540px; }
+.pcp-adm .block-h .bh-more { margin-left: auto; font-size: var(--type-small, 12px); color: var(--a-violet-ink); }
+.pcp-adm .block-copy { font-size: var(--type-small, 12px); color: var(--a-ink-mute); margin: 9px 0 13px; max-width: 540px; }
 
 /* compose-and-send */
 .pcp-adm .compose { background: var(--a-bg-3); border: 1px solid var(--a-line-faint); padding: 16px 17px; }
-.pcp-adm .field-label { font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--a-ink-mute); margin: 0 0 6px; }
+.pcp-adm .field-label { font-size: var(--type-small, 12px); letter-spacing: 0.13em; text-transform: uppercase; color: var(--a-ink-mute); margin: 0 0 6px; }
 .pcp-adm .select-box {
     background: var(--a-bg-2); border: 1px solid var(--a-line); color: var(--a-ink);
     padding: 7px 11px; font-size: 12.5px; font-family: 'Newsreader', Georgia, serif;
@@ -84,7 +84,7 @@
 }
 .pcp-adm .link-out {
     margin-top: 14px; background: var(--a-bg-2); border: 1px dashed var(--a-violet);
-    padding: 9px 12px; display: flex; align-items: center; gap: 10px; font-size: 11.5px;
+    padding: 9px 12px; display: flex; align-items: center; gap: 10px; font-size: var(--type-small, 12px);
 }
 .pcp-adm .link-out .lo-url {
     color: var(--a-violet-ink); font-family: 'Geist', monospace;
@@ -99,18 +99,18 @@
     padding: 12px 16px 11px; border-bottom: 1px solid var(--a-line-faint);
 }
 .pcp-adm .resp-name { font-family: 'Newsreader', Georgia, serif; font-size: 17px; }
-.pcp-adm .resp-meta { font-size: 10.5px; color: var(--a-ink-mute); }
-.pcp-adm .resp-status { margin-left: auto; font-size: 10.5px; color: var(--a-ink-mute); }
+.pcp-adm .resp-meta { font-size: var(--type-small, 12px); color: var(--a-ink-mute); }
+.pcp-adm .resp-status { margin-left: auto; font-size: var(--type-small, 12px); color: var(--a-ink-mute); }
 .pcp-adm .trend-row {
     display: grid; grid-template-columns: 150px 220px 1fr 70px; align-items: center;
     gap: 14px; padding: 10px 16px; border-top: 1px solid var(--a-line-faint);
 }
 .pcp-adm .trend-row:first-child { border-top: 0; }
 .pcp-adm .tr-scale { font-family: 'Newsreader', Georgia, serif; font-size: 13.5px; color: var(--a-ink); }
-.pcp-adm .tr-scale .tr-n { font-size: 10px; color: var(--a-ink-mute); }
+.pcp-adm .tr-scale .tr-n { font-size: var(--type-small, 12px); color: var(--a-ink-mute); }
 .pcp-adm .tr-spark svg { display: block; width: 210px; height: 40px; }
 .pcp-adm .tr-latest { font-family: 'Newsreader', Georgia, serif; font-size: 17px; text-align: right; font-variant-numeric: tabular-nums; }
-.pcp-adm .tr-delta { font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+.pcp-adm .tr-delta { font-size: var(--type-small, 12px); text-align: right; font-variant-numeric: tabular-nums; }
 .pcp-adm .tr-delta.up { color: var(--a-amber); }
 .pcp-adm .tr-delta.down { color: var(--a-green); }
 .pcp-adm .tr-delta.flat { color: var(--a-ink-mute); }
@@ -128,10 +128,10 @@
 }
 .pcp-adm .sent-row:first-child { border-top: 0; }
 .pcp-adm .sent-row .sr-resp { font-family: 'Newsreader', Georgia, serif; font-size: 13px; }
-.pcp-adm .sent-row .sr-scales { color: var(--a-ink-mute); font-size: 11px; }
-.pcp-adm .sent-row .sr-when { color: var(--a-ink-mute); font-size: 10.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.pcp-adm .sent-row .sr-scales { color: var(--a-ink-mute); font-size: var(--type-small, 12px); }
+.pcp-adm .sent-row .sr-when { color: var(--a-ink-mute); font-size: var(--type-small, 12px); text-align: right; font-variant-numeric: tabular-nums; }
 .pcp-adm .pill {
-    font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.09em; text-transform: uppercase;
     border: 1px solid var(--a-line); padding: 2px 7px; justify-self: start;
 }
 .pcp-adm .pill.pending { color: var(--a-amber); border-color: rgba(199,136,74,0.4); }
@@ -150,7 +150,7 @@
 /* the mode label keeps its quiet uppercase treatment; this needs to out-
    specify the .consent .enc p rule above, so it carries the full path. */
 .pcp-adm .consent .enc .mode-tag {
-    font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase;
+    font-size: var(--type-small, 12px); letter-spacing: 0.13em; text-transform: uppercase;
     color: var(--a-ink-mute); margin: 0 0 6px;
 }
 
@@ -168,7 +168,7 @@
 .pcp-adm .done p { color: var(--a-ink-dim); font-size: 12.5px; margin: 0 auto; max-width: 380px; }
 
 /* ===== surface 4: key setup ===== */
-.pcp-adm .keyhead { font-family: 'Newsreader', Georgia, serif; font-size: 19px; margin: 0 0 13px; }
+.pcp-adm .keyhead { font-family: 'Newsreader', Georgia, serif; font-size: 19px; margin: 0 0 13px; border: 0; padding-bottom: 0; }
 .pcp-adm .caution {
     border: 1px solid var(--a-line); border-left: 3px solid var(--a-amber);
     background: var(--a-bg-3); padding: 13px 16px; margin: 0 0 15px;
@@ -184,14 +184,14 @@
 .pcp-adm .mode-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
 .pcp-adm .mode-card { border: 1px solid var(--a-line); padding: 13px 14px; cursor: pointer; }
 .pcp-adm .mode-card.rec { border-color: var(--a-violet); }
-.pcp-adm .mode-card .mc-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 5px; }
+.pcp-adm .mode-card .mc-tag { font-size: var(--type-small, 12px); letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 5px; }
 .pcp-adm .mode-card.rec .mc-tag { color: var(--a-violet-bright); }
 .pcp-adm .mode-card.warn .mc-tag { color: var(--a-amber); }
 .pcp-adm .mode-card .mc-name { font-family: 'Newsreader', Georgia, serif; font-size: 15px; margin: 0 0 5px; }
-.pcp-adm .mode-card .mc-desc { font-size: 11px; color: var(--a-ink-mute); line-height: 1.5; }
+.pcp-adm .mode-card .mc-desc { font-size: var(--type-small, 12px); color: var(--a-ink-mute); line-height: 1.5; }
 
 /* ===== take-flow: model-aware items (radio / slider / bipolar) ===== */
-.pcp-adm .rp-note { font-size: 11px; color: var(--a-ink-mute); margin: 0 0 12px; }
+.pcp-adm .rp-note { font-size: var(--type-small, 12px); color: var(--a-ink-mute); margin: 0 0 12px; }
 .pcp-adm .pcp-adm-take { margin-top: 4px; }
 .pcp-adm .pcp-assess-item {
     border: 1px solid var(--a-line-faint); background: var(--a-bg-2);
@@ -219,7 +219,7 @@
 /* one slider per item */
 .pcp-adm .pcp-adm-slider-row { display: flex; align-items: center; gap: 11px; margin-top: 10px; }
 .pcp-adm .pcp-adm-anchor {
-    font-size: 10.5px; color: var(--a-ink-mute);
+    font-size: var(--type-small, 12px); color: var(--a-ink-mute);
     flex: 0 0 auto; max-width: 32%; line-height: 1.4;
 }
 .pcp-adm .pcp-adm-anchor-hi { text-align: right; }
@@ -252,7 +252,7 @@
 /* the uniform "Not sure" control */
 .pcp-adm .pcp-adm-unsure {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
-    font-size: 10.5px; color: var(--a-ink-mute); cursor: pointer;
+    font-size: var(--type-small, 12px); color: var(--a-ink-mute); cursor: pointer;
 }
 .pcp-adm .pcp-adm-unsure input { accent-color: var(--a-ink-mute); }
 
@@ -262,7 +262,7 @@
 
 /* ===== respondent dashboard: scored results ===== */
 .pcp-adm .block-h .bh-meta {
-    margin-left: auto; font-size: 10.5px; color: var(--a-ink-mute);
+    margin-left: auto; font-size: var(--type-small, 12px); color: var(--a-ink-mute);
     font-variant-numeric: tabular-nums;
 }
 .pcp-adm .rep-scores { margin: 10px 0 4px; }
@@ -281,14 +281,14 @@
 
 /* owner hub: a completed multi-part scale, and the per-invite delete */
 .pcp-adm .trend-row-flat { grid-template-columns: 150px 1fr; }
-.pcp-adm .tr-flat-note { font-size: 11px; color: var(--a-ink-mute); }
+.pcp-adm .tr-flat-note { font-size: var(--type-small, 12px); color: var(--a-ink-mute); }
 .pcp-adm .sr-del { justify-self: end; }
 /* the per-invite delete is a quiet inline trigger (the submit button
    inside the .sr-del form); the filled .btn-danger stays reserved for
    confirm-step actions. */
 .pcp-adm .sr-del button {
     background: none; border: 0; padding: 2px 4px;
-    font-size: 11px; color: var(--a-ink-mute); cursor: pointer;
+    font-size: var(--type-small, 12px); color: var(--a-ink-mute); cursor: pointer;
 }
 .pcp-adm .sr-del button:hover { color: var(--a-danger); }
 
@@ -322,4 +322,170 @@
     .pcp-adm .pcp-adm-anchor-hi { order: 2; }
     .pcp-adm .pcp-adm-slider { order: 3; flex-basis: 100%; }
     .pcp-adm .pcp-adm-sliderval { order: 4; }
+}
+
+/* ===== slider tick marks =====
+   The mixed-model continuous slider wraps the <input type=range> in a
+   .pcp-adm-slider-wrap so a .pcp-adm-slider-ticks layer can sit just
+   beneath the track, with violet ticks at the per-item subdivision (5-7
+   segments by default). Tick positions are emitted inline as left:X%. */
+.pcp-adm .pcp-adm-slider-wrap {
+    flex: 1 1 auto; min-width: 90px;
+    display: flex; flex-direction: column; gap: 1px;
+}
+.pcp-adm .pcp-adm-slider-wrap .pcp-adm-slider {
+    flex: 0 0 auto; min-width: 0; width: 100%;
+}
+.pcp-adm .pcp-adm-slider-ticks {
+    position: relative; height: 26px; pointer-events: none;
+}
+.pcp-adm .pcp-adm-slider-tick {
+    position: absolute; top: 0;
+    width: 1px; height: 5px;
+    background: var(--a-violet);
+    transform: translateX(-50%);
+    opacity: 0.65;
+}
+.pcp-adm .pcp-adm-slider-ticklabel {
+    position: absolute; top: 7px; left: 0;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: var(--a-ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ===== mixed-model item types: likert6, count, gated_count, numeric =====
+   These coexist within one scale (EDE-Q-PCP and any future mixed-model
+   instrument). They reuse the .pcp-assess-item shell and the uniform
+   "Not sure" control. */
+
+/* likert6: a 7-button 0-6 row with item-specific anchor labels. */
+.pcp-adm .pcp-adm-likert6-row {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 11px;
+}
+.pcp-adm .pcp-adm-likert6-opt {
+    flex: 1 1 0; min-width: 86px;
+    border: 1px solid var(--a-line); background: var(--a-bg-2);
+    padding: 8px 6px; cursor: pointer; text-align: center;
+    display: flex; flex-direction: column; gap: 3px;
+    font-size: var(--type-small, 12px); color: var(--a-ink-dim);
+    line-height: 1.3;
+}
+.pcp-adm .pcp-adm-likert6-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pcp-adm .pcp-adm-likert6-opt:has(input:checked) {
+    border-color: var(--a-violet-bright);
+    background: rgba(120, 70, 190, 0.15);
+    color: var(--a-ink);
+}
+.pcp-adm .pcp-adm-likert6-num {
+    font-family: 'Newsreader', Georgia, serif; font-size: 16px;
+    color: var(--a-ink); font-variant-numeric: tabular-nums;
+}
+.pcp-adm .pcp-adm-likert6-label { font-size: var(--type-small, 12px); }
+.pcp-adm .pcp-adm-likert6-opt:hover { border-color: var(--a-violet); color: var(--a-ink); }
+
+/* count + numeric: integer/decimal inputs with optional unit suffix. */
+.pcp-adm .pcp-adm-count-row,
+.pcp-adm .pcp-adm-numeric-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 11px;
+    flex-wrap: wrap;
+}
+.pcp-adm .pcp-adm-count-input,
+.pcp-adm .pcp-adm-numeric-input {
+    border: 1px solid var(--a-line); background: var(--a-bg-2);
+    color: var(--a-ink); padding: 7px 10px; width: 110px;
+    font-family: inherit; font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+.pcp-adm .pcp-adm-count-unit {
+    color: var(--a-ink-mute); font-size: var(--type-small, 12px);
+}
+
+/* gated_count: yes/no, plus a left-bordered reveal panel on yes. */
+.pcp-adm .pcp-adm-gated-opts { margin-top: 11px; }
+.pcp-adm .pcp-adm-gated-reveal[hidden] { display: none; }
+.pcp-adm .pcp-adm-gated-reveal {
+    margin-top: 10px; padding: 10px 12px;
+    border-left: 2px solid var(--a-violet);
+    background: var(--a-bg-3);
+}
+.pcp-adm .pcp-adm-gated-cntlabel {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--a-ink-dim); font-size: 12px;
+}
+
+/* unit switch: a rounded pill-segment group sitting beside a numeric input.
+   Inactive segments share the container background; the active segment
+   becomes a violet pill with dark ink, with a soft transition between
+   states. Works for kg/lb, cm/in, and std/metric out of the box. */
+.pcp-adm .pcp-adm-unit-switch {
+    display: inline-flex;
+    background: var(--a-bg-2);
+    border: 1px solid var(--a-line);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+.pcp-adm .pcp-adm-unit-opt {
+    padding: 8px 16px;
+    color: var(--a-ink-dim);
+    cursor: pointer;
+    font-size: 12.5px;
+    line-height: 1;
+    border-radius: 5px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+    user-select: none;
+}
+.pcp-adm .pcp-adm-unit-opt input {
+    position: absolute; opacity: 0; pointer-events: none;
+}
+.pcp-adm .pcp-adm-unit-opt:hover { color: var(--a-ink); }
+.pcp-adm .pcp-adm-unit-opt:has(input:checked) {
+    background: var(--a-violet-bright);
+    color: #0a0a0b;
+    font-weight: 500;
+}
+.pcp-adm .pcp-adm-unit-opt:has(input:checked):hover { color: #0a0a0b; }
+
+/* height: a compound numeric item with a std (feet+inches) vs metric (cm)
+   unit switch. Only the active group is visible; the take-flow JS swaps
+   them on the radio's change event. */
+.pcp-adm .pcp-adm-height-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 11px;
+    flex-wrap: wrap;
+}
+.pcp-adm .pcp-adm-height-group[hidden] { display: none; }
+.pcp-adm .pcp-adm-height-group {
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.pcp-adm .pcp-adm-height-input {
+    border: 1px solid var(--a-line); background: var(--a-bg-2);
+    color: var(--a-ink); padding: 7px 9px; width: 76px;
+    font-family: inherit; font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* "Not sure" dims the answer area for the new item types too. */
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-likert6-row,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-count-row,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-numeric-row,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-gated-opts,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-gated-reveal,
+.pcp-adm .pcp-adm-item-unsure .pcp-adm-height-row { opacity: 0.5; }
+
+/* focus rings for the new inputs, matching the existing motion spec. */
+.pcp-adm .pcp-adm-count-input:focus-visible,
+.pcp-adm .pcp-adm-numeric-input:focus-visible,
+.pcp-adm .pcp-adm-likert6-opt input:focus-visible,
+.pcp-adm .pcp-adm-unit-opt input:focus-visible {
+    outline: 2px solid var(--a-violet); outline-offset: 2px;
+}
+
+/* narrow viewport: 7 likert6 buttons wrap to two rows; the unit switch
+   wraps below the input. */
+@media (max-width: 480px) {
+    .pcp-adm .pcp-adm-likert6-opt { min-width: 0; flex-basis: calc(25% - 4px); }
+    .pcp-adm .pcp-adm-numeric-row,
+    .pcp-adm .pcp-adm-count-row { gap: 8px; }
 }

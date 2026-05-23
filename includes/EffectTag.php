@@ -94,10 +94,13 @@ class EffectTag {
         // RATE panel (folded). Perspective + patient buttons + provider buttons + valence.
         $h .= '<div class="pcp-row-panel pcp-row-rate-panel" hidden>';
 
-        $h .= '<div class="pcp-effect-perspective-row">';
+        // Fieldset + visually-hidden legend per WCAG 1.3.1 / 3.3.2
+        // (a11y-claude baseline 2026-05-22).
+        $h .= '<fieldset class="pcp-effect-perspective-row">';
+        $h .= '<legend class="visuallyhidden">Perspective for this effect</legend>';
         $h .= '<label><input type="radio" name="persp-' . $elementId . '" value="1" checked> Personal experience</label>';
         $h .= '<label><input type="radio" name="persp-' . $elementId . '" value="2"> From my patients</label>';
-        $h .= '</div>';
+        $h .= '</fieldset>';
 
         $h .= '<div class="pcp-effect-controls pcp-controls-patient">';
         $h .= '<span class="pcp-effect-q">Did you experience this?</span>';

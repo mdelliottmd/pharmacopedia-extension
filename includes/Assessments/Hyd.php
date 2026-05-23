@@ -91,6 +91,11 @@ class Hyd {
     /** No reverse-worded items: every domain runs really poorly (-100) to really well (+100). */
     public const REVERSE = [];
 
+    /** No multi-item subscales: HYD-PCP scores live under DOMAIN_SLUGS keys directly
+     *  (mood, functioning, sleep, ...). The shared MyProfile inline-assessment renderer
+     *  iterates SUBSCALES for the per-subscale table; empty means "just show the total". */
+    public const SUBSCALES = [];
+
     /**
      * Score a check-in.
      *

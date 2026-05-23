@@ -36,6 +36,7 @@ class Hooks {
         $parser->setHook( 'categoryindex', [ CategoryIndexTag::class, 'render' ] );
         $parser->setHook( 'frontpage', [ FrontPageTag::class, 'render' ] );
         $parser->setHook( 'pharmaLiterature', [ LiteratureTag::class, 'render' ] );
+        $parser->setHook( 'pharmaCommonUses', [ CommonUsesTag::class, 'render' ] );
     }
 
     public static function onLoadExtensionSchemaUpdates( $updater ) {
@@ -197,6 +198,16 @@ class Hooks {
         $updater->addExtensionTable( 'pcp_administer_research',    "$dir/administer_research.sql" );
         $updater->addExtensionField( 'pcp_administer_assessments', 'aa_respondent_enc',
             "$dir/patch-administer-respondent_enc.sql" );
+
+        // Make pcp_likert_reports.pl_value nullable: NULL is the Don't-know
+        // abstention, replacing the old -1 sentinel.
+        $updater->modifyExtensionField( 'pcp_likert_reports', 'pl_value',
+            "$dir/patch-likert-pl_value-nullable.sql" );
+
+        // Rescale pl_value from 0-100 to 0-5 (DECIMAL(3,2)); Mark consolidated
+        // the rating to a single 0-5 scale.
+        $updater->modifyExtensionField( 'pcp_likert_reports', 'pl_value',
+            "$dir/patch-likert-pl_value-0to5.sql" );
     }
 
     /**
@@ -287,25 +298,39 @@ class Hooks {
         }
 
         $ns = $title->getNamespace();
-        // Only NS_MAIN and NS_CATEGORY participate in skin selection.
-        if ( $ns !== NS_MAIN && $ns !== NS_CATEGORY ) return;
 
-        // Main_Page stays pharma default (clinical-first per Mark 2026-05-20).
-        if ( $ns === NS_MAIN && $title->getDBkey() === 'Main_Page' ) return;
+        // The per-page origin skin: resolvePcpSkin runs for content and
+        // category pages (Main_Page stays the pharma default); every
+        // other page is pharma. The walk is a handful of indexed
+        // queries, cheap enough per pageview.
+        $resolved = 'pharma';
+        if ( ( $ns === NS_MAIN || $ns === NS_CATEGORY )
+            && !( $ns === NS_MAIN && $title->getDBkey() === 'Main_Page' )
+        ) {
+            $r = self::resolvePcpSkin( $title );
+            if ( $r === 'plants' || $r === 'fungi' ) {
+                $resolved = $r;
+            }
+        }
+        // The Appearance rail's Skin switch reports this on its
+        // Automatic row ("Follows the page, now Plants").
+        $out->addJsConfigVars( [ 'pcpResolvedSkin' => $resolved ] );
 
-        // Resolve the skin by walking the category chain. The walk is a
-        // handful of indexed queries (8-hop cap, small category tree),
-        // cheap enough to run per pageview. No ParserOutput caching:
-        // OutputPage does not expose a singular ParserOutput in MW 1.46.
-        $resolved = self::resolvePcpSkin( $title );
+        // A per-browser Skin-switch override (the pcp-skin-override
+        // cookie, set by the Appearance rail) wins over the resolver,
+        // on every page. Read server-side so the override is applied
+        // before first paint, with no flash.
+        $override = $out->getRequest()->getCookie( 'pcp-skin-override', '', '' );
+        $effective = in_array( $override, [ 'pharma', 'plants', 'fungi' ], true )
+            ? $override : $resolved;
 
-        if ( $resolved === 'fungi' ) {
+        if ( $effective === 'fungi' ) {
             // Fungi is a sub-skin of plants: the body carries both
             // classes, and the fungi module loads after the plants
             // base so its overrides win.
             $out->addBodyClasses( [ 'pcp-skin-plants', 'pcp-skin-fungi' ] );
             $out->addModuleStyles( [ 'ext.pharmacopedia.skin.plants', 'ext.pharmacopedia.skin.fungi' ] );
-        } elseif ( $resolved === 'plants' ) {
+        } elseif ( $effective === 'plants' ) {
             $out->addBodyClasses( [ 'pcp-skin-plants' ] );
             $out->addModuleStyles( [ 'ext.pharmacopedia.skin.plants' ] );
         }

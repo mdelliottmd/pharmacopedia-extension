@@ -11,15 +11,15 @@ class LikertStore {
         return MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
     }
 
-    /** @return array{n:int, mean:float|null} */
+    /** @return array{n:int, mean:float|null, n_dontknow:int} */
     public function getAggregates( $elementId ) {
-        // Mean only over actual ratings (0..5). Don't Know (-1) abstains but is reported.
+        // Mean only over actual ratings (0..5). Don't Know (NULL) abstains but is reported.
         $dbr = $this->dbr();
         $row = $dbr->selectRow( 'pcp_likert_reports',
             [
                 'n_rated'    => 'SUM(CASE WHEN pl_value >= 0 THEN 1 ELSE 0 END)',
                 'sum_rated'  => 'SUM(CASE WHEN pl_value >= 0 THEN pl_value ELSE 0 END)',
-                'n_dontknow' => 'SUM(CASE WHEN pl_value < 0  THEN 1 ELSE 0 END)',
+                'n_dontknow' => 'SUM(CASE WHEN pl_value IS NULL OR pl_value < 0 THEN 1 ELSE 0 END)',
             ],
             [ 'pl_element_id' => (int)$elementId ],
             __METHOD__
@@ -35,7 +35,12 @@ class LikertStore {
             [ 'pl_element_id' => (int)$elementId, 'pl_voter_hash' => $this->voterHash( $userId ) ],
             __METHOD__
         );
-        return $row ? (int)$row->pl_value : null;
+        if ( !$row ) {
+            return null;
+        }
+        // A NULL pl_value is "Don't know", surfaced as -1, the token the
+        // <problem> tag expects. A stored rating returns as its 0-5 value.
+        return $row->pl_value === null ? -1 : (float)$row->pl_value;
     }
 
     /**
@@ -53,7 +58,10 @@ class LikertStore {
                 __METHOD__ );
             return;
         }
-        $v = max( -1, min( 5, (int)$value ) );
+        // pl_value is a 0-5 rating, or NULL for "Don't know". A negative
+        // value (the -1 wire token) means Don't know and stores as NULL.
+        $value = (float)$value;
+        $v = $value < 0 ? null : max( 0.0, min( 5.0, $value ) );
         $existing = $dbw->selectRow( 'pcp_likert_reports', 'pl_id',
             [ 'pl_element_id' => (int)$elementId, 'pl_voter_hash' => $voterHash ],
             __METHOD__ );

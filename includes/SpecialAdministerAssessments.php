@@ -142,8 +142,8 @@ class SpecialAdministerAssessments extends SpecialPage {
         $token = htmlspecialchars( $this->getUser()->getEditToken() );
 
         $h = '<div class="pcp-adm">';
-        $h .= '<h3 class="keyhead serif">How should your respondents&#8217; results '
-            . 'be protected?</h3>';
+        $h .= '<h2 class="keyhead serif">How should your respondents&#8217; results '
+            . 'be protected?</h2>';
         if ( $error !== '' ) {
             $h .= '<p class="block-copy" style="color:var(--a-danger,#c25a52)">'
                 . htmlspecialchars( $error ) . '</p>';
@@ -179,10 +179,10 @@ class SpecialAdministerAssessments extends SpecialPage {
             . 'unreadable, by you and by everyone else. No one can restore it for you.</p>'
             . '<p>Choose something you will not lose, and write it down somewhere safe '
             . 'before you continue.</p></div>'
-            . '<p class="field-label">Passphrase (at least ' . self::MIN_PASSPHRASE
+            . '<p class="field-label" id="pcp-pp-set-label">Passphrase (at least ' . self::MIN_PASSPHRASE
             . ' characters)</p>'
             . '<input type="password" name="pcp_passphrase" class="field-input" '
-            . 'autocomplete="new-password">'
+            . 'aria-labelledby="pcp-pp-set-label" autocomplete="new-password">'
             . '<div class="btn-row"><button type="submit" class="btn btn-primary">'
             . 'Set this passphrase</button></div></form></div>';
         $h .= '</div></div>';
@@ -194,7 +194,7 @@ class SpecialAdministerAssessments extends SpecialPage {
         $self = htmlspecialchars( $this->getPageTitle()->getLocalURL() );
         $token = htmlspecialchars( $this->getUser()->getEditToken() );
         $h = '<div class="pcp-adm">';
-        $h .= '<h3 class="keyhead serif">Unlock your results</h3>';
+        $h .= '<h2 class="keyhead serif">Unlock your results</h2>';
         if ( $error !== '' ) {
             $h .= '<p class="block-copy" style="color:var(--a-danger,#c25a52)">'
                 . htmlspecialchars( $error ) . '</p>';
@@ -202,10 +202,10 @@ class SpecialAdministerAssessments extends SpecialPage {
         $h .= '<form method="post" action="' . $self . '">'
             . '<input type="hidden" name="wpEditToken" value="' . $token . '">'
             . '<input type="hidden" name="pcp_action" value="unlock">'
-            . '<p class="field-label">Enter your passphrase to open your '
+            . '<p class="field-label" id="pcp-pp-unlock-label">Enter your passphrase to open your '
             . 'respondents&#8217; results</p>'
             . '<input type="password" name="pcp_passphrase" class="field-input" '
-            . 'autocomplete="current-password">'
+            . 'aria-labelledby="pcp-pp-unlock-label" autocomplete="current-password">'
             . '<p class="rp-note" style="margin:9px 0 0;">Held for this login session '
             . 'only, never stored. You will enter it again next time you log in.</p>'
             . '<div class="btn-row"><button type="submit" class="btn btn-primary">'

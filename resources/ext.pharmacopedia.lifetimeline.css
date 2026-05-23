@@ -35,7 +35,7 @@
     border-radius: 6px;
     cursor: pointer;
     margin-left: auto;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .pcp-life-timeline-fit:hover { background: #2a2a2a; color: #fff; }
 
@@ -109,7 +109,7 @@
     border-color: #b599e0;
     color: #fff;
     border-radius: 6px;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
 }
 .vis-item.vis-selected {
     background: #c4b5fd !important;
@@ -170,7 +170,7 @@
     border: 1px solid #5d3b8e !important;
     border-radius: 4px !important;
     padding: 0.4em 0.6em !important;
-    font-size: 0.85em !important;
+    font-size: var(--type-small, 12px) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
 }
 
@@ -221,7 +221,7 @@
     border: 1px solid #5d3b8e;
     padding: 0.25em 0.6em;
     border-radius: 12px;
-    font-size: 0.85em;
+    font-size: var(--type-small, 12px);
     color: #c4b5fd;
     cursor: pointer;
 }
@@ -288,7 +288,7 @@
     border: 1px solid #5d3b8e;
     border-radius: 12px;
     padding: 0.1em 0.5em 0.1em 0.35em;
-    font-size: 0.74em;
+    font-size: var(--type-small, 12px);
     color: #fff;
     cursor: pointer;
 }
@@ -590,7 +590,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     color: #ccc;
     white-space: nowrap;
     overflow: hidden;
@@ -609,7 +609,7 @@
     text-overflow: ellipsis;
 }
 .pcp-life-graph-legend-preview-more {
-    font-size: 0.82em;
+    font-size: var(--type-small, 12px);
     color: #b599e0;
     font-weight: 600;
     margin-left: 0.2em;
