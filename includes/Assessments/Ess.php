@@ -47,6 +47,13 @@ class Ess {
     public const SCALE_MIN = 0;
     public const SCALE_MAX = 3;
 
+    /** Per-subscale slugs in display order. Empty for single-scale
+     *  instruments. renderInlineAssessment iterates SUBSCALES for the
+     *  per-subscale table; empty means "just show the total".
+     *  (L2 follow-up per server-claude 2026-05-23 audit; mirrors the
+     *  Hyd::SUBSCALES patch.) */
+    public const SUBSCALES = [];
+
     /** Slider anchor text, shown at the two ends of every item. */
     public const ANCHOR_LOW  = 'Would never doze';
     public const ANCHOR_HIGH = 'High chance of dozing';

@@ -1,6 +1,6 @@
 {
     "name": "Pharmacopedia",
-    "version": "0.9.8.6",
+    "version": "0.9.8.7",
     "author": [
         "MDElliottMD"
     ],
@@ -25,7 +25,8 @@
         "LoadExtensionSchemaUpdates": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onLoadExtensionSchemaUpdates",
         "BeforeCreateEchoEvent": "MediaWiki\\Extension\\Pharmacopedia\\FeatureRequestNotifier::onBeforeCreateEchoEvent",
         "getUserPermissionsErrors": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onGetUserPermissionsErrors",
-        "BeforePageDisplay": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onBeforePageDisplay"
+        "BeforePageDisplay": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onBeforePageDisplay",
+        "AuthChangeFormFields": "MediaWiki\\Extension\\Pharmacopedia\\Hooks::onAuthChangeFormFields"
     },
     "APIModules": {
         "pharmacopediavote": "MediaWiki\\Extension\\Pharmacopedia\\Api\\VoteApi",

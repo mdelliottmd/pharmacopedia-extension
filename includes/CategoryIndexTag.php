@@ -65,6 +65,18 @@ class CategoryIndexTag {
         ],
     ];
 
+    /** Curated herbal-medicines tier: 5 source-tradition sub-categories,
+     *  alphabetical. The clinical-traditional axis, distinct from the
+     *  Pendell entheogenic-and-psychoactive axis above. Added 2026-05-23
+     *  per Mark's "lead with axis B in the visible taxonomy" directive. */
+    private const HERBAL_TRADITIONS = [
+        'Ayurvedic_herbs'        => 'Ayurvedic herbs',
+        'Native_American_herbs'  => 'Native American herbs',
+        'TCM_herbs'              => 'TCM herbs',
+        'Unani_herbs'            => 'Unani herbs',
+        'Western_clinical_herbs' => 'Western clinical herbs',
+    ];
+
     /**
      * One-word / short-phrase English gloss per Latin Pendell class, shown
      * inline in the Category index as "Latin (gloss)". Canonical translation
@@ -268,7 +280,7 @@ class CategoryIndexTag {
             . '<svg class="lr-sprig" viewBox="0 0 46 46" aria-hidden="true"><use href="#pl-sprig"/></svg>'
             . '<div><div class="lr-rank">Origin</div>'
             . '<h2 class="lr-name">Plants</h2>'
-            . '<div class="lr-count">3 volumes &middot; 11 classes &middot; the Pendell axis</div>'
+            . '<div class="lr-count">3 Pendell volumes (11 classes) &middot; 1 herbal-medicines axis (5 traditions)</div>'
             . '</div></div>';
         $h .= '<div class="lbody"><div class="trunk" aria-hidden="true"></div>';
         foreach ( self::PLANT_VOLUMES as $vol ) {
@@ -310,6 +322,45 @@ class CategoryIndexTag {
             }
             $h .= '</div></details>';
         }
+
+        // Herbal_medicines block -- fourth section in the plant column,
+        // organised by source tradition (the clinical-traditional axis,
+        // distinct from the Pendell volumes above). Added 2026-05-23.
+        $herbalCounts = [];
+        $herbKeys = array_keys( self::HERBAL_TRADITIONS );
+        $res = $dbr->select(
+            'category',
+            [ 'cat_title', 'cat_pages', 'cat_subcats', 'cat_files' ],
+            [ 'cat_title' => $herbKeys ],
+            __METHOD__
+        );
+        foreach ( $res as $r ) {
+            $herbalCounts[ (string)$r->cat_title ] =
+                max( 0, (int)$r->cat_pages - (int)$r->cat_subcats - (int)$r->cat_files );
+        }
+
+        $h .= '<details class="lbranch lbranch-herbal" open><summary class="lnode">'
+            . '<svg class="bough" viewBox="0 0 100 92" aria-hidden="true"><use href="#pl-bough"/></svg>'
+            . '<div class="lnode-top"><span class="lw-chev"></span>'
+            . '<svg class="ln-glyph" viewBox="0 0 22 26"><use href="#pl-leaf"/></svg>'
+            . '<h3 class="ln-name">Herbal medicines</h3>'
+            . '<span class="ln-count">' . count( self::HERBAL_TRADITIONS ) . ' traditions</span></div>'
+            . '<div class="ln-desc">The clinical-traditional plants: medicinal use across the world\'s medicine systems, organised by source tradition.</div>'
+            . '</summary><div class="lfoliage">';
+        foreach ( self::HERBAL_TRADITIONS as $dbkey => $label ) {
+            $n   = $herbalCounts[ $dbkey ] ?? 0;
+            $url = Title::makeTitle( NS_CATEGORY, $dbkey )->getLocalURL();
+            $h  .= '<details class="lsub"><summary>'
+                . '<svg class="leaf-ic" viewBox="0 0 22 26"><use href="#pl-leaf"/></svg>'
+                . '<a class="lf-name" href="' . htmlspecialchars( $url ) . '">'
+                . htmlspecialchars( $label ) . '</a>'
+                . '<span class="ls-count">' . $n . '</span>'
+                . '<span class="ls-chev"></span>'
+                . '</summary>'
+                . '<div class="lsfoliage"></div></details>';
+        }
+        $h .= '</div></details>';
+
         $h .= '</div></div></div>';
         return $h;
     }

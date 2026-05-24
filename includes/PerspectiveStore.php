@@ -2,6 +2,7 @@
 namespace MediaWiki\Extension\Pharmacopedia;
 
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Extension\Pharmacopedia\Assessments\AdminCrypto;
 
 /**
  * PerspectiveStore: data access for the Perspective subsystem, the
@@ -40,6 +41,7 @@ class PerspectiveStore {
         $dbw = $this->dbw();
         $dbw->insert( 'pcp_perspective_invite', [
             'pvi_token'            => $token,
+            'pvi_token_hash'       => AdminCrypto::hashInviteToken( $token ),
             'pvi_owner_id'         => $ownerId,
             'pvi_object_type'      => $objectType,
             'pvi_object_id'        => $objectId,
@@ -63,8 +65,16 @@ class PerspectiveStore {
         if ( $token === '' ) {
             return null;
         }
+        // M3 (0.9.8.7): hash-first lookup. The cleartext fallback below
+        // covers any row not yet backfilled at deploy time and gets dropped
+        // in 0.9.8.8 alongside the pvi_token column itself.
+        $hash = AdminCrypto::hashInviteToken( $token );
         $row = $this->dbr()->selectRow( 'pcp_perspective_invite', '*',
-            [ 'pvi_token' => $token ], __METHOD__ );
+            [ 'pvi_token_hash' => $hash ], __METHOD__ );
+        if ( !$row ) {
+            $row = $this->dbr()->selectRow( 'pcp_perspective_invite', '*',
+                [ 'pvi_token' => $token ], __METHOD__ );
+        }
         if ( !$row ) {
             return null;
         }

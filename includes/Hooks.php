@@ -191,6 +191,11 @@ class Hooks {
         // Perspective subsystem: invites + submitted perspectives.
         $updater->addExtensionTable( 'pcp_perspective_invite', "$dir/perspective_invite.sql" );
         $updater->addExtensionTable( 'pcp_perspective',        "$dir/perspective.sql" );
+        // M3 (0.9.8.7): SHA-256 hash column alongside cleartext pvi_token.
+        // Dual-write + hash-first read during 0.9.8.7; cleartext pvi_token
+        // gets dropped in 0.9.8.8 once backfill is verified prod-side.
+        $updater->addExtensionField( 'pcp_perspective_invite', 'pvi_token_hash',
+            "$dir/patch-pcp_perspective_invite-pvi_token_hash.sql" );
 
         // Granular PGx interaction-voting flags.
         $updater->addExtensionTable( 'pcp_interaction_flags', "$dir/interaction_flags.sql" );
@@ -474,6 +479,39 @@ class Hooks {
             $out[] = (string)$r->lt_title;
         }
         return $out;
+    }
+
+
+    /**
+     * Add `autocomplete` attributes to the auth forms so iOS / password
+     * managers offer the right credentials. Special:UserLogin and
+     * Special:CreateAccount both route through AuthManager / HTMLForm;
+     * the descriptor's `autocomplete` key passes through to the rendered
+     * <input> via HTMLTextField. (Set 2026-05-23 per server-claude's
+     * routing on the iOS-autofill task.)
+     *
+     * @param array $requests
+     * @param array $fieldInfo
+     * @param array &$formDescriptor
+     * @param string $action
+     * @return void
+     */
+    public static function onAuthChangeFormFields(
+        array $requests, array $fieldInfo, array &$formDescriptor, string $action
+    ) {
+        if ( isset( $formDescriptor['username'] ) ) {
+            $formDescriptor['username']['autocomplete'] = 'username';
+        }
+        if ( isset( $formDescriptor['password'] ) ) {
+            $formDescriptor['password']['autocomplete'] =
+                ( $action === 'create' ) ? 'new-password' : 'current-password';
+        }
+        if ( isset( $formDescriptor['retype'] ) ) {
+            $formDescriptor['retype']['autocomplete'] = 'new-password';
+        }
+        if ( isset( $formDescriptor['email'] ) ) {
+            $formDescriptor['email']['autocomplete'] = 'email';
+        }
     }
 
 }

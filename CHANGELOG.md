@@ -7,6 +7,114 @@ the live wiki at `About:Pharmacopedia.ext`.
 Format roughly follows [Keep a Changelog](https://keepachangelog.com/).
 Dates are UTC.
 
+## [0.9.8.7] - 2026-05-23
+
+A privacy-honest, audit-follow-up release. Perspective-invite
+tokens migrate from cleartext to hashed-at-rest with dual-write
++ hash-first read; the cleartext column itself comes out in
+0.9.8.8 once the dual-write window cycles through prod. The
+single-assessment ESS card stops fataling on the MyProfile
+render. iOS / password-manager autofill works on
+Special:UserLogin and Special:CreateAccount. About:Privacy and
+Oyami PRIVACY.md adopt empire-parity wording for the
+backup-rolloff posture, now naming both the 14-day
+active-storage window and the up-to-180-day off-host
+deletion-recovery layer honestly (server-claude's Dropbox
+finding; durable fix via the Hetzner BX11 migration is queued
+in [L1] for 0.9.8.8). The Category index plant column gains
+a new "Herbal medicines" sub-section organising plant pages by
+source tradition (Ayurveda / Native American / TCM / Unani /
+Western clinical), distinct from the Pendell entheogenic axis.
+
+### Added
+- **Perspective-invite token hashing (M3 server-claude audit
+  follow-up).** New `pcp_perspective_invite.pvi_token_hash`
+  column (`BINARY(32)`, `UNIQUE`), backfilled from existing
+  rows by `maintenance/BackfillPerspectiveInviteTokenHash.php`
+  (idempotent, dry-run flag, per-row WHERE re-check for
+  concurrent-write safety). `PerspectiveStore::mintInvite()`
+  dual-writes cleartext + hash; `::resolveToken()` looks up
+  by hash first, falling back to the cleartext column for the
+  deploy edge. AdminCrypto::hashInviteToken reused as the
+  canonical SHA-256 helper. Cleartext `pvi_token` column +
+  fallback branch drop in 0.9.8.8.
+- **iOS / password-manager autofill on auth forms.** New
+  `Hooks::onAuthChangeFormFields()` adds `autocomplete`
+  attributes to Special:UserLogin and Special:CreateAccount:
+  `username`, `current-password`/`new-password`,
+  `new-password` on retype, `email`. iOS Safari and password
+  managers now offer the right credentials on the right
+  field.
+- **Herbal-medicines axis in the Category index plant
+  column.** `CategoryIndexTag::HERBAL_TRADITIONS` lists five
+  source-tradition subcategories (Ayurvedic herbs, Native
+  American herbs, TCM herbs, Unani herbs, Western clinical
+  herbs), alphabetical, rendered as a fourth section in the
+  plant column distinct from the three Pendell volumes. Live
+  member counts queried per-tradition.
+
+### Fixed
+- **L2: `Ess::SUBSCALES` undefined constant.** Same pattern
+  as the Hyd fix shipped in 0.9.8.6. Single-line const add
+  (`public const SUBSCALES = [];`) so
+  `renderInlineAssessment` finds the empty subscale list on
+  single-scale instruments instead of fataling. ESS-PCP card
+  on Special:MyProfile no longer 500s.
+
+### Changed
+- **About:Pharmacopedia.ext Security & encryption section
+  refresh** (per standing close-out routine). Server-claude
+  A-L inventory rolled in verbatim where appropriate. New
+  ==== Perspective-invite tokens ==== subsection under
+  Application-layer cryptography documents the M3 hashing
+  posture + the 0.9.8.8 cleartext-column drop. Backups
+  subsection updates `REMOTE_KEEP_DAYS` from 60 to 14 and
+  names the active-vs-deletion-recovery distinction honestly.
+  Honest limitations rewrites the backup-lag and
+  perspective-invite items to reflect the post-0.9.8.7 state.
+- **About:Privacy backup-rolloff wording.** Adopts empire-
+  wide language identical to Oyami PRIVACY.md v0.1: "removed
+  from active storage after 14 days; the off-site provider
+  keeps deleted files in a recovery layer for up to 180
+  additional days, during which the encrypted bundle may
+  remain recoverable by the account operator; after that
+  window the bundle is permanently deleted. The backup is
+  GPG-AES256 encrypted at all times; the off-site provider
+  cannot read it." Reverts to clean "up to 14 days" once
+  server-claude's Hetzner BX11 migration lands (queued).
+- **Backup rotation flipped to 14 days off-host.**
+  `REMOTE_KEEP_DAYS` in `/usr/local/bin/pharmacopedia-backup.sh`
+  changed from 60 to 14; local `LOCAL_KEEP_DAYS` unchanged
+  at 7. Operational truth now matches the privacy-page claim
+  for active storage.
+
+### Empire / process
+- **Empire-wide timestamp rule changed to PT.** ISO 8601
+  with seconds in Pacific Time (offset suffix), e.g.
+  `2026-05-23T18:12:32-0700`, replaces the prior UTC-Z form
+  in handoff Date: lines, edit summaries, CHANGELOG dates,
+  and other timestamped output. Relay-time linter accepts
+  PT (preferred) and warns on UTC Z (transition tolerance).
+- **Close-out routine transfers to boss-claude.** 0.9.8.7
+  is the last close-out interface-claude runs; the empire
+  PM (boss-claude) inherits the routine starting 0.9.8.8
+  for all three empire sides (PCP / Oyami / Trykl). Full
+  playbook handed over at
+  `/tmp/handoff_2026-05-24_close-out-playbook-for-boss.md`.
+
+### Audit posture
+- C1 (Dropbox deletion-recovery surfacing): A-text shipped
+  this release on both PCP About:Privacy and Oyami
+  PRIVACY.md; B-text (Hetzner BX11 migration) queued for
+  0.9.8.8 server-claude lane.
+- M1 (typeahead /api.php rate-limit): deferred to 0.9.8.8.
+- M3 (perspective-invite hashing): half-shipped this
+  release (dual-write + hash-first read live); cleartext-
+  column drop in 0.9.8.8.
+- L1 (minors-policy registration gate): deferred per Mark.
+- L2 (Ess::SUBSCALES): closed this release.
+
+
 ## [0.9.8.6] - 2026-05-23
 
 A surface-expansion release: every Problem and every Effect gets its
