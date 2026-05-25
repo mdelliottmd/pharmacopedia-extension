@@ -3939,12 +3939,23 @@ $( function () {
                 mw.notify( 'Rating failed (' + code + ')', { type: 'error' } );
             } );
         }
+        // Expose helpers for the hold-to-expand layer (interface-claude 2026-05-24).
+        w._pcpRateShow = show;
+        w._pcpRateRest = rest;
+        w._pcpRateCommit = commit;
+        w._pcpRatePosToVal = posToVal;
+        w._pcpRateGetAgg = function () { return agg; };
         w.addEventListener( 'mousemove', function ( e ) {
+            if ( w._pcpRateHoldActive ) { return; }
             w.classList.add( 'is-rating' );
             show( posToVal( e.clientX ) );
         } );
-        w.addEventListener( 'mouseleave', rest );
-        w.addEventListener( 'click', function ( e ) { commit( posToVal( e.clientX ) ); } );
+        w.addEventListener( 'mouseleave', function () { if ( w._pcpRateHoldActive ) { return; } rest(); } );
+        w.addEventListener( 'click', function ( e ) {
+            if ( w._pcpRateSuppressNextClick ) { w._pcpRateSuppressNextClick = false; return; }
+            if ( w._pcpRateHoldActive ) { return; }
+            commit( posToVal( e.clientX ) );
+        } );
         w.addEventListener( 'keydown', function ( e ) {
             var cur = parseFloat( w.getAttribute( 'aria-valuenow' ) );
             if ( isNaN( cur ) ) { cur = agg; }
@@ -3959,18 +3970,167 @@ $( function () {
             show( cur + d );
         } );
         w.addEventListener( 'touchstart', function ( e ) {
+            if ( w._pcpRateHoldActive ) { return; }
             w.classList.add( 'is-rating' );
             show( posToVal( e.touches[ 0 ].clientX ) );
         }, { passive: true } );
         w.addEventListener( 'touchmove', function ( e ) {
+            if ( w._pcpRateHoldActive ) { return; }
             e.preventDefault();
             w.classList.add( 'is-rating' );
             show( posToVal( e.touches[ 0 ].clientX ) );
         } );
         w.addEventListener( 'touchend', function ( e ) {
+            if ( w._pcpRateHoldActive ) { return; }
             var t = e.changedTouches[ 0 ];
             commit( posToVal( t ? t.clientX : 0 ) );
         } );
     }
     document.querySelectorAll( '.pcp-rate' ).forEach( init );
 } );
+
+/* ===== Hold-to-expand layer for Problems-section .pcp-rate
+   (designer-claude 2026-05-24). Scope: .pcp-rate inside
+   .pcp-problem only; CommonUsesTag rail unchanged.
+
+   Additive: existing mouseover/keyboard/touch tap-to-commit
+   continues to work. The hold gesture adds an expanded
+   drag-to-rate affordance for precise input on small targets.
+   When the hold-expand layer is driving the widget, the
+   existing init's pointer-derived handlers short-circuit on
+   the per-widget _pcpRateHoldActive / _pcpRateSuppressNextClick
+   flags (set just above in the existing init).
+   ===== */
+$( function () {
+    if ( !window.PointerEvent ) { return; }
+    var HOLD_MS = 300;
+    var CANCEL_PX = 12;
+    var MIN_DELTA = 0.2;     // 0.2 out of 5 ≈ 4pt out of 100 (spec: "moved >1 from aggregate")
+    var FLASH_MS = 600;
+    var COLLAPSE_MS = 160;
+    var TARGET_PX = 483;
+    var SCALE_MIN = 1.5;
+    var SCALE_MAX = 3.0;
+
+    function attach( w ) {
+        if ( !w.closest( '.pcp-problem' ) ) { return; }
+        if ( w.getAttribute( 'data-holdable' ) === '1' ) { return; }
+        w.setAttribute( 'data-holdable', '1' );
+
+        var holdTimer = null;
+        var pressing = false;
+        var expanded = false;
+        var startX = 0, startY = 0;
+        var aggAtHold = 0;
+        var row = null;
+
+        function enterExpanded() {
+            holdTimer = null;
+            if ( !pressing ) { return; }
+            w.classList.remove( 'pcp-rate-pressing' );
+            w.classList.add( 'pcp-rate-expanded', 'pcp-rate-live' );
+            var natural = w.getBoundingClientRect().width;
+            var scale = Math.max( SCALE_MIN, Math.min( SCALE_MAX, TARGET_PX / natural ) );
+            w.style.transform = 'scale(' + scale.toFixed( 3 ) + ')';
+            aggAtHold = w._pcpRateGetAgg ? w._pcpRateGetAgg() : ( parseFloat( w.getAttribute( 'data-agg' ) ) || 0 );
+            w.setAttribute( 'aria-expanded', 'true' );
+            row = w.closest( '.pcp-problem' );
+            if ( row ) { row.classList.add( 'pcp-row-problem-rating-expanded' ); }
+            expanded = true;
+            w._pcpRateHoldActive = true;
+        }
+
+        function cancelPress() {
+            if ( holdTimer ) { clearTimeout( holdTimer ); holdTimer = null; }
+            w.classList.remove( 'pcp-rate-pressing' );
+            pressing = false;
+        }
+
+        function exitExpanded( commitVal ) {
+            w.style.transform = '';
+            w.classList.remove( 'pcp-rate-expanded', 'pcp-rate-live' );
+            w.classList.add( 'pcp-rate-collapse-fast' );
+            w.setAttribute( 'aria-expanded', 'false' );
+            if ( row ) { row.classList.remove( 'pcp-row-problem-rating-expanded' ); row = null; }
+            setTimeout( function () { w.classList.remove( 'pcp-rate-collapse-fast' ); }, COLLAPSE_MS );
+
+            var committed = false;
+            if ( commitVal !== null && commitVal !== undefined &&
+                 Math.abs( commitVal - aggAtHold ) >= MIN_DELTA ) {
+                committed = true;
+                w.classList.add( 'pcp-rate-committed-flash' );
+                setTimeout( function () { w.classList.remove( 'pcp-rate-committed-flash' ); }, FLASH_MS );
+                if ( w._pcpRateCommit ) { w._pcpRateCommit( commitVal ); }
+            } else if ( w._pcpRateRest ) {
+                w._pcpRateRest();
+            }
+
+            expanded = false;
+            pressing = false;
+            // Suppress the synthetic click that follows the pointerup so the
+            // existing click handler does not double-commit (or cancel-commit).
+            w._pcpRateSuppressNextClick = true;
+            // Clear hold-active on next tick so existing pointer-derived
+            // handlers (mousemove etc.) stop short-circuiting.
+            setTimeout( function () { w._pcpRateHoldActive = false; }, 0 );
+            return committed;
+        }
+
+        w.addEventListener( 'pointerdown', function ( e ) {
+            if ( e.pointerType === 'mouse' && e.button !== 0 ) { return; }
+            if ( expanded ) { return; }
+            if ( !w._pcpRateShow ) { return; }  // existing init not yet attached
+            startX = e.clientX;
+            startY = e.clientY;
+            w.classList.add( 'pcp-rate-pressing' );
+            pressing = true;
+            holdTimer = setTimeout( enterExpanded, HOLD_MS );
+        } );
+
+        w.addEventListener( 'pointermove', function ( e ) {
+            if ( expanded ) {
+                w.classList.add( 'pcp-rate-live' );
+                if ( w._pcpRateShow && w._pcpRatePosToVal ) {
+                    w._pcpRateShow( w._pcpRatePosToVal( e.clientX ) );
+                }
+                e.preventDefault();
+                return;
+            }
+            if ( !pressing ) { return; }
+            var dx = e.clientX - startX, dy = e.clientY - startY;
+            if ( dx * dx + dy * dy > CANCEL_PX * CANCEL_PX ) {
+                cancelPress();
+            }
+        } );
+
+        w.addEventListener( 'pointerup', function ( e ) {
+            if ( expanded ) {
+                var v = w._pcpRatePosToVal ? w._pcpRatePosToVal( e.clientX ) : null;
+                exitExpanded( v );
+            } else if ( pressing ) {
+                cancelPress();
+                // Short tap: defer to the existing click handler for commit-at-cursor.
+            }
+        } );
+
+        w.addEventListener( 'pointercancel', function () {
+            if ( expanded ) { exitExpanded( null ); }
+            else { cancelPress(); }
+        } );
+
+        w.addEventListener( 'keydown', function ( e ) {
+            if ( expanded && e.key === 'Escape' ) {
+                e.preventDefault();
+                exitExpanded( null );
+            }
+        } );
+
+        // If the page scrolls while we are pressing-but-not-yet-expanded,
+        // cancel cleanly (touch users dragging vertically to scroll).
+        var scrollCancel = function () { if ( pressing && !expanded ) { cancelPress(); } };
+        window.addEventListener( 'scroll', scrollCancel, { passive: true, capture: true } );
+    }
+
+    document.querySelectorAll( '.pcp-rate' ).forEach( attach );
+} );
+
