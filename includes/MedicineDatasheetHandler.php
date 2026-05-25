@@ -196,6 +196,7 @@ class MedicineDatasheetHandler extends SimpleHandler {
             $out[] = [
                 'problem'          => $u['name'],
                 'problemPageTitle' => 'Special:Problem/' . $u['slug'],
+                'element_id'       => (int)$u['element_id'],
                 'rating'           => $u['mean'] !== null
                     ? (float)$u['mean']
                     : 0.0,

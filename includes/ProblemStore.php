@@ -305,10 +305,11 @@ class ProblemStore {
             $agg = $aggByElement[ $slugToElement[ $slug ] ] ?? [ 'n' => 0, 'sum' => 0.0 ];
             $raters = $agg['n'];
             $uses[] = [
-                'name'   => $name,
-                'slug'   => $slug,
-                'raters' => $raters,
-                'mean'   => $raters > 0 ? round( $agg['sum'] / $raters, 2 ) : null,
+                'name'       => $name,
+                'slug'       => $slug,
+                'element_id' => $slugToElement[ $slug ],
+                'raters'     => $raters,
+                'mean'       => $raters > 0 ? round( $agg['sum'] / $raters, 2 ) : null,
             ];
         }
         usort( $uses, static function ( $a, $b ) {
