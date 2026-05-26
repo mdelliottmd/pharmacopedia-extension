@@ -4125,11 +4125,36 @@ $( function () {
         } );
 
         w.addEventListener( 'keydown', function ( e ) {
-            if ( expanded && e.key === 'Escape' ) {
+            if ( !expanded ) { return; }
+            if ( e.key === 'Escape' ) {
                 e.preventDefault();
+                e.stopPropagation();
                 exitExpanded( null );
+                return;
             }
-        } );
+            if ( e.key === 'Enter' || e.key === ' ' ) {
+                e.preventDefault();
+                e.stopPropagation();
+                var v = parseFloat( w.getAttribute( 'aria-valuenow' ) );
+                if ( isNaN( v ) ) { v = w._pcpRateGetAgg ? w._pcpRateGetAgg() : 0; }
+                maxTravelSq = CANCEL_PX * CANCEL_PX + 1;
+                exitExpanded( v );
+                return;
+            }
+            var step = 0;
+            if ( e.key === 'ArrowRight' || e.key === 'ArrowUp' ) { step = 0.2; }
+            else if ( e.key === 'ArrowLeft' || e.key === 'ArrowDown' ) { step = -0.2; }
+            else { return; }
+            e.preventDefault();
+            e.stopPropagation();
+            var cur = parseFloat( w.getAttribute( 'aria-valuenow' ) );
+            if ( isNaN( cur ) ) { cur = w._pcpRateGetAgg ? w._pcpRateGetAgg() : 0; }
+            var newVal = Math.max( 0, Math.min( 5, cur + step ) );
+            if ( w._pcpRateShow ) {
+                w._pcpRateShow( newVal );
+                w.classList.add( 'pcp-rate-live' );
+            }
+        }, true );
 
         // If the page scrolls while we are pressing-but-not-yet-expanded,
         // cancel cleanly (touch users dragging vertically to scroll).
