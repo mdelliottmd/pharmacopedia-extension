@@ -4024,6 +4024,7 @@ $( function () {
         var aggAtHold = 0;
         var row = null;
         var maxTravelSq = 0;
+        var activePointerId = null;
 
         function enterExpanded() {
             holdTimer = null;
@@ -4047,6 +4048,10 @@ $( function () {
             w.setAttribute( 'aria-expanded', 'true' );
             row = w.closest( '.pcp-problem' );
             if ( row ) { row.classList.add( 'pcp-row-problem-rating-expanded' ); }
+            // Capture the pointer so move/up route to us even if the thumb leaves the widget.
+            if ( activePointerId !== null ) {
+                try { w.setPointerCapture( activePointerId ); } catch ( err ) {}
+            }
             expanded = true;
             w._pcpRateHoldActive = true;
         }
@@ -4055,6 +4060,7 @@ $( function () {
             if ( holdTimer ) { clearTimeout( holdTimer ); holdTimer = null; }
             w.classList.remove( 'pcp-rate-pressing' );
             pressing = false;
+            activePointerId = null;
         }
 
         function exitExpanded( commitVal ) {
@@ -4077,6 +4083,10 @@ $( function () {
                 w._pcpRateRest();
             }
 
+            if ( activePointerId !== null ) {
+                try { w.releasePointerCapture( activePointerId ); } catch ( err ) {}
+                activePointerId = null;
+            }
             expanded = false;
             pressing = false;
             // Suppress the synthetic click that follows the pointerup so the
@@ -4095,6 +4105,7 @@ $( function () {
             startX = e.clientX;
             startY = e.clientY;
             maxTravelSq = 0;
+            activePointerId = e.pointerId;
             w.classList.add( 'pcp-rate-pressing' );
             pressing = true;
             holdTimer = setTimeout( enterExpanded, HOLD_MS );
@@ -4133,6 +4144,15 @@ $( function () {
             if ( expanded ) { exitExpanded( null ); }
             else { cancelPress(); }
         } );
+
+        // touchmove preventDefault while expanded (designer-claude 2026-05-26 fix #2):
+        // PointerEvent.preventDefault() does not block the underlying touch's scroll
+        // intent on mobile Safari; we have to explicitly preventDefault the touchmove
+        // when expanded so the browser does not steal the gesture and fire pointercancel.
+        // Registered with { passive: false } to make preventDefault effective.
+        w.addEventListener( 'touchmove', function ( e ) {
+            if ( expanded ) { e.preventDefault(); }
+        }, { passive: false } );
 
         w.addEventListener( 'keydown', function ( e ) {
             if ( !expanded ) { return; }
