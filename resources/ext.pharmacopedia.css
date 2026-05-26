@@ -7306,6 +7306,14 @@ details.pcp-assess-inline > summary.pcp-assess-summary:hover { color: #fff; }
 .mw-parser-output > dl {
     max-width: var(--measure-prose);
 }
+/* Suppress phantom <p><br /></p> nodes the PHP parser injects before
+   floated infobox tables when template parameter values contain blank
+   lines. Only paragraphs whose sole child is <br> are affected; real
+   content is never a bare <br>. Limit to first 6 children so deeper
+   legitimate paragraphs are untouched. */
+.mw-parser-output > p:has(> br:only-child):nth-child(-n+6) {
+    display: none;
+}
 
 /* header bar */
 body:not(.pcp-skin-plants) .vector-header-container {
