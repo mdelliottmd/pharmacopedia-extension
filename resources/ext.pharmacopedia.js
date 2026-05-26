@@ -4025,6 +4025,20 @@ $( function () {
         var row = null;
         var maxTravelSq = 0;
         var activePointerId = null;
+        // Drag-perf cache + rAF throttle (designer-claude 2026-05-26 perf fix).
+        // dragLeft / dragWidth are captured at expand time so pointermove
+        // never forces a reflow via getBoundingClientRect. latestX + rafPending
+        // throttle DOM writes to once per animation frame.
+        var dragLeft = 0;
+        var dragWidth = 0;
+        var latestX = 0;
+        var rafPending = false;
+        function applyFill() {
+            rafPending = false;
+            if ( !expanded || !w._pcpRateShow ) { return; }
+            var pct = Math.max( 0, Math.min( 1, ( latestX - dragLeft ) / Math.max( dragWidth, 1 ) ) );
+            w._pcpRateShow( pct * 5 );
+        }
 
         function enterExpanded() {
             holdTimer = null;
@@ -4044,6 +4058,15 @@ $( function () {
             var overflow = rightEdge - ( window.innerWidth - 8 );
             var tx = overflow > 0 ? -Math.max( 15, Math.ceil( overflow ) ) : 0;
             w.style.transform = 'translateX(' + tx + 'px) scale(' + scale.toFixed( 3 ) + ')';
+            // Cache the .pcp-rate-stars bounds AFTER the transform so dragLeft /
+            // dragWidth reflect the scaled + translated position. pointermove
+            // uses these and never re-queries getBoundingClientRect.
+            var starsEl = w.querySelector( '.pcp-rate-stars' );
+            if ( starsEl ) {
+                var sr = starsEl.getBoundingClientRect();
+                dragLeft = sr.left;
+                dragWidth = sr.width;
+            }
             aggAtHold = w._pcpRateGetAgg ? w._pcpRateGetAgg() : ( parseFloat( w.getAttribute( 'data-agg' ) ) || 0 );
             w.setAttribute( 'aria-expanded', 'true' );
             row = w.closest( '.pcp-problem' );
@@ -4114,8 +4137,10 @@ $( function () {
         w.addEventListener( 'pointermove', function ( e ) {
             if ( expanded ) {
                 w.classList.add( 'pcp-rate-live' );
-                if ( w._pcpRateShow && w._pcpRatePosToVal ) {
-                    w._pcpRateShow( w._pcpRatePosToVal( e.clientX ) );
+                latestX = e.clientX;
+                if ( !rafPending ) {
+                    rafPending = true;
+                    requestAnimationFrame( applyFill );
                 }
                 var edx = e.clientX - startX, edy = e.clientY - startY;
                 var esq = edx * edx + edy * edy;
@@ -4132,8 +4157,10 @@ $( function () {
 
         w.addEventListener( 'pointerup', function ( e ) {
             if ( expanded ) {
-                var v = w._pcpRatePosToVal ? w._pcpRatePosToVal( e.clientX ) : null;
-                exitExpanded( v );
+                // Use cached bounds (designer-claude 2026-05-26 perf) so commit
+                // value derives from the same math the drag preview used.
+                var pct = Math.max( 0, Math.min( 1, ( e.clientX - dragLeft ) / Math.max( dragWidth, 1 ) ) );
+                exitExpanded( pct * 5 );
             } else if ( pressing ) {
                 cancelPress();
                 // Short tap: defer to the existing click handler for commit-at-cursor.
