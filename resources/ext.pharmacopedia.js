@@ -4023,6 +4023,7 @@ $( function () {
         var startX = 0, startY = 0;
         var aggAtHold = 0;
         var row = null;
+        var maxTravelSq = 0;
 
         function enterExpanded() {
             holdTimer = null;
@@ -4056,6 +4057,7 @@ $( function () {
 
             var committed = false;
             if ( commitVal !== null && commitVal !== undefined &&
+                 maxTravelSq >= CANCEL_PX * CANCEL_PX &&
                  Math.abs( commitVal - aggAtHold ) >= MIN_DELTA ) {
                 committed = true;
                 w.classList.add( 'pcp-rate-committed-flash' );
@@ -4082,6 +4084,7 @@ $( function () {
             if ( !w._pcpRateShow ) { return; }  // existing init not yet attached
             startX = e.clientX;
             startY = e.clientY;
+            maxTravelSq = 0;
             w.classList.add( 'pcp-rate-pressing' );
             pressing = true;
             holdTimer = setTimeout( enterExpanded, HOLD_MS );
@@ -4093,6 +4096,9 @@ $( function () {
                 if ( w._pcpRateShow && w._pcpRatePosToVal ) {
                     w._pcpRateShow( w._pcpRatePosToVal( e.clientX ) );
                 }
+                var edx = e.clientX - startX, edy = e.clientY - startY;
+                var esq = edx * edx + edy * edy;
+                if ( esq > maxTravelSq ) { maxTravelSq = esq; }
                 e.preventDefault();
                 return;
             }
