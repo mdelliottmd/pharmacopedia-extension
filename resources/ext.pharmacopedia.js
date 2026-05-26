@@ -4030,9 +4030,19 @@ $( function () {
             if ( !pressing ) { return; }
             w.classList.remove( 'pcp-rate-pressing' );
             w.classList.add( 'pcp-rate-expanded', 'pcp-rate-live' );
-            var natural = w.getBoundingClientRect().width;
+            var rect = w.getBoundingClientRect();
+            var natural = rect.width;
             var scale = Math.max( SCALE_MIN, Math.min( SCALE_MAX, TARGET_PX / natural ) );
-            w.style.transform = 'scale(' + scale.toFixed( 3 ) + ')';
+            // Viewport-overflow nudge (designer-claude 2026-05-26): on narrow
+            // viewports the expanded widget would clip on the right; translateX
+            // by enough to keep the right edge 8px inside the viewport, floored
+            // at -15px so the shift is always visible when it triggers.
+            var expandedW = natural * scale;
+            var centerX = rect.left + natural / 2;
+            var rightEdge = centerX + expandedW / 2;
+            var overflow = rightEdge - ( window.innerWidth - 8 );
+            var tx = overflow > 0 ? -Math.max( 15, Math.ceil( overflow ) ) : 0;
+            w.style.transform = 'translateX(' + tx + 'px) scale(' + scale.toFixed( 3 ) + ')';
             aggAtHold = w._pcpRateGetAgg ? w._pcpRateGetAgg() : ( parseFloat( w.getAttribute( 'data-agg' ) ) || 0 );
             w.setAttribute( 'aria-expanded', 'true' );
             row = w.closest( '.pcp-problem' );
