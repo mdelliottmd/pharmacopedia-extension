@@ -4013,7 +4013,7 @@ $( function () {
     var SCALE_MAX = 3.0;
 
     function attach( w ) {
-        if ( !w.closest( '.pcp-problem' ) ) { return; }
+        // scope: all .pcp-rate widgets (empire-wide hold-to-expand, locked 2026-05-26)
         if ( w.getAttribute( 'data-holdable' ) === '1' ) { return; }
         w.setAttribute( 'data-holdable', '1' );
 
