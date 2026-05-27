@@ -34,10 +34,9 @@ class RateWidget {
         $h .= '<span class="row pcp-rate-empty">&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '<span class="row pcp-rate-fill" style="width:' . $fill . '%">';
         $h .= '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
+        $h .= '<span class="pcp-rate-your-mark" aria-hidden="true"></span>';
         $h .= '</span>';
         $h .= '<span class="pcp-rate-num">' . htmlspecialchars( $num ) . '</span>';
-        $h .= '<span class="rating-yours"></span>';
-        $h .= '<span class="rating-avg"></span>';
         $h .= '</span>';
         $h .= '<button class="pcp-rate-btn" data-for="' . $elementId . '"';
         $h .= ' aria-label="Rate ' . htmlspecialchars( $forTitle ) . '">';

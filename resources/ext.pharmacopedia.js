@@ -4012,37 +4012,19 @@ $( function () {
     var SCALE_MIN = 1.5;
     var SCALE_MAX = 3.0;
 
-    // Voted-split display: show "you X.X" / "avg X.X" and flip button label.
-    // Called after a successful commit and on page-load when voted state is known.
+    // Voted marker: position the hollow-star mark at the user's vote position
+    // and flip button label. Called after a successful commit and on page-load.
     function applyVotedState( w, yourVal, aggVal ) {
-        w._pcpRateYourVal = yourVal;
-        var yoursEl = w.querySelector( '.rating-yours' );
-        var avgEl   = w.querySelector( '.rating-avg' );
-        if ( yoursEl ) { yoursEl.textContent = 'you ' + yourVal.toFixed( 1 ); }
-        if ( avgEl )   { avgEl.textContent   = 'avg ' + aggVal.toFixed( 1 ); }
+        var mark = w.querySelector( '.pcp-rate-your-mark' );
+        if ( mark ) { mark.style.left = ( yourVal / 5 * 100 ).toFixed( 2 ) + '%'; }
         w.setAttribute( 'data-voted', '1' );
         w.setAttribute( 'aria-label',
             'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
-        // Stars fill to user's own value in voted state.
-        var fill = w.querySelector( '.pcp-rate-fill' );
-        if ( fill ) { fill.style.width = ( yourVal / 5 * 100 ).toFixed( 2 ) + '%'; }
         // Flip button label to Re-rate.
         var eidAttr = w.getAttribute( 'data-element-id' );
         if ( eidAttr ) {
             var btn = document.querySelector( '.pcp-rate-btn[data-for="' + eidAttr + '"]' );
             if ( btn ) { btn.textContent = 'Re-rate'; }
-        }
-        // Patch rest() once so mouseout restores user's own fill, not aggregate fill.
-        if ( !w._pcpRateRestPatched ) {
-            w._pcpRateRestPatched = true;
-            var origRest = w._pcpRateRest;
-            w._pcpRateRest = function () {
-                if ( origRest ) { origRest(); }
-                if ( w._pcpRateYourVal != null ) {
-                    var f = w.querySelector( '.pcp-rate-fill' );
-                    if ( f ) { f.style.width = ( w._pcpRateYourVal / 5 * 100 ).toFixed( 2 ) + '%'; }
-                }
-            };
         }
     }
 
