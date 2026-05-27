@@ -9460,7 +9460,7 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     position: absolute;
     top: 50%;
     left: 0;
-    transform: translateY( -48% );
+    transform: translateY( -44% );
     pointer-events: none;
     display: none;
     overflow: visible;

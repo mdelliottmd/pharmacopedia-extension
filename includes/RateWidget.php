@@ -36,7 +36,7 @@ class RateWidget {
         $h .= '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '<svg class="pcp-rate-your-mark" xmlns="http://www.w3.org/2000/svg"'
             . ' viewBox="0 -10 9.6 18.2" aria-hidden="true">'
-            . '<path d="M0,-10 L2.25,-3.09 L9.51,-3.09 L3.63,1.18 L5.88,8.09 L0,3.82 Z"'
+            . '<path d="M0,-10 L2.645,-3.641 L9.51,-3.09 L4.280,1.391 L5.88,8.09 L0,4.5 Z"'
             . ' fill="none" stroke="#ffe08a" stroke-width="1.2" stroke-linejoin="round"/>'
             . '</svg>';
         $h .= '</span>';
