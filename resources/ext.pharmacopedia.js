@@ -3934,6 +3934,11 @@ $( function () {
                     w.setAttribute( 'data-agg', agg.toFixed( 2 ) );
                     w.setAttribute( 'data-agg-n', d.n );
                     show( agg );
+                    // Mark voted state (click/tap path; hold path uses exitExpanded).
+                    if ( w._pcpApplyVotedState ) { w._pcpApplyVotedState( v, agg ); }
+                    try {
+                        if ( eid ) { localStorage.setItem( 'pcp_rating_' + eid, v.toFixed( 2 ) ); }
+                    } catch ( lsErr ) {}
                 }
             } ).fail( function ( code ) {
                 mw.notify( 'Rating failed (' + code + ')', { type: 'error' } );
@@ -4266,6 +4271,9 @@ $( function () {
                 } catch ( lsErr2 ) {}
             }
         }() );
+
+        // Expose applyVotedState for the existing init's click/tap commit path.
+        w._pcpApplyVotedState = function ( yourVal, aggVal ) { applyVotedState( w, yourVal, aggVal ); };
     }
 
     document.querySelectorAll( '.pcp-rate' ).forEach( attach );
