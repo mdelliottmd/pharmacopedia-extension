@@ -9492,8 +9492,19 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     flex-shrink: 0;
     vertical-align: middle;
 }
-.pcp-rate.pcp-rate-expanded[data-voted] .pcp-rate-remove {
+.pcp-rate[data-voted] .pcp-rate-remove {
     display: inline-flex;
+}
+.pcp-rate[data-voted] .pcp-rate-mine {
+    display: inline;
+}
+.pcp-rate-mine {
+    display: none;
+    color: #ff2d78;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
 }
 .pcp-rate-remove:hover,
 .pcp-rate-remove:focus-visible {

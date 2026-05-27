@@ -4034,6 +4034,8 @@ $( function () {
                                 + '% 0 '     + leftPct.toFixed( 2 ) + '%)';
         }
         w.setAttribute( 'data-voted', '1' );
+        var mineEl = w.querySelector( '.pcp-rate-mine' );
+        if ( mineEl ) { mineEl.textContent = yourVal.toFixed( 1 ); }
         w.setAttribute( 'aria-label',
             'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
     }
@@ -4291,6 +4293,8 @@ $( function () {
                 w.removeAttribute( 'data-voted' );
                 var mark = w.querySelector( '.pcp-rate-your-mark' );
                 if ( mark ) { mark.style.clipPath = ''; }
+                var mineEl2 = w.querySelector( '.pcp-rate-mine' );
+                if ( mineEl2 ) { mineEl2.textContent = ''; }
                 // Decrement n optimistically
                 var curN = parseInt( w.getAttribute( 'data-agg-n' ) || '0', 10 );
                 if ( curN > 0 ) {
