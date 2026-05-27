@@ -9453,17 +9453,18 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
 /* ===== Vote position marker
    (designer-claude 2026-05-26) ===== */
 
-/* Vote position marker: right half of 5-pt star SVG (designer-claude 2026-05-26).
-   Left edge (bisection) sits at vote position; star fans right. Stroke only.
-   overflow:visible lets stroke extend fractionally outside the 7x14 box. */
+/* Vote position marker: clipped Unicode star row (designer-claude 2026-05-26).
+   Third row of 5x★ inherits font-size/letter-spacing from .pcp-rate-stars,
+   so each glyph lands at the exact pixel position as .pcp-rate-empty.
+   JS sets clip-path to reveal only the right half of the voted star. */
 .pcp-rate-your-mark {
     position: absolute;
-    top: 50%;
+    top: 0;
     left: 0;
-    transform: translateY( -44% );
+    color: transparent;
+    -webkit-text-stroke: 1px #ff2d78;
+            text-stroke: 1px #ff2d78;
     pointer-events: none;
     display: none;
-    overflow: visible;
 }
-.pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
-.pcp-rate-your-mark path { stroke: #ff2d78; }
+.pcp-rate[data-voted] .pcp-rate-your-mark { display: inline; }

@@ -34,11 +34,8 @@ class RateWidget {
         $h .= '<span class="row pcp-rate-empty">&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '<span class="row pcp-rate-fill" style="width:' . $fill . '%">';
         $h .= '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
-        $h .= '<svg class="pcp-rate-your-mark" xmlns="http://www.w3.org/2000/svg"'
-            . ' viewBox="0 -10 9.6 18.2" aria-hidden="true">'
-            . '<path d="M0,-10 L2.645,-3.641 L9.51,-3.09 L4.280,1.391 L5.88,8.09 L0,4.5 Z"'
-            . ' fill="none" stroke="#ffe08a" stroke-width="1.2" stroke-linejoin="round"/>'
-            . '</svg>';
+        $h .= '<span class="row pcp-rate-your-mark" aria-hidden="true">'
+            . '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '</span>';
         $h .= '<span class="pcp-rate-num">' . htmlspecialchars( $num ) . '</span>';
         $h .= '</span>';
