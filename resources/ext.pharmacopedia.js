@@ -4026,7 +4026,7 @@ $( function () {
             var totalW   = starsEl.getBoundingClientRect().width;
             var LS       = 2;
             var W        = ( totalW - 4 * LS ) / 5;
-            var leftPx   = ( yourVal - 1 ) * ( W + LS ) + W / 2;
+            var leftPx   = ( yourVal - 1 ) * ( W + LS );
             var rightPx  = ( yourVal - 1 ) * ( W + LS ) + W;
             var leftPct  = ( leftPx  / totalW ) * 100;
             var rightPct = ( rightPx / totalW ) * 100;
