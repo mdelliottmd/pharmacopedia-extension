@@ -38,9 +38,6 @@ class RateWidget {
         $h .= '</span>';
         $h .= '<span class="pcp-rate-num">' . htmlspecialchars( $num ) . '</span>';
         $h .= '</span>';
-        $h .= '<button class="pcp-rate-btn" data-for="' . $elementId . '"';
-        $h .= ' aria-label="Rate ' . htmlspecialchars( $forTitle ) . '">';
-        $h .= 'Rate</button>';
         return $h;
     }
 }

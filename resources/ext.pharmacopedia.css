@@ -9450,49 +9450,21 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     }
 }
 
-/* ===== Rate button + voted position marker
+/* ===== Vote position marker
    (designer-claude 2026-05-26) ===== */
-.pcp-rate-btn {
-    background: transparent;
-    border: 1px solid rgba( 200, 153, 104, 0.30 );
-    border-radius: 3px;
-    color: #c89968;
-    cursor: pointer;
-    font-size: 0.78em;
-    padding: 1px 6px;
-    line-height: 1.6;
-    vertical-align: middle;
-    margin-left: 4px;
-}
-.pcp-rate-btn:hover { border-color: #c89968; }
 
-/* Hollow-star mark at user's vote position; visible only when data-voted. */
+/* Hollow-star mark at user's vote position; visible only when data-voted.
+   #ffe08a reads against amber fill and dark empty area alike. */
 .pcp-rate-your-mark {
     position: absolute;
     top: 50%;
     left: 0;
     transform: translate( -50%, -50% );
-    font-size: 1em;
+    font-size: 1.1em;
     line-height: 1;
-    color: #c89968;
+    color: #ffe08a;
     pointer-events: none;
     display: none;
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
 .pcp-rate-your-mark::before { content: '\2606'; }
-
-/* Skin: plants */
-body.pcp-skin-plants .pcp-rate-btn {
-    color: #b67a44;
-    border-color: rgba( 182, 122, 68, 0.30 );
-}
-body.pcp-skin-plants .pcp-rate-btn:hover { border-color: #b67a44; }
-body.pcp-skin-plants .pcp-rate-your-mark { color: #b67a44; }
-
-/* Skin: fungi */
-body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-btn {
-    color: #c2965a;
-    border-color: rgba( 194, 150, 90, 0.30 );
-}
-body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-btn:hover { border-color: #c2965a; }
-body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-your-mark { color: #c2965a; }

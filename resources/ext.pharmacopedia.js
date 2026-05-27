@@ -4020,12 +4020,6 @@ $( function () {
         w.setAttribute( 'data-voted', '1' );
         w.setAttribute( 'aria-label',
             'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
-        // Flip button label to Re-rate.
-        var eidAttr = w.getAttribute( 'data-element-id' );
-        if ( eidAttr ) {
-            var btn = document.querySelector( '.pcp-rate-btn[data-for="' + eidAttr + '"]' );
-            if ( btn ) { btn.textContent = 'Re-rate'; }
-        }
     }
 
     function attach( w ) {
@@ -4248,28 +4242,7 @@ $( function () {
         var scrollCancel = function () { if ( pressing && !expanded ) { cancelPress(); } };
         window.addEventListener( 'scroll', scrollCancel, { passive: true, capture: true } );
 
-        // Rate button: click triggers expand immediately (no 300ms hold).
-        // Pre-seeds maxTravelSq past threshold so a click-and-release in the
-        // expanded widget commits (value-delta gate still applies).
-        function immediateExpand( clientX, clientY ) {
-            if ( expanded || !w._pcpRateShow ) { return; }
-            startX = clientX;
-            startY = clientY;
-            maxTravelSq = CANCEL_PX * CANCEL_PX + 1;
-            pressing = true;
-            enterExpanded();
-        }
-
         var eid = w.getAttribute( 'data-element-id' );
-        if ( eid ) {
-            var rateBtn = document.querySelector( '.pcp-rate-btn[data-for="' + eid + '"]' );
-            if ( rateBtn ) {
-                rateBtn.addEventListener( 'click', function ( e ) {
-                    e.stopPropagation();
-                    immediateExpand( e.clientX, e.clientY );
-                } );
-            }
-        }
 
         // Page-load voted state: prefer server-rendered data-user-rating on
         // .pcp-problem ancestor, fall back to localStorage (CommonUses + problems).
