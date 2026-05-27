@@ -4021,7 +4021,16 @@ $( function () {
     // and flip button label. Called after a successful commit and on page-load.
     function applyVotedState( w, yourVal, aggVal ) {
         var mark = w.querySelector( '.pcp-rate-your-mark' );
-        if ( mark ) { mark.style.left = Math.max( 0, ( yourVal - 1 ) / 5 * 100 + 5 ).toFixed( 2 ) + "%"; }
+        if ( mark ) {
+            var starsEl = mark.parentElement;
+            var totalW  = starsEl.getBoundingClientRect().width;
+            var LS      = 2;                                       // letter-spacing px
+            var W       = ( totalW - 4 * LS ) / 5;                // char width
+            var center  = ( yourVal - 0.5 ) * ( W + LS ) - LS / 2; // center of voted star
+            var markW   = mark.getBoundingClientRect().width;      // SVG rendered width
+            var leftPx  = center - markW / 2;
+            mark.style.left = Math.max( 0, leftPx ).toFixed( 2 ) + 'px';
+        }
         w.setAttribute( 'data-voted', '1' );
         w.setAttribute( 'aria-label',
             'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
