@@ -344,6 +344,13 @@ class Hooks {
             $out->addBodyClasses( [ 'pcp-skin-plants' ] );
             $out->addModuleStyles( [ 'ext.pharmacopedia.skin.plants' ] );
         }
+
+        // Editor enhancements (smart paste, house-rules linter, quick-ref stub):
+        // load only on wikitext edit/preview pages.
+        $editAction = $out->getRequest()->getVal( 'action', 'view' );
+        if ( $editAction === 'edit' || $editAction === 'submit' ) {
+            $out->addModules( [ 'ext.pharmacopedia.editor' ] );
+        }
     }
 
     /**

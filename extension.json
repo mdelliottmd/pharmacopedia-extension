@@ -151,6 +151,12 @@
                 "mediawiki.util"
             ]
         },
+        "ext.pharmacopedia.editor": {
+            "scripts": [
+                "resources/ext.pharmacopedia.editor.js"
+            ],
+            "dependencies": []
+        },
         "ext.pharmacopedia.share": {
             "scripts": [
                 "ext.pharmacopedia.share.js"
