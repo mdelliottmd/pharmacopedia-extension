@@ -4026,6 +4026,10 @@ $( function () {
             var totalW  = starsEl.getBoundingClientRect().width;
             var LS      = 2;
             var W       = ( totalW - 4 * LS ) / 5;
+            var markW   = W / 2;
+            var markH   = markW * ( 18.2 / 9.6 );   // preserve viewBox aspect ratio
+            mark.style.width  = markW.toFixed( 2 ) + 'px';
+            mark.style.height = markH.toFixed( 2 ) + 'px';
             var center  = ( yourVal - 0.5 ) * ( W + LS ) - LS / 2;
             mark.style.left = Math.max( 0, center ).toFixed( 2 ) + 'px';
         }
