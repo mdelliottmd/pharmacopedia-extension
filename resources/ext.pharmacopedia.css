@@ -9460,11 +9460,11 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     position: absolute;
     top: 50%;
     left: 0;
-    transform: translateY( -50% );
+    transform: translateY( -48% );
     pointer-events: none;
     display: none;
     overflow: visible;
-    height: 1em;
+    height: 0.85em;
     width: auto;
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
