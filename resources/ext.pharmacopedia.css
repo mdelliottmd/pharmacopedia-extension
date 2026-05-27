@@ -9468,4 +9468,4 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     width: auto;
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
-.pcp-rate-your-mark path { stroke: var( --pharma-violet-bright, #a78bfa ); }
+.pcp-rate-your-mark path { stroke: #ff2d78; }
