@@ -4012,6 +4012,40 @@ $( function () {
     var SCALE_MIN = 1.5;
     var SCALE_MAX = 3.0;
 
+    // Voted-split display: show "you X.X" / "avg X.X" and flip button label.
+    // Called after a successful commit and on page-load when voted state is known.
+    function applyVotedState( w, yourVal, aggVal ) {
+        w._pcpRateYourVal = yourVal;
+        var yoursEl = w.querySelector( '.rating-yours' );
+        var avgEl   = w.querySelector( '.rating-avg' );
+        if ( yoursEl ) { yoursEl.textContent = 'you ' + yourVal.toFixed( 1 ); }
+        if ( avgEl )   { avgEl.textContent   = 'avg ' + aggVal.toFixed( 1 ); }
+        w.setAttribute( 'data-voted', '1' );
+        w.setAttribute( 'aria-label',
+            'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
+        // Stars fill to user's own value in voted state.
+        var fill = w.querySelector( '.pcp-rate-fill' );
+        if ( fill ) { fill.style.width = ( yourVal / 5 * 100 ).toFixed( 2 ) + '%'; }
+        // Flip button label to Re-rate.
+        var eidAttr = w.getAttribute( 'data-element-id' );
+        if ( eidAttr ) {
+            var btn = document.querySelector( '.pcp-rate-btn[data-for="' + eidAttr + '"]' );
+            if ( btn ) { btn.textContent = 'Re-rate'; }
+        }
+        // Patch rest() once so mouseout restores user's own fill, not aggregate fill.
+        if ( !w._pcpRateRestPatched ) {
+            w._pcpRateRestPatched = true;
+            var origRest = w._pcpRateRest;
+            w._pcpRateRest = function () {
+                if ( origRest ) { origRest(); }
+                if ( w._pcpRateYourVal != null ) {
+                    var f = w.querySelector( '.pcp-rate-fill' );
+                    if ( f ) { f.style.width = ( w._pcpRateYourVal / 5 * 100 ).toFixed( 2 ) + '%'; }
+                }
+            };
+        }
+    }
+
     function attach( w ) {
         // scope: all .pcp-rate widgets (empire-wide hold-to-expand, locked 2026-05-26)
         if ( w.getAttribute( 'data-holdable' ) === '1' ) { return; }
@@ -4102,6 +4136,13 @@ $( function () {
                 w.classList.add( 'pcp-rate-committed-flash' );
                 setTimeout( function () { w.classList.remove( 'pcp-rate-committed-flash' ); }, FLASH_MS );
                 if ( w._pcpRateCommit ) { w._pcpRateCommit( commitVal ); }
+                // Update voted split view + persist to localStorage (MVP: avg is optimistic).
+                var curAgg = w._pcpRateGetAgg ? w._pcpRateGetAgg() : ( parseFloat( w.getAttribute( 'data-agg' ) ) || 0 );
+                applyVotedState( w, commitVal, curAgg );
+                try {
+                    var lsKey = 'pcp_rating_' + w.getAttribute( 'data-element-id' );
+                    localStorage.setItem( lsKey, commitVal.toFixed( 2 ) );
+                } catch ( lsErr ) {}
             } else if ( w._pcpRateRest ) {
                 w._pcpRateRest();
             }
@@ -4123,7 +4164,14 @@ $( function () {
 
         w.addEventListener( 'pointerdown', function ( e ) {
             if ( e.pointerType === 'mouse' && e.button !== 0 ) { return; }
-            if ( expanded ) { return; }
+            if ( expanded ) {
+                // Widget expanded via Rate button; capture pointer so drag tracks correctly.
+                activePointerId = e.pointerId;
+                startX = e.clientX;
+                startY = e.clientY;
+                try { w.setPointerCapture( e.pointerId ); } catch ( err2 ) {}
+                return;
+            }
             if ( !w._pcpRateShow ) { return; }  // existing init not yet attached
             startX = e.clientX;
             startY = e.clientY;
@@ -4217,6 +4265,52 @@ $( function () {
         // cancel cleanly (touch users dragging vertically to scroll).
         var scrollCancel = function () { if ( pressing && !expanded ) { cancelPress(); } };
         window.addEventListener( 'scroll', scrollCancel, { passive: true, capture: true } );
+
+        // Rate button: click triggers expand immediately (no 300ms hold).
+        // Pre-seeds maxTravelSq past threshold so a click-and-release in the
+        // expanded widget commits (value-delta gate still applies).
+        function immediateExpand( clientX, clientY ) {
+            if ( expanded || !w._pcpRateShow ) { return; }
+            startX = clientX;
+            startY = clientY;
+            maxTravelSq = CANCEL_PX * CANCEL_PX + 1;
+            pressing = true;
+            enterExpanded();
+        }
+
+        var eid = w.getAttribute( 'data-element-id' );
+        if ( eid ) {
+            var rateBtn = document.querySelector( '.pcp-rate-btn[data-for="' + eid + '"]' );
+            if ( rateBtn ) {
+                rateBtn.addEventListener( 'click', function ( e ) {
+                    e.stopPropagation();
+                    immediateExpand( e.clientX, e.clientY );
+                } );
+            }
+        }
+
+        // Page-load voted state: prefer server-rendered data-user-rating on
+        // .pcp-problem ancestor, fall back to localStorage (CommonUses + problems).
+        ( function detectVotedOnLoad() {
+            var aggAtLoad = parseFloat( w.getAttribute( 'data-agg' ) ) || 0;
+            var problem = w.closest ? w.closest( '.pcp-problem' ) : null;
+            if ( problem ) {
+                var sv = parseFloat( problem.getAttribute( 'data-user-rating' ) );
+                if ( !isNaN( sv ) && sv >= 0 ) {
+                    applyVotedState( w, sv, aggAtLoad );
+                    return;
+                }
+            }
+            if ( eid ) {
+                try {
+                    var stored = localStorage.getItem( 'pcp_rating_' + eid );
+                    if ( stored !== null ) {
+                        var sv2 = parseFloat( stored );
+                        if ( !isNaN( sv2 ) && sv2 >= 0 ) { applyVotedState( w, sv2, aggAtLoad ); }
+                    }
+                } catch ( lsErr2 ) {}
+            }
+        }() );
     }
 
     document.querySelectorAll( '.pcp-rate' ).forEach( attach );

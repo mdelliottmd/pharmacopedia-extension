@@ -9449,3 +9449,56 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
         padding: 14px;
     }
 }
+
+/* ===== Rate button + voted split display
+   (designer-claude 2026-05-26) ===== */
+.pcp-rate-btn {
+    background: transparent;
+    border: 1px solid rgba( 200, 153, 104, 0.30 );
+    border-radius: 3px;
+    color: #c89968;
+    cursor: pointer;
+    font-size: 0.78em;
+    padding: 1px 6px;
+    line-height: 1.6;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+.pcp-rate-btn:hover { border-color: #c89968; }
+
+/* Split spans hidden by default; shown when widget carries data-voted. */
+.pcp-rate .rating-yours,
+.pcp-rate .rating-avg { display: none; }
+
+/* Voted state at rest: show split, hide single aggregate number. */
+.pcp-rate[data-voted]:not(.is-rating):not(.pcp-rate-live) .pcp-rate-num { display: none; }
+.pcp-rate[data-voted]:not(.is-rating):not(.pcp-rate-live) .rating-yours {
+    display: inline;
+    color: #c89968;
+    font-weight: 500;
+}
+.pcp-rate[data-voted]:not(.is-rating):not(.pcp-rate-live) .rating-avg {
+    display: inline;
+    font-size: 0.85em;
+    opacity: 0.70;
+}
+
+/* Skin: plants */
+body.pcp-skin-plants .pcp-rate-btn {
+    color: #b67a44;
+    border-color: rgba( 182, 122, 68, 0.30 );
+}
+body.pcp-skin-plants .pcp-rate-btn:hover { border-color: #b67a44; }
+body.pcp-skin-plants .pcp-rate[data-voted]:not(.is-rating):not(.pcp-rate-live) .rating-yours {
+    color: #b67a44;
+}
+
+/* Skin: fungi */
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-btn {
+    color: #c2965a;
+    border-color: rgba( 194, 150, 90, 0.30 );
+}
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate-btn:hover { border-color: #c2965a; }
+body.pcp-skin-plants.pcp-skin-fungi .pcp-rate[data-voted]:not(.is-rating):not(.pcp-rate-live) .rating-yours {
+    color: #c2965a;
+}

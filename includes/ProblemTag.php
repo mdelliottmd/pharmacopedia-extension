@@ -101,7 +101,7 @@ class ProblemTag {
         $h  = '<div class="pcp-row pcp-row-problem pcp-problem" id="problem-' . htmlspecialchars( $normSlug ) .
               '" data-slug="' . htmlspecialchars( $normSlug ) .
               '" data-element-id="' . $elementId .
-              '" data-user-rating="' . ( $userRating === null ? '' : (int)$userRating ) . '"' .
+              '" data-user-rating="' . ( $userRating === null ? '' : ( $userRating >= 0 ? sprintf( '%.2f', (float)$userRating ) : '' ) ) . '"' .
               ' data-likert-n="' . (int)$agg['n'] . '"' .
               ' data-likert-mean="' . ( $agg['n'] > 0 ? (float)$agg['mean'] : '' ) . '">';
 
