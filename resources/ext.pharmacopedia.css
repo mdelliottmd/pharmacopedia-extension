@@ -9453,19 +9453,28 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
 /* ===== Vote position marker
    (designer-claude 2026-05-26) ===== */
 
-/* Hollow-star mark at user's vote position; visible only when data-voted.
+/* Vote position marker: flag-pin shape (designer-claude 2026-05-26).
+   2px vertical line spanning star row height; filled ★ pin head above.
    #ffe08a reads against amber fill and dark empty area alike. */
 .pcp-rate-your-mark {
     position: absolute;
-    top: 50%;
+    top: 0;
     left: 0;
-    transform: translate( -50%, -50% );
-    font-size: 1.1em;
-    line-height: 1;
-    color: #ffe08a;
+    transform: translateX( -50% );
+    height: 100%;
+    width: 2px;
+    background: #ffe08a;
     pointer-events: none;
     display: none;
-    clip-path: inset( 0 0 0 50% );
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
-.pcp-rate-your-mark::before { content: '\2606'; }
+.pcp-rate-your-mark::before {
+    content: '\2605';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX( -50% );
+    font-size: 8px;
+    color: #ffe08a;
+    line-height: 1;
+}
