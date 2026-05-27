@@ -4024,10 +4024,11 @@ $( function () {
         if ( mark ) {
             var starsEl = mark.parentElement;
             var totalW  = starsEl.getBoundingClientRect().width;
-            var LS      = 2;                                       // letter-spacing px
-            var W       = ( totalW - 4 * LS ) / 5;                // char width
-            var center  = ( yourVal - 0.5 ) * ( W + LS ) - LS / 2; // center of voted star
-            var markW   = mark.getBoundingClientRect().width;      // SVG rendered width
+            var LS      = 2;                                        // letter-spacing px
+            var W       = ( totalW - 4 * LS ) / 5;                 // char width
+            var center  = ( yourVal - 0.5 ) * ( W + LS ) - LS / 2;
+            var fontPx  = parseFloat( getComputedStyle( starsEl ).fontSize );
+            var markW   = fontPx * 0.85 * ( 9.6 / 18.2 );          // derived, not measured
             var leftPx  = center - markW / 2;
             mark.style.left = Math.max( 0, leftPx ).toFixed( 2 ) + 'px';
         }

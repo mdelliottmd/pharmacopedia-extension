@@ -9465,7 +9465,7 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     display: none;
     overflow: visible;
     height: 0.85em;
-    width: auto;
+    width: 0.448em;   /* 0.85 * 9.6 / 18.2 */
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: block; }
 .pcp-rate-your-mark path { stroke: #ff2d78; }
