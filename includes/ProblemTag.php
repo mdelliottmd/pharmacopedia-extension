@@ -89,9 +89,7 @@ class ProblemTag {
         $rMean   = max( 0.0, min( 5.0, (float)( $agg['mean'] ?? 0 ) ) );
         $rN      = (int)$agg['n'];
         $aggText = RateWidget::render( (int)$elementId, $rMean, $rN, $title );
-        if ( $rN > 0 ) {
-            $aggText .= ' <span class="pcp-rate-n">n=' . $rN . '</span>';
-        }
+        // pcp-rate-n is now rendered inside RateWidget (two-line voted layout).
         if ( $dk > 0 ) {
             $aggText .= ' <span class="pcp-likert-dk-count">' . $dk . ' don\'t know</span>';
         }

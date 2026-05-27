@@ -37,10 +37,19 @@ class RateWidget {
         $h .= '<span class="row pcp-rate-your-mark" aria-hidden="true">'
             . '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '</span>';
+        $h .= '<span class="pcp-rate-vals">';
+        $h .= '<span class="pcp-rate-row-top">';
         $h .= '<span class="pcp-rate-num">' . htmlspecialchars( $num ) . '</span>';
+        if ( $n > 0 ) {
+            $h .= '<span class="pcp-rate-n">n=' . $n . '</span>';
+        }
+        $h .= '</span>';
+        $h .= '<span class="pcp-rate-row-bot">';
         $h .= '<span class="pcp-rate-mine" aria-hidden="true"></span>';
         $h .= '<button class="pcp-rate-remove" type="button"'
             . ' aria-label="Remove your rating">&#x00D7;</button>';
+        $h .= '</span>';
+        $h .= '</span>';
         $h .= '</span>';
         return $h;
     }

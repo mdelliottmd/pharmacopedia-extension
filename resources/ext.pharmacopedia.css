@@ -9469,12 +9469,44 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: inline; }
 
-/* ===== Remove-vote button
+/* ===== Two-line voted display + remove button
    (designer-claude 2026-05-26) ===== */
 
-/* Hidden by default; shown only when widget is both expanded and voted. */
-.pcp-rate-remove {
+/* Vertical flex wrapper for the value block (stars are separate). */
+.pcp-rate-vals {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+    vertical-align: middle;
+}
+
+/* Top row: mean + n (always visible, never changes). */
+.pcp-rate-row-top {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+}
+
+/* Bottom row: pink user vote + remove button (voted state only). */
+.pcp-rate-row-bot {
     display: none;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+}
+.pcp-rate[data-voted] .pcp-rate-row-bot { display: inline-flex; }
+
+/* User's own vote value (pink, smaller than aggregate mean). */
+.pcp-rate-mine {
+    color: #ff2d78;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Remove-vote button. */
+.pcp-rate-remove {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     background: none;
@@ -9482,29 +9514,13 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     color: rgba( 255, 255, 255, .40 );
     border-radius: 50%;
-    margin-left: 6px;
     transition: color .15s, background .15s;
     flex-shrink: 0;
-    vertical-align: middle;
-}
-.pcp-rate[data-voted] .pcp-rate-remove {
-    display: inline-flex;
-}
-.pcp-rate[data-voted] .pcp-rate-mine {
-    display: inline;
-}
-.pcp-rate-mine {
-    display: none;
-    color: #ff2d78;
-    font-size: 12px;
-    font-weight: 600;
-    margin-left: 4px;
-    vertical-align: middle;
 }
 .pcp-rate-remove:hover,
 .pcp-rate-remove:focus-visible {
@@ -9513,7 +9529,7 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     outline: none;
 }
 .pcp-rate-remove:active {
-    color: #ffe08a; /* amber flash on press */
+    color: #ffe08a;
 }
 
 @media ( prefers-reduced-motion: reduce ) {
