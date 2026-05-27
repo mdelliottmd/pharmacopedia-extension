@@ -38,6 +38,8 @@ class RateWidget {
             . '&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
         $h .= '</span>';
         $h .= '<span class="pcp-rate-num">' . htmlspecialchars( $num ) . '</span>';
+        $h .= '<button class="pcp-rate-remove" type="button"'
+            . ' aria-label="Remove your rating">&#x00D7;</button>';
         $h .= '</span>';
         return $h;
     }

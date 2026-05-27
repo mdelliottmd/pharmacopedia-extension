@@ -4038,6 +4038,22 @@ $( function () {
             'Your rating: ' + yourVal.toFixed( 1 ) + ' out of 5. Average: ' + aggVal.toFixed( 1 ) + '.' );
     }
 
+
+    // Aria-live announcer for screen readers (e.g. vote removal).
+    var _pcpAnnouncer = null;
+    function pcpAnnounce( msg ) {
+        if ( !_pcpAnnouncer ) {
+            _pcpAnnouncer = document.createElement( 'div' );
+            _pcpAnnouncer.setAttribute( 'aria-live', 'polite' );
+            _pcpAnnouncer.setAttribute( 'aria-atomic', 'true' );
+            _pcpAnnouncer.style.cssText = 'position:absolute;width:1px;height:1px;'
+                + 'overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
+            document.body.appendChild( _pcpAnnouncer );
+        }
+        _pcpAnnouncer.textContent = '';
+        setTimeout( function () { _pcpAnnouncer.textContent = msg; }, 50 );
+    }
+
     function attach( w ) {
         // scope: all .pcp-rate widgets (empire-wide hold-to-expand, locked 2026-05-26)
         if ( w.getAttribute( 'data-holdable' ) === '1' ) { return; }
@@ -4259,6 +4275,45 @@ $( function () {
         window.addEventListener( 'scroll', scrollCancel, { passive: true, capture: true } );
 
         var eid = w.getAttribute( 'data-element-id' );
+
+        // Remove-vote button: stopPropagation on pointerdown prevents the
+        // hold gesture from starting; click handler clears voted state and collapses.
+        ( function wireRemoveBtn() {
+            var removeBtn = w.querySelector( '.pcp-rate-remove' );
+            if ( !removeBtn ) { return; }
+            removeBtn.addEventListener( 'pointerdown', function ( e ) {
+                e.stopPropagation();
+            } );
+            removeBtn.addEventListener( 'click', function ( e ) {
+                e.stopPropagation();
+                if ( !w.hasAttribute( 'data-voted' ) ) { return; }
+                // Clear voted state
+                w.removeAttribute( 'data-voted' );
+                var mark = w.querySelector( '.pcp-rate-your-mark' );
+                if ( mark ) { mark.style.clipPath = ''; }
+                // Decrement n optimistically
+                var curN = parseInt( w.getAttribute( 'data-agg-n' ) || '0', 10 );
+                if ( curN > 0 ) {
+                    curN -= 1;
+                    w.setAttribute( 'data-agg-n', String( curN ) );
+                }
+                // Revert aria labels to unvoted form
+                var aggVal = parseFloat( w.getAttribute( 'data-agg' ) ) || 0;
+                var aggText = curN > 0
+                    ? ( aggVal.toFixed( 1 ) + ' out of 5' )
+                    : 'unrated';
+                w.setAttribute( 'aria-valuetext', aggText );
+                w.setAttribute( 'aria-valuenow',  aggVal.toFixed( 2 ) );
+                // Clear localStorage
+                if ( eid ) {
+                    try { localStorage.removeItem( 'pcp_rating_' + eid ); } catch ( lsE ) {}
+                }
+                // Screen-reader announcement
+                pcpAnnounce( 'Your rating has been removed.' );
+                // Collapse without committing a value
+                exitExpanded( null );
+            } );
+        }() );
 
         // Page-load voted state: prefer server-rendered data-user-rating on
         // .pcp-problem ancestor, fall back to localStorage (CommonUses + problems).

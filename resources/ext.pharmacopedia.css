@@ -9468,3 +9468,43 @@ body.pcp-skin-plants.pcp-skin-fungi .pcp-rate.pcp-rate-committed-flash { backgro
     display: none;
 }
 .pcp-rate[data-voted] .pcp-rate-your-mark { display: inline; }
+
+/* ===== Remove-vote button
+   (designer-claude 2026-05-26) ===== */
+
+/* Hidden by default; shown only when widget is both expanded and voted. */
+.pcp-rate-remove {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: rgba( 255, 255, 255, .40 );
+    border-radius: 50%;
+    margin-left: 6px;
+    transition: color .15s, background .15s;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+.pcp-rate.pcp-rate-expanded[data-voted] .pcp-rate-remove {
+    display: inline-flex;
+}
+.pcp-rate-remove:hover,
+.pcp-rate-remove:focus-visible {
+    color: #ff2d78;
+    background: rgba( 255, 45, 120, .12 );
+    outline: none;
+}
+.pcp-rate-remove:active {
+    color: #ffe08a; /* amber flash on press */
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+    .pcp-rate-remove { transition: none; }
+}
