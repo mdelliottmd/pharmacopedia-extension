@@ -4024,13 +4024,10 @@ $( function () {
         if ( mark ) {
             var starsEl = mark.parentElement;
             var totalW  = starsEl.getBoundingClientRect().width;
-            var LS      = 2;                                        // letter-spacing px
-            var W       = ( totalW - 4 * LS ) / 5;                 // char width
+            var LS      = 2;
+            var W       = ( totalW - 4 * LS ) / 5;
             var center  = ( yourVal - 0.5 ) * ( W + LS ) - LS / 2;
-            var fontPx  = parseFloat( getComputedStyle( starsEl ).fontSize );
-            var markW   = fontPx * 0.85 * ( 9.6 / 18.2 );          // derived, not measured
-            var leftPx  = center - markW / 2;
-            mark.style.left = Math.max( 0, leftPx ).toFixed( 2 ) + 'px';
+            mark.style.left = Math.max( 0, center ).toFixed( 2 ) + 'px';
         }
         w.setAttribute( 'data-voted', '1' );
         w.setAttribute( 'aria-label',
